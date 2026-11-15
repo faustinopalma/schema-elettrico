@@ -7,6 +7,29 @@ window.IMPIANTO_DATA = {
   },
   "plants": [
     {
+      "id": "IMP-INGRESSI",
+      "code": "POD",
+      "name": "0. Mappa Ingressi & Tutti i Contatori",
+      "shortName": "Tutti i Contatori (340 kW + Alloggi)",
+      "power": "4 POD Parti Comuni (340 kW) + 2 Sale Contatori Alloggi + FV",
+      "swatch": "ssc",
+      "shape": "round-hexagon",
+      "edgeStyle": "solid",
+      "icon": "grid",
+      "summary": "Panoramica completa di tutti i punti di ingresso e misura dell'energia: i 4 Contatori Parti Comuni nel Locale Contatori Principale al Piano Terra (80 + 50 + 50 + 160 = 340 kW), il Fotovoltaico sul tetto e le 2 Sale Contatori degli Appartamenti privati al Piano -1 (Torri A e B).",
+      "metrics": {
+        "Contatori Parti Comuni": "4 POD (P.Terra)",
+        "Contatori Appartamenti": "2 Sale (P.-1 A/B)",
+        "Multimetri di Quadro": "4× Vemer EV3M",
+        "Autoproduzione": "Fotovoltaico Tetto"
+      },
+      "flowGuide": {
+        "in": "Rete pubblica BT 400/230V sulla rete stradale pubblica (pozzetti 'E') + Pannelli Fotovoltaici sul tetto",
+        "process": "Nel Locale Contatori Principale al Piano Terra 4 Contatori misurano separatamente le Parti Comuni; i contatori privati degli alloggi sono invece in 2 locali dedicati al Piano -1 (fuori perimetro schemi parti comuni)",
+        "out": "Alimentano i 4 rami principali indipendenti. Fai doppio clic su qualunque quadro per entrare nella Mappa di Dettaglio dei suoi componenti interni!"
+      }
+    },
+    {
       "id": "IMP-SSC",
       "code": "SSC",
       "name": "1. Servizi Supercondominiali & Centrali",
@@ -300,7 +323,93 @@ window.IMPIANTO_DATA = {
       "roleType": "source",
       "roleLabel": "⚡ INGRESSO RETE 80 kW",
       "shortFunc": "Consegna energia dalla rete pubblica per autorimessa, portineria, luci esterne, centrali e antincendio.",
-      "emergencyNote": "Resta sempre in tensione dalla rete pubblica; è l'origine primaria da cui dipende anche la pompa antincendio."
+      "emergencyNote": "Resta sempre in tensione dalla rete pubblica; è l'origine primaria da cui dipende anche la pompa antincendio.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "POD-SSC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro POD-SSC",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Linea di alimentazione a monte",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Linea di alimentazione a monte"
+            }
+          },
+          {
+            "id": "POD-SSC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Apparecchio Generale",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Apparecchio Generale"
+            }
+          },
+          {
+            "id": "POD-SSC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale POD-SSC",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sistema di distribuzione interno",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sistema di distribuzione interno"
+            }
+          },
+          {
+            "id": "POD-SSC__C_0",
+            "code": "MONT-SSC",
+            "label": "Cavo FG16OM16 3×(1×150)+1×150N mm² verso Ripartitore 250A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG Ente Distributore  |  Cavo: 3×150 + 1×150N mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "MONT-SSC",
+              "Apparecchio di Protezione": "DG Ente Distributore",
+              "Cavo in Uscita": "3×150 + 1×150N mm²"
+            },
+            "datasheetIds": [
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "POD-SSC__e_in",
+            "source": "POD-SSC__IN",
+            "target": "POD-SSC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "POD-SSC__e_bus",
+            "source": "POD-SSC__MAIN",
+            "target": "POD-SSC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "POD-SSC__ec_0",
+            "source": "POD-SSC__BUS",
+            "target": "POD-SSC__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "MONT-SSC"
+          }
+        ]
+      }
     },
     {
       "id": "RIP-250",
@@ -358,7 +467,120 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🔀 SNODO A MONTE SGANCIO",
       "shortFunc": "Sdoppia i 80 kW subito dopo il contatore: separa la linea antincendio prima dell'interruttore generale.",
-      "emergencyNote": "Punto vitale: permette di togliere corrente a tutto il supercondominio lasciando viva la pompa antincendio."
+      "emergencyNote": "Punto vitale: permette di togliere corrente a tutto il supercondominio lasciando viva la pompa antincendio.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "RIP-250__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro RIP-250A",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da POD-SSC (80 kW) · FG16OM16 3×150+150N",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da POD-SSC (80 kW) · FG16OM16 3×150+150N"
+            }
+          },
+          {
+            "id": "RIP-250__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Sbarre Rame 4P 250A · Icw 15 kA · IP55 Classe II",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Sbarre Rame 4P 250A · Icw 15 kA · IP55 Classe II"
+            }
+          },
+          {
+            "id": "RIP-250__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale RIP-250A",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "400/230V 3F+N 50Hz (Nodo a monte sgancio VVF)",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "400/230V 3F+N 50Hz (Nodo a monte sgancio VVF)"
+            }
+          },
+          {
+            "id": "RIP-250__C_0",
+            "code": "USC-VVF",
+            "label": "Derivazione preferenziale Quadro Pompa Antincendio (QE.PA)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: Diretta su sbarre (protetta a valle da QE.PA)  |  Cavo: FTG18OM16 3×16 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "USC-VVF",
+              "Apparecchio di Protezione": "Diretta su sbarre (protetta a valle da QE.PA)",
+              "Cavo in Uscita": "FTG18OM16 3×16 mm²"
+            },
+            "datasheetIds": [
+              "DS-CAVO-FTG18",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "RIP-250__C_1",
+            "code": "USC-SSC",
+            "label": "Alimentazione Avanquadro Servizi Supercondominiali (AVSSC)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: Diretta su sbarre (protetta a valle da AVSSC Q1)  |  Cavo: FG16OM16 3×150+150N mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "USC-SSC",
+              "Apparecchio di Protezione": "Diretta su sbarre (protetta a valle da AVSSC Q1)",
+              "Cavo in Uscita": "FG16OM16 3×150+150N mm²"
+            },
+            "datasheetIds": [
+              "DS-CAVO-FTG18",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "RIP-250__e_in",
+            "source": "RIP-250__IN",
+            "target": "RIP-250__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "RIP-250__e_bus",
+            "source": "RIP-250__MAIN",
+            "target": "RIP-250__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "RIP-250__ec_0",
+            "source": "RIP-250__BUS",
+            "target": "RIP-250__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "USC-VVF"
+          },
+          {
+            "id": "RIP-250__ec_1",
+            "source": "RIP-250__BUS",
+            "target": "RIP-250__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "USC-SSC"
+          }
+        ]
+      }
     },
     {
       "id": "AVSSC",
@@ -498,7 +720,315 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🛡️ PROTEZIONE GENERALE",
       "shortFunc": "Protegge il montante da 250A verso QE.SSC e alimenta direttamente Portineria, Cancello, Irrigazione e Ausiliari VVF.",
-      "emergencyNote": "Dotato di bobina di sgancio (SOR): se comandato in emergenza apre tutto a valle (inclusi Portineria e Ausiliari PA)."
+      "emergencyNote": "Dotato di bobina di sgancio (SOR): se comandato in emergenza apre tutto a valle (inclusi Portineria e Ausiliari PA).",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "AVSSC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro AVSSC",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da RIP-250A · FG16OM16 3×150+150N mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da RIP-250A · FG16OM16 3×150+150N mm²"
+            }
+          },
+          {
+            "id": "AVSSC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: ABB XT3N 250 TMD (175÷250A, 36kA) + Diff. Dossena Tipo B + Bobina SOR",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: ABB XT3N 250 TMD (175÷250A, 36kA) + Diff. Dossena Tipo B + Bobina SOR"
+            }
+          },
+          {
+            "id": "AVSSC__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "AVSSC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale AVSSC",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Cablaggio unipolare FS17 95 mm² · In 250A",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Cablaggio unipolare FS17 95 mm² · In 250A"
+            }
+          },
+          {
+            "id": "AVSSC__C_0",
+            "code": "Q2",
+            "label": "Montante Quadro Servizi Supercondominiali (QE.SSC)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT3N 250 4P TMD (36 kA)  |  Cavo: FG16OM16 3×150+150N+75PE (185 su QE.SSC)",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2",
+              "Apparecchio di Protezione": "ABB XT3N 250 4P TMD (36 kA)",
+              "Cavo in Uscita": "FG16OM16 3×150+150N+75PE (185 su QE.SSC)"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_1",
+            "code": "Q3 + F3",
+            "label": "Luce ordinaria + Luce emergenza Locale Contatori",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A + Fus. 2A gG  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3 + F3",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A + Fus. 2A gG",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_2",
+            "code": "Q4",
+            "label": "Prese di servizio Locale Contatori",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A (6 kA)  |  Cavo: FG16OM16 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A (6 kA)",
+              "Cavo in Uscita": "FG16OM16 3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_3",
+            "code": "Q5",
+            "label": "Quadro bordo macchina Cancello Carraio Motorizzato",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_4",
+            "code": "Q6",
+            "label": "Alimentazione Impianto Irrigazione aree verdi",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_5",
+            "code": "Q7",
+            "label": "Linea Sottoquadro Portineria (QE-POR)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S202 C40A 2P (6 kA)  |  Cavo: FG16OM16 3G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q7",
+              "Apparecchio di Protezione": "ABB S202 C40A 2P (6 kA)",
+              "Cavo in Uscita": "FG16OM16 3G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_6",
+            "code": "Q8",
+            "label": "Partenza di Scorta",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSSC__C_7",
+            "code": "Q9",
+            "label": "Quadro Servizi Ausiliari Pompe Antincendio",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204P C32A (15 kA) + Diff. DDA204 A 0,3A  |  Cavo: FG16OM16 5G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9",
+              "Apparecchio di Protezione": "ABB S204P C32A (15 kA) + Diff. DDA204 A 0,3A",
+              "Cavo in Uscita": "FG16OM16 5G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "AVSSC__e_in",
+            "source": "AVSSC__IN",
+            "target": "AVSSC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "AVSSC__e_der",
+            "source": "AVSSC__DER",
+            "target": "AVSSC__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "AVSSC__e_bus",
+            "source": "AVSSC__MAIN",
+            "target": "AVSSC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "AVSSC__ec_0",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2"
+          },
+          {
+            "id": "AVSSC__ec_1",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3 + F3"
+          },
+          {
+            "id": "AVSSC__ec_2",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4"
+          },
+          {
+            "id": "AVSSC__ec_3",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5"
+          },
+          {
+            "id": "AVSSC__ec_4",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6"
+          },
+          {
+            "id": "AVSSC__ec_5",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q7"
+          },
+          {
+            "id": "AVSSC__ec_6",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8"
+          },
+          {
+            "id": "AVSSC__ec_7",
+            "source": "AVSSC__BUS",
+            "target": "AVSSC__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9"
+          }
+        ]
+      }
     },
     {
       "id": "QEPOR",
@@ -656,7 +1186,387 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ SOTTOQUADRO LOCALE",
       "shortFunc": "Alimenta la Portineria, il rack dati, la pompa acque piovane, le luci esterne e il pannello allarmi antincendio.",
-      "emergencyNote": "In caso di blackout si accendono le lampade di emergenza autonome; il pannello allarmi PA passa su batteria interna."
+      "emergencyNote": "In caso di blackout si accendono le lampade di emergenza autonome; il pannello allarmi PA passa su batteria interna.",
+      "roomGroup": "Portineria & Ingressi (P.T)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEPOR__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE-POR",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da AVSSC (Q7) · FG16OM16 3G10 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da AVSSC (Q7) · FG16OM16 3G10 mm²"
+            }
+          },
+          {
+            "id": "QEPOR__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: BTicino FA81NC40 (MT 1P+N C40A 4,5 kA) + Ripartitore RP1 125A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: BTicino FA81NC40 (MT 1P+N C40A 4,5 kA) + Ripartitore RP1 125A"
+            }
+          },
+          {
+            "id": "QEPOR__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE-POR",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Distribuzione monofase 230Vac 50Hz",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Distribuzione monofase 230Vac 50Hz"
+            }
+          },
+          {
+            "id": "QEPOR__C_0",
+            "code": "Q2",
+            "label": "Prese 01 locale Portineria",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: FG16OM16 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_1",
+            "code": "Q3",
+            "label": "Scaldasalviette elettrico servizio igienico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_2",
+            "code": "Q4",
+            "label": "Boiler elettrico produzione ACS (con sez. locale 2P 16A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_3",
+            "code": "Q5 + F5",
+            "label": "Luce ordinaria + Emergenza Portineria e locali annessi",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A gG  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 + F5",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A gG",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_4",
+            "code": "Q6",
+            "label": "Unità esterna climatizzazione Portineria (sez. 2P 16A IP65)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: FG16OM16 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_5",
+            "code": "Q7",
+            "label": "Quadro Ripetizione Allarmi Pompe Antincendio",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q7",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_6",
+            "code": "Q8",
+            "label": "Quadro Pompa Vasca Raccolta Recupero Acque Piovane",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GN8813F16 (C16 30mA Tipo F 6kA)  |  Cavo: FG16OM16 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8",
+              "Apparecchio di Protezione": "BTicino GN8813F16 (C16 30mA Tipo F 6kA)",
+              "Cavo in Uscita": "FG16OM16 3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_7",
+            "code": "Q9",
+            "label": "Alimentazione Armadio Dati / Rack TLC",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_8",
+            "code": "Q10",
+            "label": "Predisposizione Cancello Motorizzato",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q10",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_9",
+            "code": "Q11 + OR11",
+            "label": "Luci Esterne Portineria (Orologio astronomico Vemer + Contattore K11)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + FT1A1N230M 25A  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q11 + OR11",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + FT1A1N230M 25A",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPOR__C_10",
+            "code": "Q12–Q13",
+            "label": "2× Circuiti di Scorta (10A e 16A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + GA8813A16  |  Cavo: Morsetti interni",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q12–Q13",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + GA8813A16",
+              "Cavo in Uscita": "Morsetti interni"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N",
+              "DS-BTICINO-FT1A",
+              "DS-VEMER-AST"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEPOR__e_in",
+            "source": "QEPOR__IN",
+            "target": "QEPOR__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEPOR__e_bus",
+            "source": "QEPOR__MAIN",
+            "target": "QEPOR__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEPOR__ec_0",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2"
+          },
+          {
+            "id": "QEPOR__ec_1",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QEPOR__ec_2",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4"
+          },
+          {
+            "id": "QEPOR__ec_3",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 + F5"
+          },
+          {
+            "id": "QEPOR__ec_4",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6"
+          },
+          {
+            "id": "QEPOR__ec_5",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q7"
+          },
+          {
+            "id": "QEPOR__ec_6",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8"
+          },
+          {
+            "id": "QEPOR__ec_7",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9"
+          },
+          {
+            "id": "QEPOR__ec_8",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_8",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q10"
+          },
+          {
+            "id": "QEPOR__ec_9",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_9",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q11 + OR11"
+          },
+          {
+            "id": "QEPOR__ec_10",
+            "source": "QEPOR__BUS",
+            "target": "QEPOR__C_10",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q12–Q13"
+          }
+        ]
+      }
     },
     {
       "id": "QESSC",
@@ -850,7 +1760,540 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO PRINCIPALE",
       "shortFunc": "Cuore distributivo: alimenta i 152 Box, corselli, rampa, luci vialetti, i 2 UPS e le 3 Centrali (-1 e -2).",
-      "emergencyNote": "Se si preme lo sgancio VVF Box, il relè K1 (24V) apre solo Q5 (Locale Pompe), Q6 (Box) e Q7 (Portoni EI); Centrali Termica e Idrica restano attive."
+      "emergencyNote": "Se si preme lo sgancio VVF Box, il relè K1 (24V) apre solo Q5 (Locale Pompe), Q6 (Box) e Q7 (Portoni EI); Centrali Termica e Idrica restano attive.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QESSC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.SSC",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da AVSSC (Q2) · FG16OM16 3×185+185N+95PE mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da AVSSC (Q2) · FG16OM16 3×185+185N+95PE mm²"
+            }
+          },
+          {
+            "id": "QESSC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB XT3D 400A 4P + SPD DEHN Tipo 1+2 (Fus. 125A) + Vemer EV3M",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB XT3D 400A 4P + SPD DEHN Tipo 1+2 (Fus. 125A) + Vemer EV3M"
+            }
+          },
+          {
+            "id": "QESSC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.SSC",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sbarra Rame 25×5 mm + Flexibar · In 250A · Icw 15 kA",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sbarra Rame 25×5 mm + Flexibar · In 250A · Icw 15 kA"
+            }
+          },
+          {
+            "id": "QESSC__SPD",
+            "code": "SC1 · SPD DEHN",
+            "label": "Scaricatore Combinato Fulmini Tipo 1+2 (DEHN 941 315)",
+            "roleType": "control",
+            "roleLabel": "⚡ SCARICATORE SOVRATENSIONI",
+            "shortFunc": "In esercizio normale è isolato; se arriva una sovratensione la devia istantaneamente sulla Barra di Terra PE.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Modello": "DEHNshield DSH TT 255 FM (50 kA 10/350 µs)"
+            },
+            "datasheetIds": [
+              "DS-DEHN-941315"
+            ]
+          },
+          {
+            "id": "QESSC__PE",
+            "code": "BARRA TERRA PE",
+            "label": "Barra Collettrice di Terra del Quadro (PE)",
+            "roleType": "load",
+            "roleLabel": "⏚ RICEVE SCARICHE A TERRA",
+            "shortFunc": "Raccoglie la scarica dello scaricatore SPD e i conduttori giallo/verdi delle linee inviandoli all'anello di terra.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Collegamento": "Verso Collettore e Anello Terra 50 mm²"
+            }
+          },
+          {
+            "id": "QESSC__M1",
+            "code": "M1 · CONTATORE INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "roleType": "control",
+            "roleLabel": "📊 STRUMENTO DI MISURA",
+            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+            },
+            "datasheetIds": [
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESSC__C_1",
+            "code": "Q2",
+            "label": "Batteria di Rifasamento Automatico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 3P TMD (70–100A, 18kA)  |  Cavo: FG16OM16 4G35 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2",
+              "Apparecchio di Protezione": "ABB XT1B 160 3P TMD (70–100A, 18kA)",
+              "Cavo in Uscita": "FG16OM16 4G35 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_2",
+            "code": "Q3",
+            "label": "Montante Sottoquadro Centrale Tecnologica (QE.CT — Piano -2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 4P TMD (56–80A, 18kA)  |  Cavo: FG16OM16 5G16 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "ABB XT1B 160 4P TMD (56–80A, 18kA)",
+              "Cavo in Uscita": "FG16OM16 5G16 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_3",
+            "code": "Q4",
+            "label": "Montante Sottoquadro Centrale Idrica (QE.CI — Piano -1)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 4P TMD (56–80A, 18kA)  |  Cavo: FG16OM16 5G16 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4",
+              "Apparecchio di Protezione": "ABB XT1B 160 4P TMD (56–80A, 18kA)",
+              "Cavo in Uscita": "FG16OM16 5G16 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_4",
+            "code": "Q5 [UVR]",
+            "label": "Montante Sottoquadro Locale Pompe (QE.LP — Piano -2) · Sotto sgancio K1 24Vac",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: ABB XT3N 250 4P TMD (112–160A, 36kA) + UVR 24V  |  Cavo: FG16OM16 3×120+120N+70PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 [UVR]",
+              "Apparecchio di Protezione": "ABB XT3N 250 4P TMD (112–160A, 36kA) + UVR 24V",
+              "Cavo in Uscita": "FG16OM16 3×120+120N+70PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_5",
+            "code": "Q6 [UVR]",
+            "label": "Generale Sezione Autorimessa (alimenta ripartitore RP1 125A) · Sotto sgancio K1 24Vac",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: ABB S204P-C63 4P (15 kA) + UVR S2C-UA 24Vac  |  Cavo: FS17 16 mm² interno",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 [UVR]",
+              "Apparecchio di Protezione": "ABB S204P-C63 4P (15 kA) + UVR S2C-UA 24Vac",
+              "Cavo in Uscita": "FS17 16 mm² interno"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_6",
+            "code": "Q6.1 / Q6.2",
+            "label": "2× Elettropompe Acque Meteoriche Autorimessa PS1 e PS2",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB S204P-D20 (25 kA) + Diff. 0,3A Tipo A  |  Cavo: 2× FG16OM16 5G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6.1 / Q6.2",
+              "Apparecchio di Protezione": "2× ABB S204P-D20 (25 kA) + Diff. 0,3A Tipo A",
+              "Cavo in Uscita": "2× FG16OM16 5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_7",
+            "code": "Q6.3 – Q6.6",
+            "label": "4× Dorsali Prese/Luce Interno 152 Box (2 circuiti Piano -1 + 2 circuiti Piano -2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 4× ABB S204P-C16 (25 kA) + Diff. 30mA Tipo A  |  Cavo: 4× FG16OM16 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6.3 – Q6.6",
+              "Apparecchio di Protezione": "4× ABB S204P-C16 (25 kA) + Diff. 30mA Tipo A",
+              "Cavo in Uscita": "4× FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_8",
+            "code": "Q6.7",
+            "label": "Prese di servizio parti comuni Autorimessa",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A  |  Cavo: FG16OM16 3G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6.7",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 3G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_9",
+            "code": "Q6.8 (.1/.2)",
+            "label": "Illuminazione Rampa Box (Notturna astronomica, Biregime sett., Emergenza)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A + 2× SN201 C10 + Contattori EN20  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6.8 (.1/.2)",
+              "Apparecchio di Protezione": "ABB DS201 C16A + 2× SN201 C10 + Contattori EN20",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_10",
+            "code": "Q6.9 / Q6.10",
+            "label": "Illuminazione Corselli Box Piano -1 e Piano -2 (Temporizzata sensori, Notturna, EM)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB DS201 C16A + 4× SN201 C10 + Timer E232  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6.9 / Q6.10",
+              "Apparecchio di Protezione": "2× ABB DS201 C16A + 4× SN201 C10 + Timer E232",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_11",
+            "code": "Q6.11 → Q7 [UVR]",
+            "label": "Ingresso/Uscita UPS 1 (1000VA) Alimentazione Portoni Tagliafuoco (mors. XUPS)",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: Q6.11 DS201 C10A → UPS1 → Q7 S202 C10A + UVR 24V  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6.11 → Q7 [UVR]",
+              "Apparecchio di Protezione": "Q6.11 DS201 C10A → UPS1 → Q7 S202 C10A + UVR 24V",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_12",
+            "code": "Q8 / Q9 / Q10",
+            "label": "Luce Notturna e Biregime Percorsi Pedonali P.Terra ed Area Esterna (OR8/OR9)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 3× ABB S201Na C10 + Diff. 30mA + Contattori EN20/ESB20  |  Cavo: FG16OM16 3G4 / 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8 / Q9 / Q10",
+              "Apparecchio di Protezione": "3× ABB S201Na C10 + Diff. 30mA + Contattori EN20/ESB20",
+              "Cavo in Uscita": "FG16OM16 3G4 / 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_13",
+            "code": "Q11",
+            "label": "Alimentazione generale Impianto Videocitofono",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S201Na C10 + Diff. 30mA  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q11",
+              "Apparecchio di Protezione": "ABB S201Na C10 + Diff. 30mA",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_14",
+            "code": "Q14 + T14 + K1",
+            "label": "Ingresso/Uscita UPS 2 (2000VA) + Trasf. 230/24Vac 63VA Circuito Sgancio Autorimessa",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: ABB S201Na C10 30mA + Fus. F14/F3 4A gG  |  Cavo: FG16OM16 3G2,5 / 2×1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q14 + T14 + K1",
+              "Apparecchio di Protezione": "ABB S201Na C10 30mA + Fus. F14/F3 4A gG",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 2×1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QESSC__e_in",
+            "source": "QESSC__IN",
+            "target": "QESSC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QESSC__e_bus",
+            "source": "QESSC__MAIN",
+            "target": "QESSC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QESSC__e_spd1",
+            "source": "QESSC__BUS",
+            "target": "QESSC__SPD",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Sorveglianza",
+            "label": "Derivazione sbarra"
+          },
+          {
+            "id": "QESSC__e_spd2",
+            "source": "QESSC__SPD",
+            "target": "QESSC__PE",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Scarico a Terra",
+            "label": "Scarica verso Terra PE"
+          },
+          {
+            "id": "QESSC__e_m1",
+            "source": "QESSC__BUS",
+            "target": "QESSC__M1",
+            "edgeType": "tlc_signal",
+            "flowCategory": "📊 Misura V/I",
+            "label": "Segnali 3 TA + Tensione"
+          },
+          {
+            "id": "QESSC__ec_1",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2"
+          },
+          {
+            "id": "QESSC__ec_2",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QESSC__ec_3",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4"
+          },
+          {
+            "id": "QESSC__ec_4",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 [UVR]"
+          },
+          {
+            "id": "QESSC__ec_5",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 [UVR]"
+          },
+          {
+            "id": "QESSC__ec_6",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.1 / Q6.2"
+          },
+          {
+            "id": "QESSC__ec_7",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.3 – Q6.6"
+          },
+          {
+            "id": "QESSC__ec_8",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_8",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.7"
+          },
+          {
+            "id": "QESSC__ec_9",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_9",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.8 (.1/.2)"
+          },
+          {
+            "id": "QESSC__ec_10",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_10",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.9 / Q6.10"
+          },
+          {
+            "id": "QESSC__ec_11",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_11",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.11 → Q7 [UVR]"
+          },
+          {
+            "id": "QESSC__ec_12",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_12",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8 / Q9 / Q10"
+          },
+          {
+            "id": "QESSC__ec_13",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_13",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q11"
+          },
+          {
+            "id": "QESSC__ec_14",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_14",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q14 + T14 + K1"
+          }
+        ]
+      }
     },
     {
       "id": "QECT",
@@ -1018,7 +2461,516 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO CENTRALE (-2)",
       "shortFunc": "Alimenta e protegge le 16 pompe di circolazione caldo/freddo/ACS, il trattamento acqua e il quadro BMS QE-REG.",
-      "emergencyNote": "Non viene disalimentato dallo sgancio selettivo dell'autorimessa; invia 23 segnali di blocco interruttori al BMS."
+      "emergencyNote": "Non viene disalimentato dallo sgancio selettivo dell'autorimessa; invia 23 segnali di blocco interruttori al BMS.",
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QECT__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.CT",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QE.SSC (Q3) · FG16OM16 5G16 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QE.SSC (Q3) · FG16OM16 5G16 mm²"
+            }
+          },
+          {
+            "id": "QECT__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB XT1D 160A 4P + Ripartitore RP1 160A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB XT1D 160A 4P + Ripartitore RP1 160A"
+            }
+          },
+          {
+            "id": "QECT__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.CT",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sbarra Rame 20×5 mm · In 100A · Icw 10 kA",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sbarra Rame 20×5 mm · In 100A · Icw 10 kA"
+            }
+          },
+          {
+            "id": "QECT__SPD",
+            "code": "SC1 · SPD DEHN",
+            "label": "Scaricatore Combinato Fulmini Tipo 1+2 (DEHN 941 315)",
+            "roleType": "control",
+            "roleLabel": "⚡ SCARICATORE SOVRATENSIONI",
+            "shortFunc": "In esercizio normale è isolato; se arriva una sovratensione la devia istantaneamente sulla Barra di Terra PE.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Modello": "DEHNshield DSH TT 255 FM (50 kA 10/350 µs)"
+            },
+            "datasheetIds": [
+              "DS-DEHN-941315"
+            ]
+          },
+          {
+            "id": "QECT__PE",
+            "code": "BARRA TERRA PE",
+            "label": "Barra Collettrice di Terra del Quadro (PE)",
+            "roleType": "load",
+            "roleLabel": "⏚ RICEVE SCARICHE A TERRA",
+            "shortFunc": "Raccoglie la scarica dello scaricatore SPD e i conduttori giallo/verdi delle linee inviandoli all'anello di terra.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Collegamento": "Verso Collettore e Anello Terra 50 mm²"
+            }
+          },
+          {
+            "id": "QECT__C_0",
+            "code": "Q2 + F2",
+            "label": "Luce ordinaria + Luce emergenza Centrale Tecnologica",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA + Fus. 2A gG  |  Cavo: FG16OM16 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 + F2",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA + Fus. 2A gG",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_1",
+            "code": "Q3",
+            "label": "Gruppo Prese di Servizio CEE interbloccate 400V/230V 16A IP66",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C16 + Diff. 30mA Tipo A (10 kA)  |  Cavo: FG16OM16 5G4",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "ABB S204M C16 + Diff. 30mA Tipo A (10 kA)",
+              "Cavo in Uscita": "FG16OM16 5G4"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_2",
+            "code": "Q4 (.1/.2)",
+            "label": "Gruppo Pompe gemellari P.01A/1 e P.01B/1 — Accumulatore/Scambiatore 1",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DS201 C16 0,3A + 2× SN201 C10A  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4 (.1/.2)",
+              "Apparecchio di Protezione": "DS201 C16 0,3A + 2× SN201 C10A",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_3",
+            "code": "Q5 (.1/.2)",
+            "label": "Gruppo Pompe gemellari P.01A/2 e P.01B/2 — Accumulatore/Scambiatore 2",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DS201 C16 0,3A + 2× SN201 C10A  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 (.1/.2)",
+              "Apparecchio di Protezione": "DS201 C16 0,3A + 2× SN201 C10A",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_4",
+            "code": "Q6 / Q7",
+            "label": "Pompe P.02 e P.03 — Ricircolo ACS Alta e Bassa Pressione",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB DS201 C10A 0,3A Tipo A  |  Cavo: 2× 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 / Q7",
+              "Apparecchio di Protezione": "2× ABB DS201 C10A 0,3A Tipo A",
+              "Cavo in Uscita": "2× 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_5",
+            "code": "Q8 (.1/.2)",
+            "label": "Gruppo Pompe trifase P.04A e P.04B — Circuito primario PC1-SC1",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8 (.1/.2)",
+              "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
+              "Cavo in Uscita": "5G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_6",
+            "code": "Q9 (.1/.2)",
+            "label": "Gruppo Pompe trifase P.05A e P.05B — Circuito PC1 - Volano Termico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9 (.1/.2)",
+              "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
+              "Cavo in Uscita": "5G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_7",
+            "code": "Q10 (.1/.2)",
+            "label": "Gruppo Pompe trifase P.06A e P.06B — Climatizzazione Locali Condom. Torre B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q10 (.1/.2)",
+              "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
+              "Cavo in Uscita": "5G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_8",
+            "code": "Q11 (.2/.3)",
+            "label": "Gruppo Pompe trifase P.07A e P.07B — Climatizzazione Bassa Pressione",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25  |  Cavo: 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q11 (.2/.3)",
+              "Apparecchio di Protezione": "S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25",
+              "Cavo in Uscita": "5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_9",
+            "code": "Q12 (.1/.2)",
+            "label": "Gruppo Pompe trifase P.08A e P.08B — Circuito primario Alta Pressione",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q12 (.1/.2)",
+              "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
+              "Cavo in Uscita": "5G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_10",
+            "code": "Q13 (.2/.3)",
+            "label": "Gruppo Pompe trifase P.09A e P.09B — Climatizzazione Media/Alta Pressione",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25  |  Cavo: 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q13 (.2/.3)",
+              "Apparecchio di Protezione": "S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25",
+              "Cavo in Uscita": "5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_11",
+            "code": "Q14",
+            "label": "Quadro bordo macchina Elettropompa Meteo PS3",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q14",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_12",
+            "code": "Q15 / Q16",
+            "label": "Trattamento Acque T3–T4, Antilegionella e Addolcitore",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q15 / Q16",
+              "Apparecchio di Protezione": "2× ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_13",
+            "code": "Q17–Q20",
+            "label": "Contabilizzazione M-Bus, Regolatori 230Vac, Regolatore Cascata e Supervisione (QE-REG)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 4× ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 / 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q17–Q20",
+              "Apparecchio di Protezione": "4× ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "3G2,5 / 3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QECT__C_14",
+            "code": "Q21–Q23",
+            "label": "2× Scorte (16A, 10A) + Circuito Ausiliari Quadro 230Vac",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A / C10A 30mA  |  Cavo: Interno",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q21–Q23",
+              "Apparecchio di Protezione": "ABB DS201 C16A / C10A 30mA",
+              "Cavo in Uscita": "Interno"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QECT__e_in",
+            "source": "QECT__IN",
+            "target": "QECT__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QECT__e_bus",
+            "source": "QECT__MAIN",
+            "target": "QECT__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QECT__e_spd1",
+            "source": "QECT__BUS",
+            "target": "QECT__SPD",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Sorveglianza",
+            "label": "Derivazione sbarra"
+          },
+          {
+            "id": "QECT__e_spd2",
+            "source": "QECT__SPD",
+            "target": "QECT__PE",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Scarico a Terra",
+            "label": "Scarica verso Terra PE"
+          },
+          {
+            "id": "QECT__ec_0",
+            "source": "QECT__BUS",
+            "target": "QECT__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 + F2"
+          },
+          {
+            "id": "QECT__ec_1",
+            "source": "QECT__BUS",
+            "target": "QECT__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QECT__ec_2",
+            "source": "QECT__BUS",
+            "target": "QECT__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4 (.1/.2)"
+          },
+          {
+            "id": "QECT__ec_3",
+            "source": "QECT__BUS",
+            "target": "QECT__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 (.1/.2)"
+          },
+          {
+            "id": "QECT__ec_4",
+            "source": "QECT__BUS",
+            "target": "QECT__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 / Q7"
+          },
+          {
+            "id": "QECT__ec_5",
+            "source": "QECT__BUS",
+            "target": "QECT__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8 (.1/.2)"
+          },
+          {
+            "id": "QECT__ec_6",
+            "source": "QECT__BUS",
+            "target": "QECT__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9 (.1/.2)"
+          },
+          {
+            "id": "QECT__ec_7",
+            "source": "QECT__BUS",
+            "target": "QECT__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q10 (.1/.2)"
+          },
+          {
+            "id": "QECT__ec_8",
+            "source": "QECT__BUS",
+            "target": "QECT__C_8",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q11 (.2/.3)"
+          },
+          {
+            "id": "QECT__ec_9",
+            "source": "QECT__BUS",
+            "target": "QECT__C_9",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q12 (.1/.2)"
+          },
+          {
+            "id": "QECT__ec_10",
+            "source": "QECT__BUS",
+            "target": "QECT__C_10",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q13 (.2/.3)"
+          },
+          {
+            "id": "QECT__ec_11",
+            "source": "QECT__BUS",
+            "target": "QECT__C_11",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q14"
+          },
+          {
+            "id": "QECT__ec_12",
+            "source": "QECT__BUS",
+            "target": "QECT__C_12",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q15 / Q16"
+          },
+          {
+            "id": "QECT__ec_13",
+            "source": "QECT__BUS",
+            "target": "QECT__C_13",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q17–Q20"
+          },
+          {
+            "id": "QECT__ec_14",
+            "source": "QECT__BUS",
+            "target": "QECT__C_14",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q21–Q23"
+          }
+        ]
+      }
     },
     {
       "id": "QECI",
@@ -1137,7 +3089,276 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO IDRICO (-1)",
       "shortFunc": "Alimenta le pompe autoclave GP1 e GP2 che spingono l'acqua potabile fino al 14° piano delle due torri.",
-      "emergencyNote": "Resta attivo in caso di sgancio autorimessa; invia allarmi cumulativi di anomalia idrica al supervisore BMS."
+      "emergencyNote": "Resta attivo in caso di sgancio autorimessa; invia allarmi cumulativi di anomalia idrica al supervisore BMS.",
+      "roomGroup": "Centrale Idrica (Piano -1)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QECI__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.CI",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QE.SSC (Q4) · FG16OM16 5G16 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QE.SSC (Q4) · FG16OM16 5G16 mm²"
+            }
+          },
+          {
+            "id": "QECI__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB XT1D 160A 4P + Ripartitore RP1 160A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB XT1D 160A 4P + Ripartitore RP1 160A"
+            }
+          },
+          {
+            "id": "QECI__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.CI",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sbarra Rame 12×4 mm · In 100A · Icw 10 kA",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sbarra Rame 12×4 mm · In 100A · Icw 10 kA"
+            }
+          },
+          {
+            "id": "QECI__C_0",
+            "code": "Q2 + F2",
+            "label": "Luce ordinaria + Luce emergenza Centrale Idrica",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA + Fus. 2A gG  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 + F2",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA + Fus. 2A gG",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_1",
+            "code": "Q3",
+            "label": "Prese di servizio CEE 400V/230V IP66 + prese civili IP55",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C16 + Diff. 30mA Tipo A  |  Cavo: 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "ABB S204M C16 + Diff. 30mA Tipo A",
+              "Cavo in Uscita": "5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_2",
+            "code": "Q4 / Q4.1",
+            "label": "Quadro bordo macchina Gruppo Pressurizzazione Idrica GP1",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A  |  Cavo: 5G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4 / Q4.1",
+              "Apparecchio di Protezione": "ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A",
+              "Cavo in Uscita": "5G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_3",
+            "code": "Q5 / Q5.1",
+            "label": "Quadro bordo macchina Gruppo Pressurizzazione Idrica GP2",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A  |  Cavo: 5G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 / Q5.1",
+              "Apparecchio di Protezione": "ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A",
+              "Cavo in Uscita": "5G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_4",
+            "code": "Q6 / Q7",
+            "label": "2× Quadri Pre-Autoclave con compressore e valvola ritegno 01 e 02",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB S204M C16 + Diff. DDA204 A 0,3A  |  Cavo: 2× 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 / Q7",
+              "Apparecchio di Protezione": "2× ABB S204M C16 + Diff. DDA204 A 0,3A",
+              "Cavo in Uscita": "2× 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_5",
+            "code": "Q8",
+            "label": "Antilegionella, trattamento acque e addolcitore (T2–T5)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_6",
+            "code": "Q9",
+            "label": "Regolatori 230Vac Sistema M-Bus Termico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9",
+              "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QECI__C_7",
+            "code": "Q10–Q12",
+            "label": "2× Scorte (16A, 10A — dispon. inverter irrigazione) + Ausiliari 230Vac",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A / C10A 30mA  |  Cavo: Interno",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q10–Q12",
+              "Apparecchio di Protezione": "ABB DS201 C16A / C10A 30mA",
+              "Cavo in Uscita": "Interno"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-ABB-S200"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QECI__e_in",
+            "source": "QECI__IN",
+            "target": "QECI__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QECI__e_bus",
+            "source": "QECI__MAIN",
+            "target": "QECI__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QECI__ec_0",
+            "source": "QECI__BUS",
+            "target": "QECI__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 + F2"
+          },
+          {
+            "id": "QECI__ec_1",
+            "source": "QECI__BUS",
+            "target": "QECI__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QECI__ec_2",
+            "source": "QECI__BUS",
+            "target": "QECI__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4 / Q4.1"
+          },
+          {
+            "id": "QECI__ec_3",
+            "source": "QECI__BUS",
+            "target": "QECI__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 / Q5.1"
+          },
+          {
+            "id": "QECI__ec_4",
+            "source": "QECI__BUS",
+            "target": "QECI__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 / Q7"
+          },
+          {
+            "id": "QECI__ec_5",
+            "source": "QECI__BUS",
+            "target": "QECI__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8"
+          },
+          {
+            "id": "QECI__ec_6",
+            "source": "QECI__BUS",
+            "target": "QECI__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9"
+          },
+          {
+            "id": "QECI__ec_7",
+            "source": "QECI__BUS",
+            "target": "QECI__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q10–Q12"
+          }
+        ]
+      }
     },
     {
       "id": "QELP",
@@ -1252,7 +3473,259 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO POZZI (-2)",
       "shortFunc": "Alimenta le pompe sommerse che prelevano acqua di falda per le pompe di calore; ospita il modulo BMS CBX1.",
-      "emergencyNote": "Soggetto allo sgancio VVF autorimessa (bobina minima tensione su Q5 in QE.SSC) poiché ubicato nel compartimento -2."
+      "emergencyNote": "Soggetto allo sgancio VVF autorimessa (bobina minima tensione su Q5 in QE.SSC) poiché ubicato nel compartimento -2.",
+      "roomGroup": "Locale Pompe & Antincendio (P.-2)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1)",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QELP__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.LP",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QE.SSC (Q5 sotto UVR) · FG16OM16 3×120+120N+70PE mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QE.SSC (Q5 sotto UVR) · FG16OM16 3×120+120N+70PE mm²"
+            }
+          },
+          {
+            "id": "QELP__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB XT3D 250A 4P + Ripartitore 250A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB XT3D 250A 4P + Ripartitore 250A"
+            }
+          },
+          {
+            "id": "QELP__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "QELP__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.LP",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sbarra Rame 20×5 mm · In 250A · Icw 10 kA + Sezione Cylon CBX1",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sbarra Rame 20×5 mm · In 250A · Icw 10 kA + Sezione Cylon CBX1"
+            }
+          },
+          {
+            "id": "QELP__C_0",
+            "code": "Q2 + F2 / Q3",
+            "label": "Luce + Emergenza e Gruppo Prese CEE 400V/230V Locale Pompe",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DS201 C10 30mA + S204M C16 30mA  |  Cavo: 3G2,5 / 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 + F2 / Q3",
+              "Apparecchio di Protezione": "DS201 C10 30mA + S204M C16 30mA",
+              "Cavo in Uscita": "3G2,5 / 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QELP__C_1",
+            "code": "Q4 + RD4",
+            "label": "Pompa Pozzo 2 Prelievo Acqua di Falda (P.10)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B  |  Cavo: FG16OM16 35 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4 + RD4",
+              "Apparecchio di Protezione": "ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B",
+              "Cavo in Uscita": "FG16OM16 35 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QELP__C_2",
+            "code": "Q5 + RD5",
+            "label": "Pompe Pozzo 1 Prelievo Acqua di Falda (P.11/1 – P.11/2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B  |  Cavo: FG16OM16 35 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 + RD5",
+              "Apparecchio di Protezione": "ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B",
+              "Cavo in Uscita": "FG16OM16 35 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QELP__C_3",
+            "code": "Q6",
+            "label": "Quadro bordo macchina Elettropompa Meteo PS4",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C16 + Diff. 0,3A  |  Cavo: 4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6",
+              "Apparecchio di Protezione": "ABB S204M C16 + Diff. 0,3A",
+              "Cavo in Uscita": "4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QELP__C_4",
+            "code": "Q7",
+            "label": "Trattamento acque, filtri a calza 01-02 e filtro ciclonico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 0,3A  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q7",
+              "Apparecchio di Protezione": "ABB DS201 C10A 0,3A",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QELP__C_5",
+            "code": "Q8 + T8 + CBX1",
+            "label": "Trasf. 230/24Vac 100VA + Periferica ABB Cylon CBX-8R8 (sonde pozzi + 0-10V inverter)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C10A 0,3A + Fus. 1A/4A  |  Cavo: Bus RS-485 da QE-REG",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8 + T8 + CBX1",
+              "Apparecchio di Protezione": "ABB DS201 C10A 0,3A + Fus. 1A/4A",
+              "Cavo in Uscita": "Bus RS-485 da QE-REG"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QELP__e_in",
+            "source": "QELP__IN",
+            "target": "QELP__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QELP__e_der",
+            "source": "QELP__DER",
+            "target": "QELP__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "QELP__e_bus",
+            "source": "QELP__MAIN",
+            "target": "QELP__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QELP__ec_0",
+            "source": "QELP__BUS",
+            "target": "QELP__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 + F2 / Q3"
+          },
+          {
+            "id": "QELP__ec_1",
+            "source": "QELP__BUS",
+            "target": "QELP__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4 + RD4"
+          },
+          {
+            "id": "QELP__ec_2",
+            "source": "QELP__BUS",
+            "target": "QELP__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 + RD5"
+          },
+          {
+            "id": "QELP__ec_3",
+            "source": "QELP__BUS",
+            "target": "QELP__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6"
+          },
+          {
+            "id": "QELP__ec_4",
+            "source": "QELP__BUS",
+            "target": "QELP__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q7"
+          },
+          {
+            "id": "QELP__ec_5",
+            "source": "QELP__BUS",
+            "target": "QELP__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8 + T8 + CBX1"
+          }
+        ]
+      }
     },
     {
       "id": "POD-SCA",
@@ -1299,7 +3772,93 @@ window.IMPIANTO_DATA = {
       "roleType": "source",
       "roleLabel": "⚡ INGRESSO RETE 50 kW",
       "shortFunc": "Consegna energia dalla rete pubblica per tutti gli impianti comuni e gli ascensori della Torre A.",
-      "emergencyNote": "Origine elettrica dedicata alla sola Torre A (indipendente da Torre B e Supercondominio)."
+      "emergencyNote": "Origine elettrica dedicata alla sola Torre A (indipendente da Torre B e Supercondominio).",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "POD-SCA__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro POD-SC.A",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Linea di alimentazione a monte",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Linea di alimentazione a monte"
+            }
+          },
+          {
+            "id": "POD-SCA__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Apparecchio Generale",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Apparecchio Generale"
+            }
+          },
+          {
+            "id": "POD-SCA__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale POD-SC.A",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sistema di distribuzione interno",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sistema di distribuzione interno"
+            }
+          },
+          {
+            "id": "POD-SCA__C_0",
+            "code": "MONT-AVSCA",
+            "label": "Collegamento verso Avanquadro AVSC-A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG Distributore  |  Cavo: FG16OM16 3×(1×70)+1×70N mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "MONT-AVSCA",
+              "Apparecchio di Protezione": "DG Distributore",
+              "Cavo in Uscita": "FG16OM16 3×(1×70)+1×70N mm²"
+            },
+            "datasheetIds": [
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "POD-SCA__e_in",
+            "source": "POD-SCA__IN",
+            "target": "POD-SCA__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "POD-SCA__e_bus",
+            "source": "POD-SCA__MAIN",
+            "target": "POD-SCA__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "POD-SCA__ec_0",
+            "source": "POD-SCA__BUS",
+            "target": "POD-SCA__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "MONT-AVSCA"
+          }
+        ]
+      }
     },
     {
       "id": "AVSCA",
@@ -1373,7 +3932,145 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🛡️ PROTEZIONE & SGANCIO A",
       "shortFunc": "Protegge a monte il cavo montante da 160A della Torre A e riceve il comando del pulsante VVF di scala.",
-      "emergencyNote": "Premendo il pulsante VVF all'ingresso della Torre A, questo interruttore toglie tensione all'intero edificio A."
+      "emergencyNote": "Premendo il pulsante VVF all'ingresso della Torre A, questo interruttore toglie tensione all'intero edificio A.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "AVSCA__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro AVSC-A",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da POD-SC.A (50 kW) · FG16OM16 3×70+70N mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da POD-SC.A (50 kW) · FG16OM16 3×70+70N mm²"
+            }
+          },
+          {
+            "id": "AVSCA__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: ABB XT1B 160 TMD (112–160A, 18kA) + Diff. Dossena Tipo B + Bobina SOR",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: ABB XT1B 160 TMD (112–160A, 18kA) + Diff. Dossena Tipo B + Bobina SOR"
+            }
+          },
+          {
+            "id": "AVSCA__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "AVSCA__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale AVSC-A",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Uscita diretta protetta verso QESC-A",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Uscita diretta protetta verso QESC-A"
+            }
+          },
+          {
+            "id": "AVSCA__C_0",
+            "code": "Q1",
+            "label": "Montante alimentazione Quadro Generale Scala A (QESC-A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 4P TMD + Diff. Tipo B  |  Cavo: FG16OM16 3×(1×70)+1×70N+1×35PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q1",
+              "Apparecchio di Protezione": "ABB XT1B 160 4P TMD + Diff. Tipo B",
+              "Cavo in Uscita": "FG16OM16 3×(1×70)+1×70N+1×35PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSCA__C_1",
+            "code": "F1",
+            "label": "Circuito al Pulsante di Sgancio Emergenza Energia Scala A",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: Portafusibile ABB E90 1P+N 10×38 1A gG  |  Cavo: FG16OM16 2×1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "F1",
+              "Apparecchio di Protezione": "Portafusibile ABB E90 1P+N 10×38 1A gG",
+              "Cavo in Uscita": "FG16OM16 2×1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "AVSCA__e_in",
+            "source": "AVSCA__IN",
+            "target": "AVSCA__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "AVSCA__e_der",
+            "source": "AVSCA__DER",
+            "target": "AVSCA__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "AVSCA__e_bus",
+            "source": "AVSCA__MAIN",
+            "target": "AVSCA__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "AVSCA__ec_0",
+            "source": "AVSCA__BUS",
+            "target": "AVSCA__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q1"
+          },
+          {
+            "id": "AVSCA__ec_1",
+            "source": "AVSCA__BUS",
+            "target": "AVSCA__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "F1"
+          }
+        ]
+      }
     },
     {
       "id": "QESCA",
@@ -1538,7 +4235,563 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO EDIFICIO A",
       "shortFunc": "Distribuisce corrente a 2 ascensori, UTA/cappe sul tetto, Palestra, Bici, cantine, scale e 16 quadri di piano.",
-      "emergencyNote": "Se disalimentato, entrano in funzione le luci di emergenza autonome (1h) lungo scale, filtri fumo e cantine."
+      "emergencyNote": "Se disalimentato, entrano in funzione le luci di emergenza autonome (1h) lungo scale, filtri fumo e cantine.",
+      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QESCA__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QESC-A",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da AVSC-A (Q1) · FG16OM16 3×70+70N+35PE mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da AVSC-A (Q1) · FG16OM16 3×70+70N+35PE mm²"
+            }
+          },
+          {
+            "id": "QESCA__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB XT1D 160A 4P + SPD DEHN Tipo 1+2 + Vemer EV3M",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB XT1D 160A 4P + SPD DEHN Tipo 1+2 + Vemer EV3M"
+            }
+          },
+          {
+            "id": "QESCA__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "QESCA__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QESC-A",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sbarra Rame 25×5 mm · In 160A · Icw 10 kA",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sbarra Rame 25×5 mm · In 160A · Icw 10 kA"
+            }
+          },
+          {
+            "id": "QESCA__SPD",
+            "code": "SC1 · SPD DEHN",
+            "label": "Scaricatore Combinato Fulmini Tipo 1+2 (DEHN 941 315)",
+            "roleType": "control",
+            "roleLabel": "⚡ SCARICATORE SOVRATENSIONI",
+            "shortFunc": "In esercizio normale è isolato; se arriva una sovratensione la devia istantaneamente sulla Barra di Terra PE.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Modello": "DEHNshield DSH TT 255 FM (50 kA 10/350 µs)"
+            },
+            "datasheetIds": [
+              "DS-DEHN-941315"
+            ]
+          },
+          {
+            "id": "QESCA__PE",
+            "code": "BARRA TERRA PE",
+            "label": "Barra Collettrice di Terra del Quadro (PE)",
+            "roleType": "load",
+            "roleLabel": "⏚ RICEVE SCARICHE A TERRA",
+            "shortFunc": "Raccoglie la scarica dello scaricatore SPD e i conduttori giallo/verdi delle linee inviandoli all'anello di terra.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Collegamento": "Verso Collettore e Anello Terra 50 mm²"
+            }
+          },
+          {
+            "id": "QESCA__M1",
+            "code": "M1 · CONTATORE INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "roleType": "control",
+            "roleLabel": "📊 STRUMENTO DI MISURA",
+            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+            },
+            "datasheetIds": [
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_1",
+            "code": "Q2 + RD2",
+            "label": "Quadro bordo macchina UTA in Copertura Torre A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B  |  Cavo: FG16OM16 5G25 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 + RD2",
+              "Apparecchio di Protezione": "ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B",
+              "Cavo in Uscita": "FG16OM16 5G25 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_2",
+            "code": "Q3",
+            "label": "Quadro Rifasamento Automatico Torre A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S203M C32 + Diff. DDA203 A 0,3A  |  Cavo: FG16OM16 4G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "ABB S203M C32 + Diff. DDA203 A 0,3A",
+              "Cavo in Uscita": "FG16OM16 4G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_3",
+            "code": "Q4 / Q5",
+            "label": "Ascensore Destro Torre A — Linea Forza Motrice e Linea Luce",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A  |  Cavo: 5G6 / 3G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4 / Q5",
+              "Apparecchio di Protezione": "S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A",
+              "Cavo in Uscita": "5G6 / 3G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_4",
+            "code": "Q6 / Q7",
+            "label": "Ascensore Sinistro Torre A — Linea Forza Motrice e Linea Luce",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A  |  Cavo: 5G6 / 3G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 / Q7",
+              "Apparecchio di Protezione": "S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A",
+              "Cavo in Uscita": "5G6 / 3G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_5",
+            "code": "Q8",
+            "label": "Estrattore Cappe Cucina in Copertura Torre A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C20 + DDA204 Tipo B APR 0,3A  |  Cavo: FG16OM16 5G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8",
+              "Apparecchio di Protezione": "ABB S204M C20 + DDA204 Tipo B APR 0,3A",
+              "Cavo in Uscita": "FG16OM16 5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_6",
+            "code": "Q9",
+            "label": "Linea Sottoquadro Palestra Condominiale (QE.PL)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C50 4P (10 kA)  |  Cavo: FG16OM16 5G16 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9",
+              "Apparecchio di Protezione": "ABB S204M C50 4P (10 kA)",
+              "Cavo in Uscita": "FG16OM16 5G16 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_7",
+            "code": "Q10",
+            "label": "Dorsale Montante 16 Quadri di Piano Torre A (QEP.01–QEP.05)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C25 4P (10 kA)  |  Cavo: FG16OM16 5G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q10",
+              "Apparecchio di Protezione": "ABB S204M C25 4P (10 kA)",
+              "Cavo in Uscita": "FG16OM16 5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_8",
+            "code": "Q11",
+            "label": "Amplificatore Bus Contabilizzazione Sistema M-Bus Termico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S201Na C10 + Diff. 30mA  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q11",
+              "Apparecchio di Protezione": "ABB S201Na C10 + Diff. 30mA",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_9",
+            "code": "Q12 / Q13",
+            "label": "Prese e Luce Vano Scala A (Temporizzata E232, Permanente, Emergenza)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB DS201 C16A 30mA + Contatt. ESB20 + Fus. 2A  |  Cavo: 3G6 / 5G4 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q12 / Q13",
+              "Apparecchio di Protezione": "2× ABB DS201 C16A 30mA + Contatt. ESB20 + Fus. 2A",
+              "Cavo in Uscita": "3G6 / 5G4 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_10",
+            "code": "Q14–Q19",
+            "label": "Luce, Emergenza e Prese Corridoi Cantine Torre A (P.Terra, P.-1, P.-2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 3× C10 30mA + 3× DS201 C16 30mA + 3× Fus. 2A  |  Cavo: 5G2,5 / 3G6 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q14–Q19",
+              "Apparecchio di Protezione": "3× C10 30mA + 3× DS201 C16 30mA + 3× Fus. 2A",
+              "Cavo in Uscita": "5G2,5 / 3G6 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_11",
+            "code": "Q20 / Q21",
+            "label": "Sezioni Locale Contatori A e Locale Immondezzaio A (Prese, Luce, EM)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× DS201 C25A 30mA + SN201 C16/C10  |  Cavo: 3G4 / 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q20 / Q21",
+              "Apparecchio di Protezione": "2× DS201 C25A 30mA + SN201 C16/C10",
+              "Cavo in Uscita": "3G4 / 3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_12",
+            "code": "Q22",
+            "label": "Linea Sottoquadro Deposito Biciclette (QE.01BICI)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S201Na C25 1P+N (6 kA)  |  Cavo: FG16OM16 3G6 (3G10 lato QE.01)",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q22",
+              "Apparecchio di Protezione": "ABB S201Na C25 1P+N (6 kA)",
+              "Cavo in Uscita": "FG16OM16 3G6 (3G10 lato QE.01)"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_13",
+            "code": "Q23 / Q24",
+            "label": "Alimentazione Apparati FTTH/TV e Impianto Videocitofono Torre A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB S201Na C10 + Diff. 30mA  |  Cavo: 2× FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q23 / Q24",
+              "Apparecchio di Protezione": "2× ABB S201Na C10 + Diff. 30mA",
+              "Cavo in Uscita": "2× FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCA__C_14",
+            "code": "Q26 / Q27 / Q28",
+            "label": "Locali Comuni, Luce Esterna Ingresso A (Astro OR27) e Q28 Scorta / IRA",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 3× ABB S201Na C10 + Diff. 30mA + Contatt. ESB20  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q26 / Q27 / Q28",
+              "Apparecchio di Protezione": "3× ABB S201Na C10 + Diff. 30mA + Contatt. ESB20",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QESCA__e_in",
+            "source": "QESCA__IN",
+            "target": "QESCA__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QESCA__e_der",
+            "source": "QESCA__DER",
+            "target": "QESCA__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "QESCA__e_bus",
+            "source": "QESCA__MAIN",
+            "target": "QESCA__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QESCA__e_spd1",
+            "source": "QESCA__BUS",
+            "target": "QESCA__SPD",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Sorveglianza",
+            "label": "Derivazione sbarra"
+          },
+          {
+            "id": "QESCA__e_spd2",
+            "source": "QESCA__SPD",
+            "target": "QESCA__PE",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Scarico a Terra",
+            "label": "Scarica verso Terra PE"
+          },
+          {
+            "id": "QESCA__e_m1",
+            "source": "QESCA__BUS",
+            "target": "QESCA__M1",
+            "edgeType": "tlc_signal",
+            "flowCategory": "📊 Misura V/I",
+            "label": "Segnali 3 TA + Tensione"
+          },
+          {
+            "id": "QESCA__ec_1",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 + RD2"
+          },
+          {
+            "id": "QESCA__ec_2",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QESCA__ec_3",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4 / Q5"
+          },
+          {
+            "id": "QESCA__ec_4",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 / Q7"
+          },
+          {
+            "id": "QESCA__ec_5",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8"
+          },
+          {
+            "id": "QESCA__ec_6",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9"
+          },
+          {
+            "id": "QESCA__ec_7",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q10"
+          },
+          {
+            "id": "QESCA__ec_8",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_8",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q11"
+          },
+          {
+            "id": "QESCA__ec_9",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_9",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q12 / Q13"
+          },
+          {
+            "id": "QESCA__ec_10",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_10",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q14–Q19"
+          },
+          {
+            "id": "QESCA__ec_11",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_11",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q20 / Q21"
+          },
+          {
+            "id": "QESCA__ec_12",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_12",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q22"
+          },
+          {
+            "id": "QESCA__ec_13",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_13",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q23 / Q24"
+          },
+          {
+            "id": "QESCA__ec_14",
+            "source": "QESCA__BUS",
+            "target": "QESCA__C_14",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q26 / Q27 / Q28"
+          }
+        ]
+      }
     },
     {
       "id": "QEPL",
@@ -1652,7 +4905,257 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ SOTTOQUADRO LOCALE",
       "shortFunc": "Alimenta prese attrezzi, climatizzazione, VMC e chiamata soccorso disabili della Palestra condominiale.",
-      "emergencyNote": "Il relè bistabile Finder mantiene attivo l'allarme ottico/acustico del bagno/doccia disabili fino al reset manuale."
+      "emergencyNote": "Il relè bistabile Finder mantiene attivo l'allarme ottico/acustico del bagno/doccia disabili fino al reset manuale.",
+      "roomGroup": "Locali Condominiali (P. Rialzato)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEPL__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.PL",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QESC-A (Q9) · FG16OM16 5G16 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QESC-A (Q9) · FG16OM16 5G16 mm²"
+            }
+          },
+          {
+            "id": "QEPL__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: BTicino FN84C50 (MT 4P C50A 6 kA) + Ripartitore RP1 125A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: BTicino FN84C50 (MT 4P C50A 6 kA) + Ripartitore RP1 125A"
+            }
+          },
+          {
+            "id": "QEPL__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.PL",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Distribuzione 400/230V 3F+N",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Distribuzione 400/230V 3F+N"
+            }
+          },
+          {
+            "id": "QEPL__C_0",
+            "code": "Q2 / Q3",
+            "label": "Circuiti Prese 01 e Prese 02 sala palestra",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 2× 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 / Q3",
+              "Apparecchio di Protezione": "2× BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "2× 3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QEPL__C_1",
+            "code": "Q4",
+            "label": "Unità interne canalizzate e a parete climatizzazione",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QEPL__C_2",
+            "code": "Q5 + F5",
+            "label": "Luce + Automazioni serramenti + Luce di emergenza",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 + F5",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QEPL__C_3",
+            "code": "Q6 + R6",
+            "label": "Chiamata di Soccorso WC e Doccia Disabili (Relè Finder 13.11 con reset)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A6 (C6 30mA Tipo A)  |  Cavo: 5G1,5 + 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 + R6",
+              "Apparecchio di Protezione": "BTicino GA8813A6 (C6 30mA Tipo A)",
+              "Cavo in Uscita": "5G1,5 + 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QEPL__C_4",
+            "code": "Q7",
+            "label": "Scaldasalviette elettrico bagno palestra",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q7",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QEPL__C_5",
+            "code": "Q8",
+            "label": "Recuperatore di calore VMC palestra",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QEPL__C_6",
+            "code": "Q9 / Q9.1",
+            "label": "Unità esterna climatizzazione (sez. locale 4P 32A IP65)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino FN84D20 (4P D20 6kA) + Diff. G744B40 Tipo B 0,3A  |  Cavo: 5G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9 / Q9.1",
+              "Apparecchio di Protezione": "BTicino FN84D20 (4P D20 6kA) + Diff. G744B40 Tipo B 0,3A",
+              "Cavo in Uscita": "5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEPL__e_in",
+            "source": "QEPL__IN",
+            "target": "QEPL__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEPL__e_bus",
+            "source": "QEPL__MAIN",
+            "target": "QEPL__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEPL__ec_0",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 / Q3"
+          },
+          {
+            "id": "QEPL__ec_1",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4"
+          },
+          {
+            "id": "QEPL__ec_2",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 + F5"
+          },
+          {
+            "id": "QEPL__ec_3",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 + R6"
+          },
+          {
+            "id": "QEPL__ec_4",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q7"
+          },
+          {
+            "id": "QEPL__ec_5",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8"
+          },
+          {
+            "id": "QEPL__ec_6",
+            "source": "QEPL__BUS",
+            "target": "QEPL__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9 / Q9.1"
+          }
+        ]
+      }
     },
     {
       "id": "QEDB",
@@ -1737,7 +5240,176 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ SOTTOQUADRO LOCALE",
       "shortFunc": "Alimenta illuminazione, prese, boiler e spogliatoio di servizio del Deposito Biciclette nella Torre A.",
-      "emergencyNote": "Dotato di circuito dedicato per ricarica e test delle lampade di emergenza."
+      "emergencyNote": "Dotato di circuito dedicato per ricarica e test delle lampade di emergenza.",
+      "roomGroup": "Locali Condominiali (P. Rialzato)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEDB__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.01BICI",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QESC-A (Q22) · FG16OM16 3G6/3G10 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QESC-A (Q22) · FG16OM16 3G6/3G10 mm²"
+            }
+          },
+          {
+            "id": "QEDB__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: BTicino FA81NC25 (MT 1P+N C25A 4,5 kA)",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: BTicino FA81NC25 (MT 1P+N C25A 4,5 kA)"
+            }
+          },
+          {
+            "id": "QEDB__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.01BICI",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Pettine monofase FS17 6 mm²",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Pettine monofase FS17 6 mm²"
+            }
+          },
+          {
+            "id": "QEDB__C_0",
+            "code": "Q2",
+            "label": "Prese Deposito Biciclette",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QEDB__C_1",
+            "code": "Q3",
+            "label": "Prese locali di servizio + Boiler ACS",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QEDB__C_2",
+            "code": "Q4",
+            "label": "Scaldasalviette elettrici locali di servizio",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QEDB__C_3",
+            "code": "Q5 + F5",
+            "label": "Luce + Aspiratore + Automazioni + Luce emergenza",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 + F5",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEDB__e_in",
+            "source": "QEDB__IN",
+            "target": "QEDB__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEDB__e_bus",
+            "source": "QEDB__MAIN",
+            "target": "QEDB__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEDB__ec_0",
+            "source": "QEDB__BUS",
+            "target": "QEDB__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2"
+          },
+          {
+            "id": "QEDB__ec_1",
+            "source": "QEDB__BUS",
+            "target": "QEDB__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QEDB__ec_2",
+            "source": "QEDB__BUS",
+            "target": "QEDB__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4"
+          },
+          {
+            "id": "QEDB__ec_3",
+            "source": "QEDB__BUS",
+            "target": "QEDB__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 + F5"
+          }
+        ]
+      }
     },
     {
       "id": "QEP-TORRE-A",
@@ -1818,7 +5490,203 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🏢 COLONNA 16 PIANI (A)",
       "shortFunc": "16 centralini dal P.Terra al 14°: alimentano luci con sensori nei filtri fumo/pianerottoli e controlli cappe (7°/10°).",
-      "emergencyNote": "Garantisce l'illuminazione automatica di sicurezza nei filtri a prova di fumo e sui pianerottoli ad ogni piano."
+      "emergencyNote": "Garantisce l'illuminazione automatica di sicurezza nei filtri a prova di fumo e sui pianerottoli ad ogni piano.",
+      "roomGroup": "Piani Residenziali 1°–14°",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEP-TORRE-A__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro 16× QEP (A)",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QESC-A (Q10) · Montante trifase FG16OM16 5G6 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QESC-A (Q10) · Montante trifase FG16OM16 5G6 mm²"
+            }
+          },
+          {
+            "id": "QEP-TORRE-A__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "16× DG 1P+N C25A (4,5 kA) derivati sulle 3 fasi lungo il cavedio",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "16× DG 1P+N C25A (4,5 kA) derivati sulle 3 fasi lungo il cavedio"
+            }
+          },
+          {
+            "id": "QEP-TORRE-A__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale 16× QEP (A)",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "5 configurazioni standardizzate QEP.01 – QEP.05",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "5 configurazioni standardizzate QEP.01 – QEP.05"
+            }
+          },
+          {
+            "id": "QEP-TORRE-A__C_0",
+            "code": "QEP.01 (×1 · P.Terra)",
+            "label": "Prese cavedio/pianerottolo (-2,-1,T) + Luce/EM filtro aerato + M-Bus cappe",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.01 (×1 · P.Terra)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-A__C_1",
+            "code": "QEP.02 (×1 · Ingr. A)",
+            "label": "Quadro IP65 Sottoscala A: Prese + Luce sensori/EM Ingresso Torre A",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A)  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.02 (×1 · Ingr. A)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A)",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-A__C_2",
+            "code": "QEP.03 (×11 · Piani Tipo)",
+            "label": "Piani 1°–6°, 8°–9°, 11°–13°: Prese servizio + Luce sensori/EM filtro aerato + Scorta",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.03 (×11 · Piani Tipo)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-A__C_3",
+            "code": "QEP.04 (×2 · Piani 7°/10°)",
+            "label": "Piani 7° e 10°: Prese + Luce sensori/EM filtro + Apparecchiature M-Bus Cappe",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.04 (×2 · Piani 7°/10°)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-A__C_4",
+            "code": "QEP.05 (×1 · Piano 14°)",
+            "label": "Piano 14° e Locale Tecnico: Prese + Luce/EM filtro + Automazioni",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.05 (×1 · Piano 14°)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEP-TORRE-A__e_in",
+            "source": "QEP-TORRE-A__IN",
+            "target": "QEP-TORRE-A__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEP-TORRE-A__e_bus",
+            "source": "QEP-TORRE-A__MAIN",
+            "target": "QEP-TORRE-A__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEP-TORRE-A__ec_0",
+            "source": "QEP-TORRE-A__BUS",
+            "target": "QEP-TORRE-A__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.01 (×1 · P.Terra)"
+          },
+          {
+            "id": "QEP-TORRE-A__ec_1",
+            "source": "QEP-TORRE-A__BUS",
+            "target": "QEP-TORRE-A__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.02 (×1 · Ingr. A)"
+          },
+          {
+            "id": "QEP-TORRE-A__ec_2",
+            "source": "QEP-TORRE-A__BUS",
+            "target": "QEP-TORRE-A__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.03 (×11 · Piani Tipo)"
+          },
+          {
+            "id": "QEP-TORRE-A__ec_3",
+            "source": "QEP-TORRE-A__BUS",
+            "target": "QEP-TORRE-A__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.04 (×2 · Piani 7°/10°)"
+          },
+          {
+            "id": "QEP-TORRE-A__ec_4",
+            "source": "QEP-TORRE-A__BUS",
+            "target": "QEP-TORRE-A__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.05 (×1 · Piano 14°)"
+          }
+        ]
+      }
     },
     {
       "id": "POD-SCB",
@@ -1860,7 +5728,93 @@ window.IMPIANTO_DATA = {
       "roleType": "source",
       "roleLabel": "⚡ INGRESSO RETE 50 kW",
       "shortFunc": "Consegna energia dalla rete pubblica per tutti gli impianti comuni e gli ascensori della Torre B.",
-      "emergencyNote": "Origine elettrica dedicata alla sola Torre B."
+      "emergencyNote": "Origine elettrica dedicata alla sola Torre B.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "POD-SCB__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro POD-SC.B",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Linea di alimentazione a monte",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Linea di alimentazione a monte"
+            }
+          },
+          {
+            "id": "POD-SCB__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Apparecchio Generale",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Apparecchio Generale"
+            }
+          },
+          {
+            "id": "POD-SCB__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale POD-SC.B",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sistema di distribuzione interno",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sistema di distribuzione interno"
+            }
+          },
+          {
+            "id": "POD-SCB__C_0",
+            "code": "MONT-AVSCB",
+            "label": "Collegamento verso Avanquadro AVSC-B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG Distributore  |  Cavo: FG16OM16 3×(1×70)+1×70N mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "MONT-AVSCB",
+              "Apparecchio di Protezione": "DG Distributore",
+              "Cavo in Uscita": "FG16OM16 3×(1×70)+1×70N mm²"
+            },
+            "datasheetIds": [
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "POD-SCB__e_in",
+            "source": "POD-SCB__IN",
+            "target": "POD-SCB__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "POD-SCB__e_bus",
+            "source": "POD-SCB__MAIN",
+            "target": "POD-SCB__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "POD-SCB__ec_0",
+            "source": "POD-SCB__BUS",
+            "target": "POD-SCB__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "MONT-AVSCB"
+          }
+        ]
+      }
     },
     {
       "id": "AVSCB",
@@ -1934,7 +5888,145 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🛡️ PROTEZIONE & SGANCIO B",
       "shortFunc": "Protegge a monte il cavo montante da 160A della Torre B e riceve il comando del pulsante VVF di scala.",
-      "emergencyNote": "Premendo il pulsante VVF all'ingresso della Torre B, toglie tensione a tutte le parti comuni dell'edificio B."
+      "emergencyNote": "Premendo il pulsante VVF all'ingresso della Torre B, toglie tensione a tutte le parti comuni dell'edificio B.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "AVSCB__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro AVSC-B",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da POD-SC.B (50 kW) · FG16OM16 3×70+70N mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da POD-SC.B (50 kW) · FG16OM16 3×70+70N mm²"
+            }
+          },
+          {
+            "id": "AVSCB__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: ABB XT1B 160 TMD (112–160A, 18kA) + Diff. Dossena Tipo B + Bobina SOR",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: ABB XT1B 160 TMD (112–160A, 18kA) + Diff. Dossena Tipo B + Bobina SOR"
+            }
+          },
+          {
+            "id": "AVSCB__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "AVSCB__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale AVSC-B",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Uscita diretta protetta verso QESC-B",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Uscita diretta protetta verso QESC-B"
+            }
+          },
+          {
+            "id": "AVSCB__C_0",
+            "code": "Q1",
+            "label": "Montante alimentazione Quadro Generale Scala B (QESC-B)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 4P TMD + Diff. Tipo B  |  Cavo: FG16OM16 3×(1×70)+1×70N+1×35PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q1",
+              "Apparecchio di Protezione": "ABB XT1B 160 4P TMD + Diff. Tipo B",
+              "Cavo in Uscita": "FG16OM16 3×(1×70)+1×70N+1×35PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVSCB__C_1",
+            "code": "F1",
+            "label": "Circuito al Pulsante di Sgancio Emergenza Energia Scala B",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: Portafusibile ABB E90 1P+N 10×38 1A gG  |  Cavo: FG16OM16 2×1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "F1",
+              "Apparecchio di Protezione": "Portafusibile ABB E90 1P+N 10×38 1A gG",
+              "Cavo in Uscita": "FG16OM16 2×1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "AVSCB__e_in",
+            "source": "AVSCB__IN",
+            "target": "AVSCB__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "AVSCB__e_der",
+            "source": "AVSCB__DER",
+            "target": "AVSCB__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "AVSCB__e_bus",
+            "source": "AVSCB__MAIN",
+            "target": "AVSCB__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "AVSCB__ec_0",
+            "source": "AVSCB__BUS",
+            "target": "AVSCB__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q1"
+          },
+          {
+            "id": "AVSCB__ec_1",
+            "source": "AVSCB__BUS",
+            "target": "AVSCB__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "F1"
+          }
+        ]
+      }
     },
     {
       "id": "QESCB",
@@ -2087,7 +6179,534 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO EDIFICIO B",
       "shortFunc": "Distribuisce corrente a 2 ascensori, UTA/cappe sul tetto, Sala Riunioni, Lavanderia, cantine e 16 quadri di piano.",
-      "emergencyNote": "Se disalimentato, si attivano le lampade autonome di emergenza lungo l'intero vano scala B."
+      "emergencyNote": "Se disalimentato, si attivano le lampade autonome di emergenza lungo l'intero vano scala B.",
+      "roomGroup": "Locale Contatori Scala B (P.-1)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QESCB__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QESC-B",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da AVSC-B (Q1) · FG16OM16 3×70+70N+35PE mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da AVSC-B (Q1) · FG16OM16 3×70+70N+35PE mm²"
+            }
+          },
+          {
+            "id": "QESCB__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB XT1D 160A 4P + SPD DEHN Tipo 1+2 + Vemer EV3M",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB XT1D 160A 4P + SPD DEHN Tipo 1+2 + Vemer EV3M"
+            }
+          },
+          {
+            "id": "QESCB__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "QESCB__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QESC-B",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sbarra Rame 25×5 mm · In 160A · Icw 10 kA",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sbarra Rame 25×5 mm · In 160A · Icw 10 kA"
+            }
+          },
+          {
+            "id": "QESCB__SPD",
+            "code": "SC1 · SPD DEHN",
+            "label": "Scaricatore Combinato Fulmini Tipo 1+2 (DEHN 941 315)",
+            "roleType": "control",
+            "roleLabel": "⚡ SCARICATORE SOVRATENSIONI",
+            "shortFunc": "In esercizio normale è isolato; se arriva una sovratensione la devia istantaneamente sulla Barra di Terra PE.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Modello": "DEHNshield DSH TT 255 FM (50 kA 10/350 µs)"
+            },
+            "datasheetIds": [
+              "DS-DEHN-941315"
+            ]
+          },
+          {
+            "id": "QESCB__PE",
+            "code": "BARRA TERRA PE",
+            "label": "Barra Collettrice di Terra del Quadro (PE)",
+            "roleType": "load",
+            "roleLabel": "⏚ RICEVE SCARICHE A TERRA",
+            "shortFunc": "Raccoglie la scarica dello scaricatore SPD e i conduttori giallo/verdi delle linee inviandoli all'anello di terra.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Collegamento": "Verso Collettore e Anello Terra 50 mm²"
+            }
+          },
+          {
+            "id": "QESCB__M1",
+            "code": "M1 · CONTATORE INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "roleType": "control",
+            "roleLabel": "📊 STRUMENTO DI MISURA",
+            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+            },
+            "datasheetIds": [
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_1",
+            "code": "Q2 + RD2",
+            "label": "Quadro bordo macchina UTA in Copertura Torre B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B  |  Cavo: FG16OM16 5G25 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 + RD2",
+              "Apparecchio di Protezione": "ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B",
+              "Cavo in Uscita": "FG16OM16 5G25 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_2",
+            "code": "Q3",
+            "label": "Quadro Rifasamento Automatico Torre B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S203M C32 + Diff. DDA203 A 0,3A  |  Cavo: FG16OM16 4G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "ABB S203M C32 + Diff. DDA203 A 0,3A",
+              "Cavo in Uscita": "FG16OM16 4G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_3",
+            "code": "Q4–Q7",
+            "label": "Ascensori Destro e Sinistro Torre B — Linee F.M. e Linee Luce",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× (S204M K20 + DDA204 Tipo B APR) + 2× DS201 C16  |  Cavo: 5G6 / 3G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4–Q7",
+              "Apparecchio di Protezione": "2× (S204M K20 + DDA204 Tipo B APR) + 2× DS201 C16",
+              "Cavo in Uscita": "5G6 / 3G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_4",
+            "code": "Q8",
+            "label": "Estrattore Cappe Cucina in Copertura Torre B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C20 + DDA204 Tipo B APR 0,3A  |  Cavo: FG16OM16 5G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q8",
+              "Apparecchio di Protezione": "ABB S204M C20 + DDA204 Tipo B APR 0,3A",
+              "Cavo in Uscita": "FG16OM16 5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_5",
+            "code": "Q9",
+            "label": "Linea Sottoquadro Spazio Polifunzionale / Lavanderia (QE.03)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C32 4P (10 kA)  |  Cavo: FG16OM16 5G10 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q9",
+              "Apparecchio di Protezione": "ABB S204M C32 4P (10 kA)",
+              "Cavo in Uscita": "FG16OM16 5G10 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_6",
+            "code": "Q10",
+            "label": "Dorsale Montante 16 Quadri di Piano Torre B (QEP.01–QEP.05)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M C25 4P (10 kA)  |  Cavo: FG16OM16 5G6 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q10",
+              "Apparecchio di Protezione": "ABB S204M C25 4P (10 kA)",
+              "Cavo in Uscita": "FG16OM16 5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_7",
+            "code": "Q11",
+            "label": "Amplificatore Bus Contabilizzazione Sistema M-Bus Termico",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S201Na C10 + Diff. 30mA  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q11",
+              "Apparecchio di Protezione": "ABB S201Na C10 + Diff. 30mA",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_8",
+            "code": "Q12 / Q13",
+            "label": "Prese e Luce Vano Scala B (Temporizzata E232, Permanente, Emergenza)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB DS201 C16A 30mA + Contatt. ESB20  |  Cavo: 3G6 / 5G4 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q12 / Q13",
+              "Apparecchio di Protezione": "2× ABB DS201 C16A 30mA + Contatt. ESB20",
+              "Cavo in Uscita": "3G6 / 5G4 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_9",
+            "code": "Q14–Q15 / Q18–Q19",
+            "label": "Luce, Emergenza e Prese Corridoi Cantine Torre B (P.Terra e P.-2; Q16–17 non usati)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× C10 30mA + 2× DS201 C16 30mA + Fus. 2A  |  Cavo: 5G2,5 / 3G6 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q14–Q15 / Q18–Q19",
+              "Apparecchio di Protezione": "2× C10 30mA + 2× DS201 C16 30mA + Fus. 2A",
+              "Cavo in Uscita": "5G2,5 / 3G6 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_10",
+            "code": "Q20 / Q21",
+            "label": "Sezioni Locale Contatori B e Locale Immondezzaio B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× DS201 C25A 30mA + SN201 C16/C10  |  Cavo: 3G4 / 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q20 / Q21",
+              "Apparecchio di Protezione": "2× DS201 C25A 30mA + SN201 C16/C10",
+              "Cavo in Uscita": "3G4 / 3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_11",
+            "code": "Q22",
+            "label": "Linea Sottoquadro Sala Riunioni (QE.02)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S201Na C25 1P+N (6 kA)  |  Cavo: FG16OM16 3G6 (3G10 lato QE.02)",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q22",
+              "Apparecchio di Protezione": "ABB S201Na C25 1P+N (6 kA)",
+              "Cavo in Uscita": "FG16OM16 3G6 (3G10 lato QE.02)"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_12",
+            "code": "Q23 / Q24",
+            "label": "Alimentazione Apparati FTTH e Impianto Videocitofono Torre B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB S201Na C10 + Diff. 30mA  |  Cavo: 2× FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q23 / Q24",
+              "Apparecchio di Protezione": "2× ABB S201Na C10 + Diff. 30mA",
+              "Cavo in Uscita": "2× FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESCB__C_13",
+            "code": "Q25–Q28",
+            "label": "Locali Comuni, Luce Esterna Ingresso B (Astro OR27) e Scorta / IRA",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DS201 C16 + 3× S201Na C10 30mA + ESB20  |  Cavo: FG16OM16 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q25–Q28",
+              "Apparecchio di Protezione": "DS201 C16 + 3× S201Na C10 30mA + ESB20",
+              "Cavo in Uscita": "FG16OM16 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-DOSSENA-DER3B",
+              "DS-ABB-S200",
+              "DS-VEMER-AST"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QESCB__e_in",
+            "source": "QESCB__IN",
+            "target": "QESCB__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QESCB__e_der",
+            "source": "QESCB__DER",
+            "target": "QESCB__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "QESCB__e_bus",
+            "source": "QESCB__MAIN",
+            "target": "QESCB__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QESCB__e_spd1",
+            "source": "QESCB__BUS",
+            "target": "QESCB__SPD",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Sorveglianza",
+            "label": "Derivazione sbarra"
+          },
+          {
+            "id": "QESCB__e_spd2",
+            "source": "QESCB__SPD",
+            "target": "QESCB__PE",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Scarico a Terra",
+            "label": "Scarica verso Terra PE"
+          },
+          {
+            "id": "QESCB__e_m1",
+            "source": "QESCB__BUS",
+            "target": "QESCB__M1",
+            "edgeType": "tlc_signal",
+            "flowCategory": "📊 Misura V/I",
+            "label": "Segnali 3 TA + Tensione"
+          },
+          {
+            "id": "QESCB__ec_1",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 + RD2"
+          },
+          {
+            "id": "QESCB__ec_2",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QESCB__ec_3",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4–Q7"
+          },
+          {
+            "id": "QESCB__ec_4",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q8"
+          },
+          {
+            "id": "QESCB__ec_5",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q9"
+          },
+          {
+            "id": "QESCB__ec_6",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q10"
+          },
+          {
+            "id": "QESCB__ec_7",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q11"
+          },
+          {
+            "id": "QESCB__ec_8",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_8",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q12 / Q13"
+          },
+          {
+            "id": "QESCB__ec_9",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_9",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q14–Q15 / Q18–Q19"
+          },
+          {
+            "id": "QESCB__ec_10",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_10",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q20 / Q21"
+          },
+          {
+            "id": "QESCB__ec_11",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_11",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q22"
+          },
+          {
+            "id": "QESCB__ec_12",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_12",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q23 / Q24"
+          },
+          {
+            "id": "QESCB__ec_13",
+            "source": "QESCB__BUS",
+            "target": "QESCB__C_13",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q25–Q28"
+          }
+        ]
+      }
     },
     {
       "id": "QESR",
@@ -2183,7 +6802,203 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ SOTTOQUADRO LOCALE",
       "shortFunc": "Alimenta prese, fan-coil, serramenti motorizzati e allarme bagno disabili della Sala Riunioni (Torre B).",
-      "emergencyNote": "Memorizza le chiamate a tirante dal bagno accessibile con segnalazione fuori porta."
+      "emergencyNote": "Memorizza le chiamate a tirante dal bagno accessibile con segnalazione fuori porta.",
+      "roomGroup": "Locali Condominiali (P. Rialzato)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QESR__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.02RIUN",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QESC-B (Q22) · FG16OM16 3G6/3G10 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QESC-B (Q22) · FG16OM16 3G6/3G10 mm²"
+            }
+          },
+          {
+            "id": "QESR__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: BTicino FA81NC25 (MT 1P+N C25A 4,5 kA)",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: BTicino FA81NC25 (MT 1P+N C25A 4,5 kA)"
+            }
+          },
+          {
+            "id": "QESR__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.02RIUN",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Distribuzione monofase 230Vac",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Distribuzione monofase 230Vac"
+            }
+          },
+          {
+            "id": "QESR__C_0",
+            "code": "Q2",
+            "label": "Prese Sala Riunioni",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QESR__C_1",
+            "code": "Q3",
+            "label": "Scaldasalviette elettrico bagno disabili",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QESR__C_2",
+            "code": "Q4 + R4",
+            "label": "Chiamata di Soccorso Bagno Disabili (Relè Finder 13.11 con reset)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A6 (C6 30mA Tipo A)  |  Cavo: 5G1,5 + 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4 + R4",
+              "Apparecchio di Protezione": "BTicino GA8813A6 (C6 30mA Tipo A)",
+              "Cavo in Uscita": "5G1,5 + 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QESR__C_3",
+            "code": "Q5 + F5",
+            "label": "Luce + Automazioni + Chiamata ingresso + Luce emergenza",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 + F5",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          },
+          {
+            "id": "QESR__C_4",
+            "code": "Q6 / Q7",
+            "label": "Fan-Coil climatizzazione + Circuito di Scorta (10A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 + GA8813A10  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 / Q7",
+              "Apparecchio di Protezione": "BTicino GA8813A16 + GA8813A10",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-FINDER-1311"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QESR__e_in",
+            "source": "QESR__IN",
+            "target": "QESR__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QESR__e_bus",
+            "source": "QESR__MAIN",
+            "target": "QESR__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QESR__ec_0",
+            "source": "QESR__BUS",
+            "target": "QESR__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2"
+          },
+          {
+            "id": "QESR__ec_1",
+            "source": "QESR__BUS",
+            "target": "QESR__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QESR__ec_2",
+            "source": "QESR__BUS",
+            "target": "QESR__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4 + R4"
+          },
+          {
+            "id": "QESR__ec_3",
+            "source": "QESR__BUS",
+            "target": "QESR__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 + F5"
+          },
+          {
+            "id": "QESR__ec_4",
+            "source": "QESR__BUS",
+            "target": "QESR__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 / Q7"
+          }
+        ]
+      }
     },
     {
       "id": "QESP",
@@ -2274,7 +7089,203 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ SOTTOQUADRO LOCALE",
       "shortFunc": "Alimenta lo Spazio Polifunzionale ricreativo e le prese industriali trifase della Lavanderia condominiale.",
-      "emergencyNote": "Protezioni differenziali separate da 30 mA per ciascun circuito utente."
+      "emergencyNote": "Protezioni differenziali separate da 30 mA per ciascun circuito utente.",
+      "roomGroup": "Locali Condominiali (P. Rialzato)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QESP__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.03POLI",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QESC-B (Q9) · FG16OM16 5G10 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QESC-B (Q9) · FG16OM16 5G10 mm²"
+            }
+          },
+          {
+            "id": "QESP__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: BTicino FN84C32 (MT 4P C32A 6 kA) + Ripartitore RP1 125A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: BTicino FN84C32 (MT 4P C32A 6 kA) + Ripartitore RP1 125A"
+            }
+          },
+          {
+            "id": "QESP__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.03POLI",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Distribuzione 400/230V 3F+N",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Distribuzione 400/230V 3F+N"
+            }
+          },
+          {
+            "id": "QESP__C_0",
+            "code": "Q2",
+            "label": "Prese 01 Spazio Polifunzionale",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 (1P+N C16 30mA)  |  Cavo: 3G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2",
+              "Apparecchio di Protezione": "BTicino GA8813A16 (1P+N C16 30mA)",
+              "Cavo in Uscita": "3G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QESP__C_1",
+            "code": "Q3",
+            "label": "Prese CEE Trifase Locale Lavanderia",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GN8843A16 (4P C16 30mA Tipo A 6kA)  |  Cavo: 5G4 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3",
+              "Apparecchio di Protezione": "BTicino GN8843A16 (4P C16 30mA Tipo A 6kA)",
+              "Cavo in Uscita": "5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QESP__C_2",
+            "code": "Q4",
+            "label": "Scaldasalviette elettrico bagno",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 (1P+N C10 30mA)  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4",
+              "Apparecchio di Protezione": "BTicino GA8813A10 (1P+N C10 30mA)",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QESP__C_3",
+            "code": "Q5 + F5",
+            "label": "Luce + Automazioni + Luce emergenza",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5 + F5",
+              "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
+              "Cavo in Uscita": "3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          },
+          {
+            "id": "QESP__C_4",
+            "code": "Q6 / Q7",
+            "label": "Fan-Coil climatizzazione + Q7 Scorta C10A (nota: linea Lavatrice in PL.13)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: BTicino GA8813A16 + GA8813A10  |  Cavo: 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q6 / Q7",
+              "Apparecchio di Protezione": "BTicino GA8813A16 + GA8813A10",
+              "Cavo in Uscita": "3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-BTICINO-FN84",
+              "DS-BTICINO-GA8813",
+              "DS-BTICINO-F321N"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QESP__e_in",
+            "source": "QESP__IN",
+            "target": "QESP__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QESP__e_bus",
+            "source": "QESP__MAIN",
+            "target": "QESP__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QESP__ec_0",
+            "source": "QESP__BUS",
+            "target": "QESP__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2"
+          },
+          {
+            "id": "QESP__ec_1",
+            "source": "QESP__BUS",
+            "target": "QESP__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3"
+          },
+          {
+            "id": "QESP__ec_2",
+            "source": "QESP__BUS",
+            "target": "QESP__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4"
+          },
+          {
+            "id": "QESP__ec_3",
+            "source": "QESP__BUS",
+            "target": "QESP__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q5 + F5"
+          },
+          {
+            "id": "QESP__ec_4",
+            "source": "QESP__BUS",
+            "target": "QESP__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6 / Q7"
+          }
+        ]
+      }
     },
     {
       "id": "QEP-TORRE-B",
@@ -2350,7 +7361,203 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🏢 COLONNA 16 PIANI (B)",
       "shortFunc": "16 centralini dal P.Terra al 14° della Torre B per luci sensori pianerottoli/filtri aerati e moduli cappe (7°/10°).",
-      "emergencyNote": "Mantiene illuminati i percorsi orizzontali di esodo di tutti i 14 piani in caso di mancanza rete."
+      "emergencyNote": "Mantiene illuminati i percorsi orizzontali di esodo di tutti i 14 piani in caso di mancanza rete.",
+      "roomGroup": "Piani Residenziali 1°–14°",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEP-TORRE-B__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro 16× QEP (B)",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QESC-B (Q10) · Montante trifase FG16OM16 5G6 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QESC-B (Q10) · Montante trifase FG16OM16 5G6 mm²"
+            }
+          },
+          {
+            "id": "QEP-TORRE-B__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "16× DG 1P+N C25A (4,5 kA) derivati lungo il cavedio",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "16× DG 1P+N C25A (4,5 kA) derivati lungo il cavedio"
+            }
+          },
+          {
+            "id": "QEP-TORRE-B__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale 16× QEP (B)",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "5 configurazioni standardizzate QEP.01 – QEP.05",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "5 configurazioni standardizzate QEP.01 – QEP.05"
+            }
+          },
+          {
+            "id": "QEP-TORRE-B__C_0",
+            "code": "QEP.01 (×1 · P.Terra B)",
+            "label": "Prese cavedio/pianerottolo + Luce/EM filtro aerato + M-Bus cappe",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.01 (×1 · P.Terra B)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
+              "Cavo in Uscita": "3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-B__C_1",
+            "code": "QEP.02 (×1 · Ingr. B)",
+            "label": "Quadro IP65 Sottoscala B: Prese + Luce sensori/EM Ingresso Torre B",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A)  |  Cavo: 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.02 (×1 · Ingr. B)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A)",
+              "Cavo in Uscita": "3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-B__C_2",
+            "code": "QEP.03 (×11 · Piani Tipo)",
+            "label": "Piani 1°–6°, 8°–9°, 11°–13°: Prese servizio + Luce sensori/EM filtro aerato",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10  |  Cavo: 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.03 (×11 · Piani Tipo)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10",
+              "Cavo in Uscita": "3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-B__C_3",
+            "code": "QEP.04 (×2 · Piani 7°/10°)",
+            "label": "Piani 7° e 10°: Prese + Luce sensori/EM filtro + Apparecchiature M-Bus Cappe",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.04 (×2 · Piani 7°/10°)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
+              "Cavo in Uscita": "3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEP-TORRE-B__C_4",
+            "code": "QEP.05 (×1 · Piano 14°)",
+            "label": "Piano 14° e Locale Tecnico: Prese + Luce/EM filtro + Automazioni",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10  |  Cavo: 3G2,5 / 3G1,5",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "QEP.05 (×1 · Piano 14°)",
+              "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10",
+              "Cavo in Uscita": "3G2,5 / 3G1,5"
+            },
+            "datasheetIds": [
+              "DS-FOSNOVA-LED",
+              "DS-PERRY-EM",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEP-TORRE-B__e_in",
+            "source": "QEP-TORRE-B__IN",
+            "target": "QEP-TORRE-B__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEP-TORRE-B__e_bus",
+            "source": "QEP-TORRE-B__MAIN",
+            "target": "QEP-TORRE-B__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEP-TORRE-B__ec_0",
+            "source": "QEP-TORRE-B__BUS",
+            "target": "QEP-TORRE-B__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.01 (×1 · P.Terra B)"
+          },
+          {
+            "id": "QEP-TORRE-B__ec_1",
+            "source": "QEP-TORRE-B__BUS",
+            "target": "QEP-TORRE-B__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.02 (×1 · Ingr. B)"
+          },
+          {
+            "id": "QEP-TORRE-B__ec_2",
+            "source": "QEP-TORRE-B__BUS",
+            "target": "QEP-TORRE-B__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.03 (×11 · Piani Tipo)"
+          },
+          {
+            "id": "QEP-TORRE-B__ec_3",
+            "source": "QEP-TORRE-B__BUS",
+            "target": "QEP-TORRE-B__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.04 (×2 · Piani 7°/10°)"
+          },
+          {
+            "id": "QEP-TORRE-B__ec_4",
+            "source": "QEP-TORRE-B__BUS",
+            "target": "QEP-TORRE-B__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "QEP.05 (×1 · Piano 14°)"
+          }
+        ]
+      }
     },
     {
       "id": "POD-PDC",
@@ -2392,7 +7599,93 @@ window.IMPIANTO_DATA = {
       "roleType": "source",
       "roleLabel": "⚡ INGRESSO RETE 160 kW",
       "shortFunc": "Fornitura di alta potenza dedicata esclusivamente alla centrale di climatizzazione e acqua calda geotermica.",
-      "emergencyNote": "Separata dalle altre forniture per non disturbare ascensori e servizi civili allo spunto dei compressori."
+      "emergencyNote": "Separata dalle altre forniture per non disturbare ascensori e servizi civili allo spunto dei compressori.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "POD-PDC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro POD-PDC",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Linea di alimentazione a monte",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Linea di alimentazione a monte"
+            }
+          },
+          {
+            "id": "POD-PDC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Apparecchio Generale",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Apparecchio Generale"
+            }
+          },
+          {
+            "id": "POD-PDC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale POD-PDC",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sistema di distribuzione interno",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sistema di distribuzione interno"
+            }
+          },
+          {
+            "id": "POD-PDC__C_0",
+            "code": "MONT-AVPC",
+            "label": "Doppia terna unipolare FG16OM16 3×(2×185)+1×185N verso AVPC",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: DG Distributore  |  Cavo: 6×185 + 1×185N mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "MONT-AVPC",
+              "Apparecchio di Protezione": "DG Distributore",
+              "Cavo in Uscita": "6×185 + 1×185N mm²"
+            },
+            "datasheetIds": [
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "POD-PDC__e_in",
+            "source": "POD-PDC__IN",
+            "target": "POD-PDC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "POD-PDC__e_bus",
+            "source": "POD-PDC__MAIN",
+            "target": "POD-PDC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "POD-PDC__ec_0",
+            "source": "POD-PDC__BUS",
+            "target": "POD-PDC__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "MONT-AVPC"
+          }
+        ]
+      }
     },
     {
       "id": "AVPC",
@@ -2471,7 +7764,145 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🛡️ PROTEZIONE 630A",
       "shortFunc": "Protegge con interruttore da 630A e differenziale selettivo Tipo B i grossi cavi diretti in Centrale Tecnologica.",
-      "emergencyNote": "Dotato di bobina di apertura per sezionare da Piano Terra la potenza elettrica diretta alle pompe di calore."
+      "emergencyNote": "Dotato di bobina di apertura per sezionare da Piano Terra la potenza elettrica diretta alle pompe di calore.",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "AVPC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro AVPC",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da POD-PDC (160 kW) · FG16OM16 3×(2×185)+1×185N mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da POD-PDC (160 kW) · FG16OM16 3×(2×185)+1×185N mm²"
+            }
+          },
+          {
+            "id": "AVPC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: ABB Tmax T5N 630 PR221DS (252–630A, 36kA) + Dossena Tipo B + Bobina SOR",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: ABB Tmax T5N 630 PR221DS (252–630A, 36kA) + Dossena Tipo B + Bobina SOR"
+            }
+          },
+          {
+            "id": "AVPC__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "AVPC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale AVPC",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Uscita diretta su doppia corda per fase verso QE.PC",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Uscita diretta su doppia corda per fase verso QE.PC"
+            }
+          },
+          {
+            "id": "AVPC__C_0",
+            "code": "Q1",
+            "label": "Montante di potenza verso Quadro Pompe di Calore (QE.PC)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB T5N 630A + Diff. Tipo B (1A / 1s)  |  Cavo: FG16OM16 3×(2×185)+1×185N+1×185PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q1",
+              "Apparecchio di Protezione": "ABB T5N 630A + Diff. Tipo B (1A / 1s)",
+              "Cavo in Uscita": "FG16OM16 3×(2×185)+1×185N+1×185PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "AVPC__C_1",
+            "code": "F1",
+            "label": "Protezione relè Dossena e circuito sgancio emergenza Q1",
+            "roleType": "load",
+            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
+            "shortFunc": "Protezione: Portafusibile ABB E90 1P+N 10×38 4A gG  |  Cavo: FS17 2,5 / 1,5 mm²",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "F1",
+              "Apparecchio di Protezione": "Portafusibile ABB E90 1P+N 10×38 4A gG",
+              "Cavo in Uscita": "FS17 2,5 / 1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "AVPC__e_in",
+            "source": "AVPC__IN",
+            "target": "AVPC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "AVPC__e_der",
+            "source": "AVPC__DER",
+            "target": "AVPC__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "AVPC__e_bus",
+            "source": "AVPC__MAIN",
+            "target": "AVPC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "AVPC__ec_0",
+            "source": "AVPC__BUS",
+            "target": "AVPC__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q1"
+          },
+          {
+            "id": "AVPC__ec_1",
+            "source": "AVPC__BUS",
+            "target": "AVPC__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "F1"
+          }
+        ]
+      }
     },
     {
       "id": "QEPC",
@@ -2588,7 +8019,273 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO POTENZA CLIMA",
       "shortFunc": "Sbarra da 800A dove l'energia dalla rete e quella dal Fotovoltaico alimentano insieme le 3 Pompe di Calore.",
-      "emergencyNote": "Invia contatti di allarme immediato al BMS se scatta una pompa di calore, il fotovoltaico o lo scaricatore SPD."
+      "emergencyNote": "Invia contatti di allarme immediato al BMS se scatta una pompa di calore, il fotovoltaico o lo scaricatore SPD.",
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEPC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.PC",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da AVPC (Q1) · FG16OM16 3×(2×185)+185N+185PE mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da AVPC (Q1) · FG16OM16 3×(2×185)+185N+185PE mm²"
+            }
+          },
+          {
+            "id": "QEPC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: Sez. ABB OT630E04 4P 630A + SPD DEHN Tipo 1+2 + Vemer EV3M (TA 600/5A)",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: Sez. ABB OT630E04 4P 630A + SPD DEHN Tipo 1+2 + Vemer EV3M (TA 600/5A)"
+            }
+          },
+          {
+            "id": "QEPC__DER",
+            "code": "RELÈ TIPO B",
+            "label": "Relè Differenziale Dossena Tipo B + Doppio Toroide",
+            "roleType": "control",
+            "roleLabel": "🔍 PROTEZIONE GUASTI AC/DC",
+            "shortFunc": "Misura correnti disperse alternate e continue (inverter) tramite doppio toroide e sgancia il generale in caso di guasto.",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Costruttore": "Dossena DER3BDUAL Classe B"
+            },
+            "datasheetIds": [
+              "DS-DOSSENA-DER3B"
+            ]
+          },
+          {
+            "id": "QEPC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.PC",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sistema Sbarre Rame / Flexibar In = 800A · Icw = 15–20 kA",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sistema Sbarre Rame / Flexibar In = 800A · Icw = 15–20 kA"
+            }
+          },
+          {
+            "id": "QEPC__SPD",
+            "code": "SC1 · SPD DEHN",
+            "label": "Scaricatore Combinato Fulmini Tipo 1+2 (DEHN 941 315)",
+            "roleType": "control",
+            "roleLabel": "⚡ SCARICATORE SOVRATENSIONI",
+            "shortFunc": "In esercizio normale è isolato; se arriva una sovratensione la devia istantaneamente sulla Barra di Terra PE.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Modello": "DEHNshield DSH TT 255 FM (50 kA 10/350 µs)"
+            },
+            "datasheetIds": [
+              "DS-DEHN-941315"
+            ]
+          },
+          {
+            "id": "QEPC__PE",
+            "code": "BARRA TERRA PE",
+            "label": "Barra Collettrice di Terra del Quadro (PE)",
+            "roleType": "load",
+            "roleLabel": "⏚ RICEVE SCARICHE A TERRA",
+            "shortFunc": "Raccoglie la scarica dello scaricatore SPD e i conduttori giallo/verdi delle linee inviandoli all'anello di terra.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Collegamento": "Verso Collettore e Anello Terra 50 mm²"
+            }
+          },
+          {
+            "id": "QEPC__M1",
+            "code": "M1 · CONTATORE INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "roleType": "control",
+            "roleLabel": "📊 STRUMENTO DI MISURA",
+            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+            },
+            "datasheetIds": [
+              "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QEPC__C_1",
+            "code": "Q2 + RD2",
+            "label": "Pompa di Calore PC1 (48 kW elettr., FLA 80A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT1C 160 TMD (tar. 112A, 25kA) + Dossena Tipo B (Ø110mm)  |  Cavo: FG16OM16 3×70+70N+35PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q2 + RD2",
+              "Apparecchio di Protezione": "ABB XT1C 160 TMD (tar. 112A, 25kA) + Dossena Tipo B (Ø110mm)",
+              "Cavo in Uscita": "FG16OM16 3×70+70N+35PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-DEHN-941315",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEPC__C_2",
+            "code": "Q3 + RD3",
+            "label": "Pompa di Calore PC2A (91 kW elettr., FLA 151A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)  |  Cavo: FG16OM16 3×95+95N+50PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q3 + RD3",
+              "Apparecchio di Protezione": "ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)",
+              "Cavo in Uscita": "FG16OM16 3×95+95N+50PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-DEHN-941315",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEPC__C_3",
+            "code": "Q4 + RD4",
+            "label": "Pompa di Calore PC2B (91 kW elettr., FLA 151A)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)  |  Cavo: FG16OM16 3×95+95N+50PE",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q4 + RD4",
+              "Apparecchio di Protezione": "ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)",
+              "Cavo in Uscita": "FG16OM16 3×95+95N+50PE"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-DEHN-941315",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QEPC__C_4",
+            "code": "Q5",
+            "label": "Interfaccia Parallelo Impianto Fotovoltaico Condominiale",
+            "roleType": "source",
+            "roleLabel": "☀️ INGRESSO PARALLELO FV",
+            "shortFunc": "Protezione: ABB S204M C50 4P (10 kA — nota: senza BA nello schema quadrista)  |  Cavo: FS17 16 mm² a morsettiera X1",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q5",
+              "Apparecchio di Protezione": "ABB S204M C50 4P (10 kA — nota: senza BA nello schema quadrista)",
+              "Cavo in Uscita": "FS17 16 mm² a morsettiera X1"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DOSSENA-DER3B",
+              "DS-DEHN-941315",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEPC__e_in",
+            "source": "QEPC__IN",
+            "target": "QEPC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEPC__e_der",
+            "source": "QEPC__DER",
+            "target": "QEPC__MAIN",
+            "edgeType": "emergency_trip",
+            "flowCategory": "🚨 Sgancio Diff.",
+            "label": "Comando apertura guasto"
+          },
+          {
+            "id": "QEPC__e_bus",
+            "source": "QEPC__MAIN",
+            "target": "QEPC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEPC__e_spd1",
+            "source": "QEPC__BUS",
+            "target": "QEPC__SPD",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Sorveglianza",
+            "label": "Derivazione sbarra"
+          },
+          {
+            "id": "QEPC__e_spd2",
+            "source": "QEPC__SPD",
+            "target": "QEPC__PE",
+            "edgeType": "earth_pe",
+            "flowCategory": "⏚ Scarico a Terra",
+            "label": "Scarica verso Terra PE"
+          },
+          {
+            "id": "QEPC__e_m1",
+            "source": "QEPC__BUS",
+            "target": "QEPC__M1",
+            "edgeType": "tlc_signal",
+            "flowCategory": "📊 Misura V/I",
+            "label": "Segnali 3 TA + Tensione"
+          },
+          {
+            "id": "QEPC__ec_1",
+            "source": "QEPC__BUS",
+            "target": "QEPC__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q2 + RD2"
+          },
+          {
+            "id": "QEPC__ec_2",
+            "source": "QEPC__BUS",
+            "target": "QEPC__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q3 + RD3"
+          },
+          {
+            "id": "QEPC__ec_3",
+            "source": "QEPC__BUS",
+            "target": "QEPC__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q4 + RD4"
+          },
+          {
+            "id": "QEPC__ec_4",
+            "source": "QEPC__C_4",
+            "target": "QEPC__BUS",
+            "edgeType": "power_fv",
+            "flowCategory": "☀️ Energia FV",
+            "label": "Q5"
+          }
+        ]
+      }
     },
     {
       "id": "GEN-FV-ROOF",
@@ -2633,8 +8330,94 @@ window.IMPIANTO_DATA = {
       ],
       "roleType": "source",
       "roleLabel": "☀️ SORGENTE SOLARE FV",
-      "shortFunc": "Pannelli fotovoltaici sul tetto: immettono energia pulita direttamente nel quadro Pompe di Calore per abbattere i consumi.",
-      "emergencyNote": "Se manca la rete elettrica, l'inverter si spegne automaticamente in <0,2s (protezione anti-isola CEI 0-21)."
+      "shortFunc": "Immette energia solare in QE.PC. Se AVPC apre, cessa di erogare per anti-isola CEI 0-21 (vedi nota INC-04).",
+      "emergencyNote": "PERCHÉ LO SGANCIO APRE LA RETE (AVPC) MA NON MOSTRA UNA FRECCIA SUL FOTOVOLTAICO: nello schema As-Built parti comuni l'interruttore Q5 del Fotovoltaico in QE.PC è montato senza bobina di sgancio (rilievo INC-04, lasciata al progetto FV). Quando AVPC apre e toglie i 400V di rete, l'inverter solare spegne automaticamente l'immissione in <0,2 s per protezione anti-isola obbligatoria CEI 0-21 (non può funzionare in isola senza rete); per sezionare anche la linea DC/AC sul tetto occorre verificare il comando VVF dedicato nel fascicolo dell'impianto FV.",
+      "roomGroup": "Copertura Edifici (+48 m)",
+      "safetyZone": "4 · Stop Automatico Anti-Isola CEI 0-21 (Nota INC-04)",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "GEN-FV-ROOF__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro GEN-FV",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Linea di alimentazione a monte",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Linea di alimentazione a monte"
+            }
+          },
+          {
+            "id": "GEN-FV-ROOF__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Apparecchio Generale",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Apparecchio Generale"
+            }
+          },
+          {
+            "id": "GEN-FV-ROOF__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale GEN-FV",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Sistema di distribuzione interno",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Sistema di distribuzione interno"
+            }
+          },
+          {
+            "id": "GEN-FV-ROOF__C_0",
+            "code": "LIN-FV",
+            "label": "Montante AC trifase da sezione inverter FV a QE.PC (Q5)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204M 4P C50A  |  Cavo: Morsettiera X1 QE.PC (16 mm²)",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "LIN-FV",
+              "Apparecchio di Protezione": "ABB S204M 4P C50A",
+              "Cavo in Uscita": "Morsettiera X1 QE.PC (16 mm²)"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "GEN-FV-ROOF__e_in",
+            "source": "GEN-FV-ROOF__IN",
+            "target": "GEN-FV-ROOF__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "GEN-FV-ROOF__e_bus",
+            "source": "GEN-FV-ROOF__MAIN",
+            "target": "GEN-FV-ROOF__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "GEN-FV-ROOF__ec_0",
+            "source": "GEN-FV-ROOF__BUS",
+            "target": "GEN-FV-ROOF__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "LIN-FV"
+          }
+        ]
+      }
     },
     {
       "id": "QEPA",
@@ -2717,7 +8500,94 @@ window.IMPIANTO_DATA = {
       "roleType": "hub",
       "roleLabel": "🚒 QUADRO VITALE VVF",
       "shortFunc": "Alimenta la motopompa antincendio con interruttore SOLO magnetico: non scatta mai per sovraccarico durante un rogo.",
-      "emergencyNote": "Collegato PRIMA di AVSSC: continua a dare corrente alla pompa idranti anche quando i VVF staccano tutto il resto!"
+      "emergencyNote": "Collegato PRIMA di AVSSC: continua a dare corrente alla pompa idranti anche quando i VVF staccano tutto il resto!",
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "1 · Attivo Permanente (Linea Ignifuga VVF)",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEPA__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.PA",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da RIP-250A (a monte sgancio) · FTG18OM16 3×16 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da RIP-250A (a monte sgancio) · FTG18OM16 3×16 mm²"
+            }
+          },
+          {
+            "id": "QEPA__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: ABB S203M K40 SOLO MAGNETICO (15kA) + Blocco Diff. DDA203 A 0,5A",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: ABB S203M K40 SOLO MAGNETICO (15kA) + Blocco Diff. DDA203 A 0,5A"
+            }
+          },
+          {
+            "id": "QEPA__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.PA",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Uscita diretta protetta con contatto stato ausiliario S2C-H6R",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Uscita diretta protetta con contatto stato ausiliario S2C-H6R"
+            }
+          },
+          {
+            "id": "QEPA__C_0",
+            "code": "Q1",
+            "label": "Linea Motopompa Principale Antincendio (15 kW, Locale Pompe -2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S615099 Solo Magnetico 3P 40A + Diff. 0,5A  |  Cavo: FTG18OM16 4G16 mm² (refuso FG16 su tab. quadrista)",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "Q1",
+              "Apparecchio di Protezione": "ABB S615099 Solo Magnetico 3P 40A + Diff. 0,5A",
+              "Cavo in Uscita": "FTG18OM16 4G16 mm² (refuso FG16 su tab. quadrista)"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FTG18"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEPA__e_in",
+            "source": "QEPA__IN",
+            "target": "QEPA__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEPA__e_bus",
+            "source": "QEPA__MAIN",
+            "target": "QEPA__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEPA__ec_0",
+            "source": "QEPA__BUS",
+            "target": "QEPA__C_0",
+            "edgeType": "fire_resistant",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q1"
+          }
+        ]
+      }
     },
     {
       "id": "UPS-1-EI",
@@ -2756,7 +8626,11 @@ window.IMPIANTO_DATA = {
       "roleType": "ups",
       "roleLabel": "🔋 BATTERIA PORTONI EI",
       "shortFunc": "UPS online 1000VA: mantiene alimentati i portoni tagliafuoco dei box; al comando VVF viene staccato per farli chiudere.",
-      "emergencyNote": "Autonomia ~11 min a metà carico; in caso di sgancio incendio l'interruttore d'uscita Q7 si apre e compartimenta i box."
+      "emergencyNote": "Autonomia ~11 min a metà carico; in caso di sgancio incendio l'interruttore d'uscita Q7 si apre e compartimenta i box.",
+      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "safetyZone": "2 · Sezionato in Uscita (Q7) per Chiusura Portoni EI",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": null
     },
     {
       "id": "UPS-2-SGANCIO",
@@ -2795,7 +8669,11 @@ window.IMPIANTO_DATA = {
       "roleType": "ups",
       "roleLabel": "🔋 BATTERIA SGANCIO 24V",
       "shortFunc": "UPS online 2000VA: tiene vivo l'anello a 24V dello sgancio box per evitare che un calo di rete apra i quadri per errore.",
-      "emergencyNote": "Attenzione: se questo UPS si guasta o si scarica del tutto, per sicurezza apre automaticamente Box, Pozzi e Portoni EI!"
+      "emergencyNote": "Attenzione: se questo UPS si guasta o si scarica del tutto, per sicurezza apre automaticamente Box, Pozzi e Portoni EI!",
+      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "safetyZone": "1 · Presidio Sicurezza & Batteria Tampone",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": null
     },
     {
       "id": "SGANCI-VVF",
@@ -2828,7 +8706,11 @@ window.IMPIANTO_DATA = {
       "roleType": "control",
       "roleLabel": "🚨 COMANDI EMERGENZA VVF",
       "shortFunc": "3 pulsanti sotto vetro (Box, Scala A, Scala B) per permettere ai Vigili del Fuoco di togliere tensione in sicurezza.",
-      "emergencyNote": "Azione selettiva: ciascun pulsante spegne solo il proprio compartimento lasciando operativa la pompa antincendio."
+      "emergencyNote": "Azione selettiva: ciascun pulsante spegne solo il proprio compartimento lasciando operativa la pompa antincendio.",
+      "roomGroup": "Portineria & Ingressi (P.T)",
+      "safetyZone": "1 · Presidio Sicurezza & Batteria Tampone",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": null
     },
     {
       "id": "IRA-CENTRALI",
@@ -2860,7 +8742,11 @@ window.IMPIANTO_DATA = {
       "roleType": "control",
       "roleLabel": "🔔 RIVELAZIONE & ALLARMI",
       "shortFunc": "Centrali rivelazione fumi delle Torri A/B (>32m) e pannello in Portineria che segnala anomalie alla pompa VVF.",
-      "emergencyNote": "Dotate di proprie batterie tampone interne per sorvegliare l'edificio anche a rete elettrica staccata."
+      "emergencyNote": "Dotate di proprie batterie tampone interne per sorvegliare l'edificio anche a rete elettrica staccata.",
+      "roomGroup": "Portineria & Ingressi (P.T)",
+      "safetyZone": "1 · Presidio Sicurezza & Batteria Tampone",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": null
     },
     {
       "id": "QEREG",
@@ -2963,7 +8849,203 @@ window.IMPIANTO_DATA = {
       "roleType": "control",
       "roleLabel": "🧠 CERVELLO BMS (PLC+4G)",
       "shortFunc": "Legge 19 sonde temperatura e governa automaticamente Pompe di Calore, Pozzi falda, 16 pompe e valvole miscelatrici.",
-      "emergencyNote": "Accessibile da remoto via router 4G; su ogni uscita ha selettori Auto-0-Manuale per forzare le pompe a mano se serve."
+      "emergencyNote": "Accessibile da remoto via router 4G; su ogni uscita ha selettori Auto-0-Manuale per forzare le pompe a mano se serve.",
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "QEREG__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE-REG",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Da QE.CT (Q20 Supervisione) · 230Vac 1F+N",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Da QE.CT (Q20 Supervisione) · 230Vac 1F+N"
+            }
+          },
+          {
+            "id": "QEREG__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Q1: ABB S201Na C16A + Trasf. T1 230/24Vac 100VA + Fusibili F1–F5",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Q1: ABB S201Na C16A + Trasf. T1 230/24Vac 100VA + Fusibili F1–F5"
+            }
+          },
+          {
+            "id": "QEREG__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE-REG",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Bus 24Vac + Rete EIA-485 BACnet MS/TP (Addr. 1–3) + Modbus + LAN 4G",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Bus 24Vac + Rete EIA-485 BACnet MS/TP (Addr. 1–3) + Modbus + LAN 4G"
+            }
+          },
+          {
+            "id": "QEREG__C_0",
+            "code": "MTX1 + EXP1 + 4G",
+            "label": "Supervisore ABB Cylon MATRIX-216 + Pannello Touch Explorer + Router 4G",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: Fusibile F1 2A + Alimentaz. 24Vac  |  Cavo: Ethernet LAN + 2× RS-485",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "MTX1 + EXP1 + 4G",
+              "Apparecchio di Protezione": "Fusibile F1 2A + Alimentaz. 24Vac",
+              "Cavo in Uscita": "Ethernet LAN + 2× RS-485"
+            },
+            "datasheetIds": [
+              "DS-CYLON-MATRIX",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QEREG__C_1",
+            "code": "CBX2 (Addr. 2)",
+            "label": "Sonde ST01–ST08 (Esterna Nord, Puffer, Spazi Condom., B.P./A.P.) + Comandi PDC1 e P.06/P.07",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 24Vac protetto  |  Cavo: Morsettiera X2 + Relè Cabur K1",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "CBX2 (Addr. 2)",
+              "Apparecchio di Protezione": "24Vac protetto",
+              "Cavo in Uscita": "Morsettiera X2 + Relè Cabur K1"
+            },
+            "datasheetIds": [
+              "DS-CYLON-MATRIX",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QEREG__C_2",
+            "code": "FLX1 (Addr. 1)",
+            "label": "Sonde ST09–ST16 (Secondario A.P., Pozzi Falda, ACS) + Comandi P.08/P.09 + 3 Valvole Mix",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: Bus FLX 24Vac  |  Cavo: Morsettiera X2 + Relè Cabur K2",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "FLX1 (Addr. 1)",
+              "Apparecchio di Protezione": "Bus FLX 24Vac",
+              "Cavo in Uscita": "Morsettiera X2 + Relè Cabur K2"
+            },
+            "datasheetIds": [
+              "DS-CYLON-MATRIX",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QEREG__C_3",
+            "code": "FLX2 (Addr. 2)",
+            "label": "Sonde ST17–ST19 (ACS) + Allarmi 1–2 C. Idrica + Comandi P.02/P.03 + 2 Valvole Mix ACS",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: Bus FLX 24Vac  |  Cavo: Morsettiera X2",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "FLX2 (Addr. 2)",
+              "Apparecchio di Protezione": "Bus FLX 24Vac",
+              "Cavo in Uscita": "Morsettiera X2"
+            },
+            "datasheetIds": [
+              "DS-CYLON-MATRIX",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          },
+          {
+            "id": "QEREG__C_4",
+            "code": "FLX3 (Addr. 3)",
+            "label": "16 Ingressi Digitali: Allarmi PDC1/PDC2, Pompe P.01/P.04/P.05, Stati P.06–P.09, Richiesta Pozzi",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: Bus FLX 24Vac  |  Cavo: Morsettiera X2 (mors. 104–127)",
+            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "specs": {
+              "Sigla Linea": "FLX3 (Addr. 3)",
+              "Apparecchio di Protezione": "Bus FLX 24Vac",
+              "Cavo in Uscita": "Morsettiera X2 (mors. 104–127)"
+            },
+            "datasheetIds": [
+              "DS-CYLON-MATRIX",
+              "DS-CYLON-CBX-FLX",
+              "DS-ABB-S200"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "QEREG__e_in",
+            "source": "QEREG__IN",
+            "target": "QEREG__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "QEREG__e_bus",
+            "source": "QEREG__MAIN",
+            "target": "QEREG__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "QEREG__ec_0",
+            "source": "QEREG__BUS",
+            "target": "QEREG__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "MTX1 + EXP1 + 4G"
+          },
+          {
+            "id": "QEREG__ec_1",
+            "source": "QEREG__BUS",
+            "target": "QEREG__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "CBX2 (Addr. 2)"
+          },
+          {
+            "id": "QEREG__ec_2",
+            "source": "QEREG__BUS",
+            "target": "QEREG__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "FLX1 (Addr. 1)"
+          },
+          {
+            "id": "QEREG__ec_3",
+            "source": "QEREG__BUS",
+            "target": "QEREG__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "FLX2 (Addr. 2)"
+          },
+          {
+            "id": "QEREG__ec_4",
+            "source": "QEREG__BUS",
+            "target": "QEREG__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "FLX3 (Addr. 3)"
+          }
+        ]
+      }
     },
     {
       "id": "MBUS-M-Bus",
@@ -2996,7 +9078,11 @@ window.IMPIANTO_DATA = {
       "roleType": "control",
       "roleLabel": "📡 RETE CONTAB. & CAPPE",
       "shortFunc": "Rete dati lungo le due torri che legge i consumi di ogni alloggio e regola l'aspirazione cappe cucina (7°/10°).",
-      "emergencyNote": "Sistema a bassissima tensione distribuito nei cavedi con amplificatori di segnale alla base delle scale."
+      "emergencyNote": "Sistema a bassissima tensione distribuito nei cavedi con amplificatori di segnale alla base delle scale.",
+      "roomGroup": "Piani Residenziali 1°–14°",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": null
     },
     {
       "id": "FTTH-CSOE",
@@ -3029,7 +9115,11 @@ window.IMPIANTO_DATA = {
       "roleType": "source",
       "roleLabel": "🌐 CENTRO FIBRA & TV-SAT",
       "shortFunc": "Raccoglie la fibra Internet dalla strada (ROE) e il segnale antenne TV dal tetto portandoli in fibra in ogni casa.",
-      "emergencyNote": "Rete ottica passiva immune ai disturbi elettrici; gli amplificatori attivi di testa sono alimentati dai quadri scala."
+      "emergencyNote": "Rete ottica passiva immune ai disturbi elettrici; gli amplificatori attivi di testa sono alimentati dai quadri scala.",
+      "roomGroup": "Portineria & Ingressi (P.T)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": null
     },
     {
       "id": "VIDEOCITOFONO",
@@ -3063,7 +9153,11 @@ window.IMPIANTO_DATA = {
       "roleType": "control",
       "roleLabel": "🔔 CITOFONI & SOCCORSO",
       "shortFunc": "Gestisce le 3 targhe videocitofoniche agli ingressi (Portineria, A, B), le serrature e gli allarmi tirante disabili.",
-      "emergencyNote": "Pulsanti di sblocco locale garantiscono sempre l'uscita pedonale dalle porte anche in assenza di tensione."
+      "emergencyNote": "Pulsanti di sblocco locale garantiscono sempre l'uscita pedonale dalle porte anche in assenza di tensione.",
+      "roomGroup": "Portineria & Ingressi (P.T)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "3 · Continuità UPS & Controllo",
+      "internalGraph": null
     },
     {
       "id": "TERRA-RETE",
@@ -3099,9 +9193,13 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "load",
-      "roleLabel": "⏚ SCARICO A TERRA & SPD",
-      "shortFunc": "Anello in rame nudo da 50 mm² con 14 picchetti nel terreno + 4 scaricatori fulmini DEHN nei quadri principali.",
-      "emergencyNote": "Protezione passiva permanente: scarica istantaneamente a terra guasti d'isolamento e sovratensioni atmosferiche."
+      "roleLabel": "⏚ RICEVE SCARICHE NEL SUOLO",
+      "shortFunc": "Anello in rame nudo 50 mm² + 14 picchetti nel terreno: RICEVE e disperde l'elettricità scaricata da guasti o fulmini.",
+      "emergencyNote": "In esercizio ordinario sul filo di terra NON scorre corrente (flusso fermo). Solo durante un guasto d'isolamento o una scarica SPD la corrente viaggia DAI quadri VERSO la terra.",
+      "roomGroup": "Aree Esterne & Sottosuolo",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-BOX",
@@ -3136,7 +9234,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 UTENZE AUTORIMESSA",
       "shortFunc": "Luce e presa interna dei 152 box privati, luci corselli/rampa con sensori, portoni EI e 2 pompe antiallagamento.",
-      "emergencyNote": "Messa completamente fuori tensione al comando del pulsante VVF Autorimessa (salvo lampade autonome di esodo)."
+      "emergencyNote": "Messa completamente fuori tensione al comando del pulsante VVF Autorimessa (salvo lampade autonome di esodo).",
+      "roomGroup": "Autorimessa Box (Piani -1 e -2)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1)",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-ESTERNI",
@@ -3169,7 +9271,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 UTENZE AREE ESTERNE",
       "shortFunc": "Segnapassi e pali LED dei vialetti/giardino (accesi al tramonto da orologio astronomico), cancello e recupero piovane.",
-      "emergencyNote": "Restano funzionanti anche se scatta lo sgancio interno dell'autorimessa, illuminando i percorsi esterni."
+      "emergencyNote": "Restano funzionanti anche se scatta lo sgancio interno dell'autorimessa, illuminando i percorsi esterni.",
+      "roomGroup": "Aree Esterne & Sottosuolo",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-POMPE-CT",
@@ -3202,7 +9308,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 16 POMPE IMPIANTO CLIMA",
       "shortFunc": "Spinta dell'acqua calda, refrigerata e sanitaria dai serbatoi del Piano -2 verso i circuiti delle Torri A e B.",
-      "emergencyNote": "Pompe gemellari (A+B): se una pompa si blocca, il BMS QE-REG avvia automaticamente la gemella di riserva."
+      "emergencyNote": "Pompe gemellari (A+B): se una pompa si blocca, il BMS QE-REG avvia automaticamente la gemella di riserva.",
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-IDRICO",
@@ -3233,7 +9343,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 POMPE ACQUA POTABILE",
       "shortFunc": "Gruppi autoclave ad inverter GP1 e GP2 + trattamento antilegionella per portare acqua ai rubinetti fino al 14° piano.",
-      "emergencyNote": "Doppio gruppo indipendente per garantire continuità del servizio idrico sanitario."
+      "emergencyNote": "Doppio gruppo indipendente per garantire continuità del servizio idrico sanitario.",
+      "roomGroup": "Centrale Idrica (Piano -1)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-FALDA",
@@ -3266,7 +9380,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 POZZI GEOTERMICI FALDA",
       "shortFunc": "Pompe sommerse nei pozzi (P.10 e P.11) e filtri autopulenti che forniscono acqua di falda alle Pompe di Calore.",
-      "emergencyNote": "Modulati da 0 a 100% dal BMS in base a quante pompe di calore sono accese; protetti da sonde di livello pozzo."
+      "emergencyNote": "Modulati da 0 a 100% dal BMS in base a quante pompe di calore sono accese; protetti da sonde di livello pozzo.",
+      "roomGroup": "Locale Pompe & Antincendio (P.-2)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1)",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-PDC-UNITS",
@@ -3299,7 +9417,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 3 MACCHINE POMPE CALORE",
       "shortFunc": "Cuore termico dell'edificio (48 + 91 + 91 kW elettrici): usano l'acqua di falda per produrre caldo, freddo e ACS.",
-      "emergencyNote": "Ciascuna macchina ha protezione differenziale Tipo B indipendente: un guasto su una non ferma le altre due."
+      "emergencyNote": "Ciascuna macchina ha protezione differenziale Tipo B indipendente: un guasto su una non ferma le altre due.",
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-ROOF-A",
@@ -3332,7 +9454,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 ASCENSORI & TETTO (A)",
       "shortFunc": "2 Ascensori (destro e sinistro), centrale trattamento aria (UTA) ed estrattore fumi cucine sul tetto Torre A.",
-      "emergencyNote": "Linee forza motrice e luce cabina ascensore separate per mantenere illuminata la cabina in caso di blocco motore."
+      "emergencyNote": "Linee forza motrice e luce cabina ascensore separate per mantenere illuminata la cabina in caso di blocco motore.",
+      "roomGroup": "Copertura Edifici (+48 m)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-SCALA-CANT-A",
@@ -3365,7 +9491,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 SCALA & CANTINE (A)",
       "shortFunc": "Luci temporizzate vano scala A, finestre motorizzate evacuazione fumi, corridoi cantine (-2/-1/T) e locale rifiuti.",
-      "emergencyNote": "Lampade di emergenza autonome da 1h lungo tutta la scala e i corridoi cantine."
+      "emergencyNote": "Lampade di emergenza autonome da 1h lungo tutta la scala e i corridoi cantine.",
+      "roomGroup": "Vani Scala & Cantine Torri",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-ROOF-B",
@@ -3398,7 +9528,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 ASCENSORI & TETTO (B)",
       "shortFunc": "2 Ascensori (destro e sinistro), centrale trattamento aria (UTA) ed estrattore fumi cucine sul tetto Torre B.",
-      "emergencyNote": "Linee forza motrice e luce cabina separate come prescritto per gli impianti elevatori."
+      "emergencyNote": "Linee forza motrice e luce cabina separate come prescritto per gli impianti elevatori.",
+      "roomGroup": "Copertura Edifici (+48 m)",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-SCALA-CANT-B",
@@ -3431,7 +9565,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🎯 SCALA & CANTINE (B)",
       "shortFunc": "Luci temporizzate vano scala B, finestre motorizzate, corridoi cantine (P.Terra e -2) e locale rifiuti B.",
-      "emergencyNote": "Lampade di emergenza autonome da 1h lungo tutta la scala e i corridoi cantine."
+      "emergencyNote": "Lampade di emergenza autonome da 1h lungo tutta la scala e i corridoi cantine.",
+      "roomGroup": "Vani Scala & Cantine Torri",
+      "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "LD-POMPA-VVF",
@@ -3464,7 +9602,11 @@ window.IMPIANTO_DATA = {
       "roleType": "load",
       "roleLabel": "🚒 MOTOPOMPA IDRANTI 15 kW",
       "shortFunc": "Motopompa principale antincendio nel Locale Pompe (-2) che mette in pressione la rete idranti/naspi in caso di rogo.",
-      "emergencyNote": "Alimentata con cavo ignifugo FTG18OM16: progettata per funzionare ad oltranza anche sotto incendio."
+      "emergencyNote": "Alimentata con cavo ignifugo FTG18OM16: progettata per funzionare ad oltranza anche sotto incendio.",
+      "roomGroup": "Locale Pompe & Antincendio (P.-2)",
+      "safetyZone": "1 · Attivo Permanente (Linea Ignifuga VVF)",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
     },
     {
       "id": "DOC-SUITE-REL",
@@ -3488,7 +9630,11 @@ window.IMPIANTO_DATA = {
       "roleType": "doc",
       "roleLabel": "📘 RELAZIONE TECNICA",
       "shortFunc": "Descrive dati contrattuali, regole antincendio, gradi IP, fibra FTTH e obblighi di verifica biennale.",
-      "emergencyNote": ""
+      "emergencyNote": "",
+      "roomGroup": "Locali Tecnici Comuni",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "5 · Documentazione",
+      "internalGraph": null
     },
     {
       "id": "DOC-SUITE-UNIF",
@@ -3512,7 +9658,11 @@ window.IMPIANTO_DATA = {
       "roleType": "doc",
       "roleLabel": "📐 UNIFILARI PROGETTO",
       "shortFunc": "Schemi elettrici progettuali di tutti i quadri, inclusi i 32 centralini di piano QEP non presenti nei quaderni quadrista.",
-      "emergencyNote": ""
+      "emergencyNote": "",
+      "roomGroup": "Locali Tecnici Comuni",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "5 · Documentazione",
+      "internalGraph": null
     },
     {
       "id": "DOC-SUITE-PLAN",
@@ -3536,7 +9686,11 @@ window.IMPIANTO_DATA = {
       "roleType": "doc",
       "roleLabel": "🗺️ PLANIMETRIE PL.01–13",
       "shortFunc": "Mappe architettoniche As-Built di box, centrali, torri, pozzetti di terra e albero generale delle linee.",
-      "emergencyNote": ""
+      "emergencyNote": "",
+      "roomGroup": "Locali Tecnici Comuni",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "5 · Documentazione",
+      "internalGraph": null
     },
     {
       "id": "DOC-SUITE-QUAD",
@@ -3560,7 +9714,366 @@ window.IMPIANTO_DATA = {
       "roleType": "doc",
       "roleLabel": "📒 18 FASCICOLI QUADRISTA",
       "shortFunc": "Schemi esecutivi certificati IEC 61439, morsettiere, ausiliari 24V, BMS QE-REG e distinte reali dei componenti.",
-      "emergencyNote": ""
+      "emergencyNote": "",
+      "roomGroup": "Locali Tecnici Comuni",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "5 · Documentazione",
+      "internalGraph": null
+    },
+    {
+      "id": "RETE-DISTRIBUTORE",
+      "code": "RETE CITTADINA BT",
+      "label": "Rete Pubblica Distributore BT (400/230V 3F+N · Sistema TT)",
+      "plant": "IMP-INGRESSI",
+      "nodeClass": "supply_pod",
+      "roleType": "source",
+      "roleLabel": "⚡ ORIGINE RETE ESTERNA",
+      "shortFunc": "Adduzione elettrica cittadina dalla rete stradale pubblica verso il Locale Contatori Principale al Piano Terra e le sale contatori di torre.",
+      "emergencyNote": "Corrente di cortocircuito presunta CEI 0-21 ai punti di consegna >33 kW: 15 kA trifase / 6 kA fase-neutro.",
+      "tier": 1,
+      "floor": "F_TERRA",
+      "colHint": 2.5,
+      "specs": {
+        "Tensione": "400/230V 50Hz",
+        "Sistema Neutro": "TT",
+        "Accesso": "Cavidotti interrati da pozzetti stradali 'E' (Tavola PL.12.1)"
+      },
+      "desc": "Punto di origine della fornitura elettrica pubblica in bassa tensione per l'intero insediamento.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-CAVO-FG16"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "Cap. 1 — Energia Elettrica",
+          "scope": "Forniture BT e correnti di cortocircuito"
+        }
+      ],
+      "roomGroup": "Suolo Pubblico Rete Stradale Esterna",
+      "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": null
+    },
+    {
+      "id": "CONTATORI-ALLOGGI-A",
+      "code": "CONTATORI ALLOGGI A",
+      "label": "Batteria Contatori Privati Appartamenti — Torre A (Piano -1)",
+      "plant": "IMP-INGRESSI",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🏠 CONTATORI PRIVATI TORRE A",
+      "shortFunc": "Gruppi di misura individuali degli appartamenti Torre A nel Locale Contatori A al Piano -1 (PL.02/PL.04).",
+      "emergencyNote": "PERCHÉ NON COMPAIONO NEGLI SCHEMI UNIFILARI: questo progetto copre le sole Parti Comuni; nel quadro QESC-A (linea Q20) sono cablate solo luci, emergenza e prese di servizio di questa stanza.",
+      "tier": 1,
+      "floor": "F_M1",
+      "colHint": 0.5,
+      "specs": {
+        "Ubicazione": "Locale Contatori Scala A — Piano Primo Interrato (-1)",
+        "Ambito": "Utenze private residenziali Torre A",
+        "Illuminazione/Prese locale": "Da QESC-A interruttore Q20 (150 lux medi)"
+      },
+      "desc": "Sala contatori dedicata alle utenze private delle unità abitative della Torre A.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [],
+      "docRefs": [
+        {
+          "suite": "Planimetrie As-Built",
+          "ref": "Tavole PL.02 e PL.04",
+          "scope": "Ubicazione Locale Contatori A al Piano -1"
+        }
+      ],
+      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
+    },
+    {
+      "id": "CONTATORI-ALLOGGI-B",
+      "code": "CONTATORI ALLOGGI B",
+      "label": "Batteria Contatori Privati Appartamenti — Torre B (Piano -1)",
+      "plant": "IMP-INGRESSI",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🏠 CONTATORI PRIVATI TORRE B",
+      "shortFunc": "Gruppi di misura individuali degli appartamenti Torre B nel Locale Contatori B al Piano -1 (PL.02/PL.04).",
+      "emergencyNote": "Esclusi dagli schemi parti comuni; luce, emergenza e prese della stanza sono alimentate da QESC-B (linea Q20).",
+      "tier": 1,
+      "floor": "F_M1",
+      "colHint": 4.5,
+      "specs": {
+        "Ubicazione": "Locale Contatori Scala B — Piano Primo Interrato (-1)",
+        "Ambito": "Utenze private residenziali Torre B",
+        "Illuminazione/Prese locale": "Da QESC-B interruttore Q20 (150 lux medi)"
+      },
+      "desc": "Sala contatori dedicata alle utenze private delle unità abitative della Torre B.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [],
+      "docRefs": [
+        {
+          "suite": "Planimetrie As-Built",
+          "ref": "Tavole PL.02 e PL.04",
+          "scope": "Ubicazione Locale Contatori B al Piano -1"
+        }
+      ],
+      "roomGroup": "Locale Contatori Scala B (P.-1)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
+    },
+    {
+      "id": "FIRE-PORTONI-EI",
+      "code": "PORTONI EI BOX",
+      "label": "Portoni Tagliafuoco Motorizzati Autorimessa (-1 e -2)",
+      "plant": "IMP-FIRE",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🚪 COMPARTIMENTAZIONE EI",
+      "shortFunc": "Portoni scorrevoli tagliafuoco nei corselli box: tenuti aperti da UPS 1, si chiudono al comando VVF.",
+      "emergencyNote": "Quando lo sgancio VVF apre l'uscita Q7 di UPS 1 (minima tensione 24V), i portoni chiudono i compartimenti antincendio.",
+      "tier": 1,
+      "floor": "F_M1",
+      "colHint": 1,
+      "specs": {
+        "Grado IP": "IP55",
+        "Alimentazione": "Da UPS 1 (1000VA) tramite morsettiera XUPS / Q7"
+      },
+      "desc": "Quadri bordo macchina dei portoni tagliafuoco ai piani interrati -1 e -2.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-ABB-S200"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "§ 4.31 e § 4.38",
+          "scope": "Portoni tagliafuoco e UPS 1000VA"
+        }
+      ],
+      "roomGroup": "Autorimessa Box (Piani -1 e -2)",
+      "safetyZone": "2 · Sezionato in Uscita (Q7) per Chiusura Portoni EI",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
+    },
+    {
+      "id": "BMS-SONDE-CAMPO",
+      "code": "19 SONDE TEMP.",
+      "label": "19 Sonde di Temperatura (ST01–ST19) & Pressostati Pozzi",
+      "plant": "IMP-BMS",
+      "nodeClass": "field_subsystem",
+      "roleType": "source",
+      "roleLabel": "🌡️ INGRESSO MISURE CAMPO",
+      "shortFunc": "Rilevano temperatura esterna Nord, puffer, circuiti caldo/freddo, ACS e pressione/livello pozzi falda.",
+      "emergencyNote": "Segnali analogici/digitali acquisiti continuamente dai moduli Cylon CBX/FLX.",
+      "tier": 1,
+      "floor": "F_M2",
+      "colHint": 3,
+      "specs": {
+        "Sonde": "ST01–ST19 + trasduttore pressione SP01 (0–10V) + livelli pozzi LV01/LV02"
+      },
+      "desc": "Sensoristica termoidraulica di centrale collegata al quadro di regolazione QE-REG.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-CYLON-CBX-FLX"
+      ],
+      "docRefs": [
+        {
+          "suite": "Fascicolo Quadrista As-Built",
+          "ref": "QE-REG Fogli 6, 8, 10",
+          "scope": "Mappa sonde ST01–ST19"
+        }
+      ],
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": null
+    },
+    {
+      "id": "BMS-ATTUATORI-VALV",
+      "code": "VALVOLE MIX & CBX1",
+      "label": "5 Valvole Miscelatrici (0–10V), Inverter Pozzi (CBX1) & Comandi Pompe",
+      "plant": "IMP-BMS",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🎛️ ATTUATORI TERMICI",
+      "shortFunc": "Modulano la temperatura dell'acqua mandata alle torri e la velocità delle pompe acqua di falda.",
+      "emergencyNote": "Comandati in 0–10V / relè 24V con selettori Auto-0-Manuale sul quadro QE-REG.",
+      "tier": 1,
+      "floor": "F_M2",
+      "colHint": 3,
+      "specs": {
+        "Attuatori": "5 valvole miscelatrici 24Vac 0–10V + 3 uscite 0–10V inverter pozzi su CBX1"
+      },
+      "desc": "Organi di regolazione idronica governati dal PLC QE-REG.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-CYLON-CBX-FLX"
+      ],
+      "docRefs": [
+        {
+          "suite": "Fascicolo Quadrista As-Built",
+          "ref": "QE-REG Fogli 7, 9, 11",
+          "scope": "Comandi valvole e pompe"
+        }
+      ],
+      "roomGroup": "Centrale Tecnologica (Piano -2)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
+    },
+    {
+      "id": "TLC-ANTENNE-STOM",
+      "code": "ANTENNE TV/SAT + STOM",
+      "label": "Antenne TV/SAT in Copertura & Conversione Ottica STOM",
+      "plant": "IMP-TLC",
+      "nodeClass": "field_subsystem",
+      "roleType": "source",
+      "roleLabel": "📡 INGRESSO RADIO / TV-SAT",
+      "shortFunc": "Riceve i canali terrestri e satellitari sul tetto e li converte su fibra ottica (STOM) verso il CSOE.",
+      "emergencyNote": "Protetto e collegato alla rete di terra.",
+      "tier": 1,
+      "floor": "F_ROOF",
+      "colHint": 4,
+      "specs": {
+        "Apparati": "Antenne + Centrale di testa + Scatola Terminazione Ottica Montante (STOM)"
+      },
+      "desc": "Sistema di captazione radiotelevisiva in copertura.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-BTICINO-VDP"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "Cap. 5",
+          "scope": "Segnali via radio e STOM"
+        }
+      ],
+      "roomGroup": "Copertura Edifici (+48 m)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": null
+    },
+    {
+      "id": "TLC-ALLOGGI-STOA",
+      "code": "QDSA + STOA ALLOGGI",
+      "label": "Quadri Segnali Appartamento (QDSA), Fibra STOA & Posti Interni Citofono",
+      "plant": "IMP-TLC",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🏠 TERMINAZIONI APPARTAMENTI",
+      "shortFunc": "Consegna in ogni appartamento la fibra Internet, il segnale TV/SAT e la chiamata videocitofonica.",
+      "emergencyNote": "Distribuzione ottica passiva fino alla scatola STOA di ciascuna unità immobiliare.",
+      "tier": 1,
+      "floor": "F_01_14",
+      "colHint": 4,
+      "specs": {
+        "Dotazione": "Quadro QDSA + Borchia ottica STOA + Monitor videocitofono"
+      },
+      "desc": "Terminazioni utente in tutti gli appartamenti delle Torri A e B.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-BTICINO-VDP"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "Cap. 5",
+          "scope": "QDSA e STOA"
+        }
+      ],
+      "roomGroup": "Piani Residenziali 1°–14°",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "internalGraph": null
+    },
+    {
+      "id": "GND-SPD-4X",
+      "code": "4× SPD TIPO 1+2",
+      "label": "4 Scaricatori Sovratensioni DEHN Tipo 1+2 (nei 4 Quadri Generali)",
+      "plant": "IMP-GND",
+      "nodeClass": "switchgear_node",
+      "roleType": "source",
+      "roleLabel": "⚡ SCARICATORI FULMINI SPD",
+      "shortFunc": "Installati in QE.SSC, QESC-A, QESC-B e QE.PC: deviano verso terra sovratensioni e correnti di fulmine.",
+      "emergencyNote": "In esercizio normale sono aperti (nessun flusso); durante una sovratensione innescano scaricando fino a 50 kA verso terra.",
+      "tier": 1,
+      "floor": "F_TERRA",
+      "colHint": 4,
+      "specs": {
+        "Modello": "4× DEHNshield DSH TT 255 FM (Art. 941 315)",
+        "Scarica": "50 kA (10/350 µs) · Up ≤ 1,5 kV"
+      },
+      "desc": "Scaricatori combinati spinterometrici Tipo 1+2 nei quattro quadri principali.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-DEHN-941315"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "§ 4.35",
+          "scope": "Protezioni contro le sovratensioni SPD"
+        }
+      ],
+      "roomGroup": "Interno dei 4 Quadri Generali",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "internalGraph": null
+    },
+    {
+      "id": "GND-COLLETTORI-EQP",
+      "code": "COLLETTORI & EQP",
+      "label": "Collettori Principali di Terra, Barre PE & Nodi Equipotenziali",
+      "plant": "IMP-GND",
+      "nodeClass": "switchgear_node",
+      "roleType": "hub",
+      "roleLabel": "🔀 RACCOLTA CORRENTI GUASTO",
+      "shortFunc": "Raccoglie tutti i conduttori giallo/verdi (PE/EQP) e gli scarichi degli SPD convogliandoli all'anello nel suolo.",
+      "emergencyNote": "Mantiene equipotenziali masse elettriche e tubazioni metalliche.",
+      "tier": 1,
+      "floor": "F_TERRA",
+      "colHint": 4,
+      "specs": {
+        "Collettori": "Barre rame su isolatori nei Locali Contatori",
+        "Equipotenziali": "FG17 6 mm² G/V"
+      },
+      "desc": "Collettori principali di terra e collegamenti equipotenziali.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [
+        "DS-CAVO-FG16"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "§ 4.34 e § 6.10",
+          "scope": "Collettori e nodi equipotenziali"
+        }
+      ],
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": null
     }
   ],
   "edges": [
@@ -3936,13 +10449,13 @@ window.IMPIANTO_DATA = {
     },
     {
       "id": "e38",
-      "source": "QEREG",
-      "target": "QECI",
+      "source": "QECI",
+      "target": "QEREG",
       "edgeType": "bms_bus",
+      "flowCategory": "📡 Segnale Allarme",
       "plant": "IMP-BMS",
       "tier": 1,
-      "label": "Allarmi 1–2 Centrale Idrica",
-      "flowCategory": "📡 Dati BMS"
+      "label": "Allarmi 1–2 Centrale Idrica"
     },
     {
       "id": "e39",
@@ -4036,43 +10549,43 @@ window.IMPIANTO_DATA = {
     },
     {
       "id": "e48",
-      "source": "TERRA-RETE",
-      "target": "QESSC",
+      "source": "QESSC",
+      "target": "TERRA-RETE",
       "edgeType": "earth_pe",
+      "flowCategory": "⏚ Scarico a Terra",
       "plant": "IMP-GND",
       "tier": 1,
-      "label": "PE + SPD DEHN 941315",
-      "flowCategory": "⏚ Terra / SPD"
+      "label": "Scarica Guasti / SPD → Terra"
     },
     {
       "id": "e49",
-      "source": "TERRA-RETE",
-      "target": "QESCA",
+      "source": "QESCA",
+      "target": "TERRA-RETE",
       "edgeType": "earth_pe",
+      "flowCategory": "⏚ Scarico a Terra",
       "plant": "IMP-GND",
       "tier": 1,
-      "label": "PE + SPD DEHN 941315",
-      "flowCategory": "⏚ Terra / SPD"
+      "label": "Scarica Guasti / SPD → Terra"
     },
     {
       "id": "e50",
-      "source": "TERRA-RETE",
-      "target": "QESCB",
+      "source": "QESCB",
+      "target": "TERRA-RETE",
       "edgeType": "earth_pe",
+      "flowCategory": "⏚ Scarico a Terra",
       "plant": "IMP-GND",
       "tier": 1,
-      "label": "PE + SPD DEHN 941315",
-      "flowCategory": "⏚ Terra / SPD"
+      "label": "Scarica Guasti / SPD → Terra"
     },
     {
       "id": "e51",
-      "source": "TERRA-RETE",
-      "target": "QEPC",
+      "source": "QEPC",
+      "target": "TERRA-RETE",
       "edgeType": "earth_pe",
+      "flowCategory": "⏚ Scarico a Terra",
       "plant": "IMP-GND",
       "tier": 1,
-      "label": "PE + SPD DEHN 941315",
-      "flowCategory": "⏚ Terra / SPD"
+      "label": "Scarica Guasti / SPD → Terra"
     },
     {
       "id": "e52",
@@ -4303,6 +10816,146 @@ window.IMPIANTO_DATA = {
       "tier": 3,
       "label": "Fascicolo BMS 22 fg.",
       "flowCategory": "📄 Descrive"
+    },
+    {
+      "id": "e_m1",
+      "source": "RETE-DISTRIBUTORE",
+      "target": "POD-SSC",
+      "edgeType": "power_bt",
+      "flowCategory": "⚡ Consegna BT",
+      "plant": "IMP-INGRESSI",
+      "tier": 1,
+      "label": "Contatore 1 · 80 kW"
+    },
+    {
+      "id": "e_m2",
+      "source": "RETE-DISTRIBUTORE",
+      "target": "POD-SCA",
+      "edgeType": "power_bt",
+      "flowCategory": "⚡ Consegna BT",
+      "plant": "IMP-INGRESSI",
+      "tier": 1,
+      "label": "Contatore 2 · 50 kW"
+    },
+    {
+      "id": "e_m3",
+      "source": "RETE-DISTRIBUTORE",
+      "target": "POD-SCB",
+      "edgeType": "power_bt",
+      "flowCategory": "⚡ Consegna BT",
+      "plant": "IMP-INGRESSI",
+      "tier": 1,
+      "label": "Contatore 3 · 50 kW"
+    },
+    {
+      "id": "e_m4",
+      "source": "RETE-DISTRIBUTORE",
+      "target": "POD-PDC",
+      "edgeType": "power_bt",
+      "flowCategory": "⚡ Consegna BT",
+      "plant": "IMP-INGRESSI",
+      "tier": 1,
+      "label": "Contatore 4 · 160 kW"
+    },
+    {
+      "id": "e_m5",
+      "source": "RETE-DISTRIBUTORE",
+      "target": "CONTATORI-ALLOGGI-A",
+      "edgeType": "power_bt",
+      "flowCategory": "🏠 Utenze Private",
+      "plant": "IMP-INGRESSI",
+      "tier": 1,
+      "label": "Forniture Alloggi Torre A (-1)"
+    },
+    {
+      "id": "e_m6",
+      "source": "RETE-DISTRIBUTORE",
+      "target": "CONTATORI-ALLOGGI-B",
+      "edgeType": "power_bt",
+      "flowCategory": "🏠 Utenze Private",
+      "plant": "IMP-INGRESSI",
+      "tier": 1,
+      "label": "Forniture Alloggi Torre B (-1)"
+    },
+    {
+      "id": "e_f1",
+      "source": "UPS-1-EI",
+      "target": "FIRE-PORTONI-EI",
+      "edgeType": "fire_resistant",
+      "flowCategory": "🚒 Continuità UPS",
+      "plant": "IMP-FIRE",
+      "tier": 1,
+      "label": "XUPS → Q7 [UVR] Portoni EI"
+    },
+    {
+      "id": "e_b1",
+      "source": "BMS-SONDE-CAMPO",
+      "target": "QEREG",
+      "edgeType": "bms_bus",
+      "flowCategory": "🌡️ Misure Sonde",
+      "plant": "IMP-BMS",
+      "tier": 1,
+      "label": "ST01–ST19 + Pressione Pozzi"
+    },
+    {
+      "id": "e_b2",
+      "source": "QEREG",
+      "target": "BMS-ATTUATORI-VALV",
+      "edgeType": "bms_bus",
+      "flowCategory": "🎛️ Comandi 0–10V",
+      "plant": "IMP-BMS",
+      "tier": 1,
+      "label": "5 Valvole Mix + Inverter Pozzi"
+    },
+    {
+      "id": "e_t1",
+      "source": "TLC-ANTENNE-STOM",
+      "target": "FTTH-CSOE",
+      "edgeType": "tlc_signal",
+      "flowCategory": "📡 Fibra TV/SAT",
+      "plant": "IMP-TLC",
+      "tier": 1,
+      "label": "Dorsale Ottica STOM → CSOE"
+    },
+    {
+      "id": "e_t2",
+      "source": "FTTH-CSOE",
+      "target": "TLC-ALLOGGI-STOA",
+      "edgeType": "tlc_signal",
+      "flowCategory": "🌐 Fibra FTTH+TV",
+      "plant": "IMP-TLC",
+      "tier": 1,
+      "label": "Montanti Ottici → STOA/QDSA"
+    },
+    {
+      "id": "e_t3",
+      "source": "VIDEOCITOFONO",
+      "target": "TLC-ALLOGGI-STOA",
+      "edgeType": "tlc_signal",
+      "flowCategory": "🔔 Bus 2 Fili",
+      "plant": "IMP-TLC",
+      "tier": 1,
+      "label": "Audio/Video Posti Interni"
+    },
+    {
+      "id": "e_g1",
+      "source": "GND-SPD-4X",
+      "target": "GND-COLLETTORI-EQP",
+      "edgeType": "earth_pe",
+      "flowCategory": "⏚ Scarico SPD",
+      "plant": "IMP-GND",
+      "tier": 1,
+      "label": "Scarica Sovratensioni (50kA)"
+    },
+    {
+      "id": "e_g2",
+      "source": "GND-COLLETTORI-EQP",
+      "target": "TERRA-RETE",
+      "edgeType": "earth_pe",
+      "flowCategory": "⏚ Verso Suolo",
+      "plant": "IMP-GND",
+      "tier": 1,
+      "label": "Corda Cu 50mm² → 14 Picchetti"
     }
   ],
   "datasheets": [

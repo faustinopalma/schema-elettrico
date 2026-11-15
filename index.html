@@ -24,7 +24,7 @@
   --cp-border-strong: #919191;
   --cp-text: #242424;
   --cp-text-muted: #5c5c5c;
-  --cp-text-soft: #6f6f5f;
+  --cp-text-soft: #6f6f6f;
   --cp-accent: #b11f4b;
   --cp-accent-hover: #9a1a41;
   --cp-accent-soft: rgba(177, 31, 75, 0.08);
@@ -67,7 +67,6 @@ html[data-theme="dark"] {
   --cp-highlight: rgba(253, 142, 161, 0.12);
 }
 
-/* Derived plant tokens strictly from var(--cp-*) */
 :root, html[data-theme="dark"] {
   --plant-ssc: var(--cp-accent);
   --plant-ssc-bg: color-mix(in srgb, var(--cp-accent) 11%, var(--cp-surface));
@@ -116,13 +115,14 @@ code, pre, .mono {
   width: 100vw;
 }
 
-/* Fullscreen Mode: Graph fills 100% of screen */
+/* Fullscreen Mode */
 .app-shell.is-fullscreen {
   grid-template-rows: 1fr;
 }
 
 .app-shell.is-fullscreen .topbar,
-.app-shell.is-fullscreen .plant-strip {
+.app-shell.is-fullscreen .plant-strip,
+.app-shell.is-fullscreen .how-banner {
   display: none;
 }
 
@@ -132,7 +132,7 @@ code, pre, .mono {
 
 .app-shell.is-fullscreen .inspector {
   position: fixed;
-  top: 68px;
+  top: 72px;
   right: 16px;
   bottom: 48px;
   width: min(430px, calc(100vw - 32px));
@@ -146,7 +146,15 @@ code, pre, .mono {
   display: none;
 }
 
-/* Top Bar */
+.fs-only {
+  display: none !important;
+}
+
+.app-shell.is-fullscreen .fs-only {
+  display: inline-flex !important;
+}
+
+/* Header */
 .topbar {
   display: flex;
   align-items: center;
@@ -204,7 +212,7 @@ code, pre, .mono {
 
 .search-wrap {
   position: relative;
-  width: 280px;
+  width: 270px;
 }
 
 .search-input {
@@ -262,7 +270,7 @@ code, pre, .mono {
   background: var(--cp-accent-soft);
 }
 
-/* Horizontal 8-Plant Selector Strip */
+/* Plant Selector Strip */
 .plant-strip {
   display: flex;
   align-items: center;
@@ -276,8 +284,8 @@ code, pre, .mono {
 .plant-pill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
+  gap: 6px;
+  padding: 6px 11px;
   border-radius: 0.625rem;
   border: 1.5px solid var(--cp-border);
   background: var(--cp-surface);
@@ -287,7 +295,6 @@ code, pre, .mono {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.15s, background 0.15s;
 }
 
 .plant-pill:hover {
@@ -300,18 +307,18 @@ code, pre, .mono {
   box-shadow: var(--card-subtle);
 }
 
-/* Buttons & Segmented Controls */
+/* Controls */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 11px;
+  padding: 5px 10px;
   border-radius: 0.625rem;
   border: 1px solid var(--cp-border);
   background: var(--cp-surface);
   color: var(--cp-text);
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -334,6 +341,12 @@ code, pre, .mono {
   border-color: var(--cp-accent-hover);
 }
 
+.btn-danger-active {
+  background: var(--cp-danger);
+  color: var(--cp-surface);
+  border-color: var(--cp-danger);
+}
+
 .seg-control {
   display: inline-flex;
   background: var(--cp-surface);
@@ -347,9 +360,9 @@ code, pre, .mono {
   border: none;
   background: transparent;
   color: var(--cp-text-muted);
-  padding: 4px 9px;
+  padding: 4px 8px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   border-radius: 7px;
   cursor: pointer;
@@ -365,7 +378,19 @@ code, pre, .mono {
   color: var(--cp-accent);
 }
 
-/* Main Split: Wide Graph Canvas + Right Explanatory Card */
+.select-compact {
+  padding: 5px 9px;
+  border-radius: 0.625rem;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+
+/* Main Split */
 .main-split {
   display: grid;
   grid-template-columns: 1fr 415px;
@@ -387,19 +412,15 @@ code, pre, .mono {
   position: relative;
 }
 
-/* 3-Step "How this plant works" Banner */
+/* 3-Step Banner */
 .how-banner {
-  padding: 9px 16px;
+  padding: 8px 16px;
   background: var(--cp-panel-strong);
   border-bottom: 1px solid var(--cp-border);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-}
-
-.app-shell.is-fullscreen .how-banner {
-  display: none;
 }
 
 .how-step {
@@ -415,11 +436,25 @@ code, pre, .mono {
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
   margin-bottom: 1px;
 }
 
-/* Graph Controls Toolbar */
+/* Internal Switchboard Breadcrumb Bar */
+.drill-breadcrumb {
+  padding: 8px 14px;
+  background: var(--cp-accent-soft);
+  border-bottom: 2px solid var(--cp-accent);
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.drill-breadcrumb.active {
+  display: flex;
+}
+
+/* Graph Toolbar */
 .graph-toolbar {
   padding: 7px 14px;
   background: var(--cp-bg-elevated);
@@ -427,20 +462,10 @@ code, pre, .mono {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  z-index: 25;
 }
 
-.fs-only {
-  display: none;
-}
-
-.app-shell.is-fullscreen .fs-only {
-  display: inline-flex;
-}
-
-/* Cytoscape + Flow Particle Overlay Wrapper */
 .cy-stage-wrap {
   flex: 1;
   position: relative;
@@ -464,7 +489,7 @@ code, pre, .mono {
   z-index: 5;
 }
 
-/* Bottom Legend Bar */
+/* Colorblind-Accessible Shape Legend */
 .graph-legend {
   padding: 6px 14px;
   background: var(--cp-panel-strong);
@@ -485,15 +510,13 @@ code, pre, .mono {
   flex-wrap: wrap;
 }
 
-.legend-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 4px;
+.legend-shape {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
-/* Right Node Explanation & Drill-Down Drawer */
+/* Inspector */
 .inspector {
   background: var(--cp-surface);
   border-left: 1px solid var(--cp-border);
@@ -563,7 +586,6 @@ code, pre, .mono {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   margin: 0 0 6px;
   display: flex;
   align-items: center;
@@ -589,7 +611,6 @@ code, pre, .mono {
   background: var(--cp-accent-soft);
 }
 
-/* Progressive Details Accordions inside Inspector */
 details.acc-block {
   border: 1px solid var(--cp-border);
   border-radius: 10px;
@@ -667,7 +688,7 @@ details.acc-block[open] summary {
   background: var(--cp-surface-soft);
 }
 
-/* Modal for Datasheets & Project Audit Notes */
+/* Modal */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -745,7 +766,6 @@ details.acc-block[open] summary {
 .sev-bassa { border-left: 5px solid var(--cp-border-strong); }
 .sev-info { border-left: 5px solid var(--cp-success); }
 
-/* Hidden CSS variable probes for Canvas */
 .cp-probes {
   position: absolute;
   width: 0;
@@ -755,7 +775,7 @@ details.acc-block[open] summary {
   opacity: 0;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1120px) {
   .how-banner {
     grid-template-columns: 1fr;
   }
@@ -766,7 +786,6 @@ details.acc-block[open] summary {
   </style>
 </head>
 <body>
-  <!-- Hidden CSS token probes for Canvas rendering -->
   <div class="cp-probes" aria-hidden="true">
     <span id="probe-bg" style="color: var(--cp-bg); background: var(--cp-bg-elevated)"></span>
     <span id="probe-surface" style="color: var(--cp-surface); background: var(--cp-surface-soft)"></span>
@@ -786,94 +805,138 @@ details.acc-block[open] summary {
   </div>
 
   <div id="appShell" class="app-shell">
-    <!-- Compact Header -->
+    <!-- Top Header -->
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">⚡</div>
         <div class="brand-text">
           <h1>Come Funzionano gli Impianti — Complesso Residenziale, ambito urbano</h1>
-          <p>Esplora ciascuno degli 8 impianti: segui i flussi animati da dove entrano a cosa alimentano, e clicca i blocchi per i dettagli</p>
+          <p>Dagli ingressi contatori fino ai componenti interni di ogni quadro · Forme accessibili per daltonici · Doppio clic su un quadro per aprirne l'interno</p>
         </div>
       </div>
 
       <div class="topbar-actions">
         <div class="search-wrap">
           <span class="search-icon">🔎</span>
-          <input id="globalSearch" class="search-input" type="search" placeholder="Cerca blocco, utenza, circuito, componente..." autocomplete="off" />
+          <input id="globalSearch" class="search-input" type="search" placeholder="Cerca contatore, quadro, utenza, componente..." autocomplete="off" />
           <div id="searchDropdown" class="search-dropdown"></div>
         </div>
-        <button id="btnOpenDatasheets" class="btn" title="Consulta le 17 schede tecniche PDF pubbliche dei componenti">📚 Schede PDF (17)</button>
-        <button id="btnOpenAudit" class="btn" title="Consulta le 10 verifiche e incoerenze riscontrate nel progetto">⚠️ Rilievi (10)</button>
-        <button id="btnThemeToggle" class="btn" title="Cambia tema Chiaro / Scuro">🌓 Tema</button>
-        <button id="btnFullscreen" class="btn btn-primary" title="Espandi il grafo a schermo intero (tasto F)">⛶ Schermo Intero</button>
+        <button id="btnOpenDatasheets" class="btn">📚 Schede PDF (17)</button>
+        <button id="btnOpenAudit" class="btn">⚠️ Rilievi (10)</button>
+        <button id="btnThemeToggle" class="btn">🌓 Tema</button>
+        <button id="btnFullscreen" class="btn btn-primary" title="Espandi a schermo intero (tasto F)">⛶ Schermo Intero</button>
       </div>
     </header>
 
-    <!-- 8 Individual Plants Strip (No chaotic 50-node holistic view) -->
-    <nav id="plantStrip" class="plant-strip" aria-label="Seleziona uno degli 8 impianti"></nav>
+    <!-- 0. Tutti i Contatori + 8 Impianti Individuali -->
+    <nav id="plantStrip" class="plant-strip" aria-label="Seleziona la vista contatori o uno degli 8 impianti"></nav>
 
-    <!-- Main Workspace: Graph + Contextual Block Card -->
+    <!-- Main Split -->
     <div id="mainSplit" class="main-split">
       <section class="graph-column">
-        <!-- Plain-language 3-step explanation of how the active plant works -->
+        <!-- 3-Step Plain-Language Banner -->
         <div id="howBanner" class="how-banner"></div>
 
-        <!-- Dynamic Layout & Flow Controls -->
+        <!-- Breadcrumb when exploring INSIDE a specific Switchboard -->
+        <div id="drillBreadcrumb" class="drill-breadcrumb">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button id="btnExitBoardDrill" class="btn btn-primary">← Torna alla Mappa Impianto</button>
+            <div>
+              <strong id="drillTitle" style="font-size:13.5px;">🔬 Mappa Interna del Quadro</strong>
+              <div id="drillSubtitle" style="font-size:11.5px; color:var(--cp-text-muted);"></div>
+            </div>
+          </div>
+          <span class="pill" style="color:var(--cp-accent);">Livello 2 · Componenti Interni</span>
+        </div>
+
+        <!-- Dynamic Layout, Flexible Grouping & Simulation Toolbar -->
         <div class="graph-toolbar">
           <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
-            <!-- Plant dropdown visible only when in Fullscreen -->
-            <select id="fsPlantSelect" class="search-input fs-only" style="width:auto; padding-left:10px; font-weight:700;"></select>
+            <select id="fsPlantSelect" class="select-compact fs-only"></select>
 
-            <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Riordino Dinamico:</span>
-            <div class="seg-control" id="layoutSwitcher" role="group" aria-label="Motore automatico di distribuzione nodi">
-              <button class="seg-btn active" data-layout="elk" title="Eclipse ELK Layered: minimizza gli incroci e allinea Ingressi → Quadri → Uscite">1 · ELK Schematico</button>
-              <button class="seg-btn" data-layout="cola" title="WebCola Fisica Viva: trascina un blocco e gli altri si spostano da soli mantenendo il flusso!">2 · Cola Fisica Viva</button>
-              <button class="seg-btn" data-layout="fcose" title="fCoSE Molle Elastiche: raggruppa dinamicamente i blocchi più connessi">3 · fCoSE Elastico</button>
-              <button class="seg-btn" data-layout="dagre" title="Dagre Gerarchico: albero classico per livelli">4 · Dagre Albero</button>
-              <button class="seg-btn" data-layout="floors" title="Quote Edificio: ordina i blocchi dal Piano -2 fino al Tetto (+48m)">5 · Piani Edificio</button>
+            <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Motore:</span>
+            <div class="seg-control" id="layoutSwitcher" role="group">
+              <button class="seg-btn active" data-layout="elk" title="Eclipse ELK Layered: ordina il flusso minimizzando gli incroci">ELK Schematico</button>
+              <button class="seg-btn" data-layout="cola" title="WebCola Fisica Viva: trascina i blocchi e il resto si adatta in tempo reale">Cola Fisica Viva</button>
+              <button class="seg-btn" data-layout="fcose" title="fCoSE Molle Elastiche: avvicina i gruppi fortemente connessi">fCoSE Elastico</button>
+              <button class="seg-btn" data-layout="dagre" title="Dagre Gerarchico: albero classico">Dagre Albero</button>
             </div>
 
-            <div class="seg-control" id="dirSwitcher" title="Direzione principale del flusso">
-              <button class="seg-btn active" data-dir="TB">⬇ Alto→Basso</button>
-              <button class="seg-btn" data-dir="LR">➡ Sinistra→Destra</button>
+            <div class="seg-control" id="dirSwitcher">
+              <button class="seg-btn active" data-dir="TB" title="Flusso dall'alto al basso">⬇ Vert</button>
+              <button class="seg-btn" data-dir="LR" title="Flusso da sinistra a destra">➡ Orizz</button>
             </div>
 
-            <button id="btnReLayout" class="btn" title="Ricalcola e riordina animatamente la posizione di tutti i blocchi">✨ Riordina Ora</button>
+            <label style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted); margin-left:2px;" for="groupSelect">Raggruppa:</label>
+            <select id="groupSelect" class="select-compact" title="Raggruppa i blocchi in contenitori dinamici senza fissare righe rigide">
+              <option value="none">Nessun contenitore</option>
+              <option value="floor">🏢 Per Piano Edificio (dinamico)</option>
+              <option value="room">📍 Per Stanza / Locale Fisico</option>
+              <option value="role">⚙️ Per Ruolo Funzionale</option>
+              <option value="safety">🔥 Per Zona Sgancio VVF</option>
+            </select>
+
+            <button id="btnReLayout" class="btn" title="Ricalcola animatamente le posizioni">✨ Riordina</button>
           </div>
 
-          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
-            <button id="btnToggleFlow" class="btn btn-primary" style="padding:5px 10px;" title="Attiva/Pausa il movimento animato lungo i cavi">⏸ Flussi Attivi</button>
-            <label class="btn" style="padding:5px 10px; cursor:pointer;" title="Mostra anche i blocchi ponte verso gli altri impianti collegati">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <!-- Normal vs Emergency/Discharge Simulation Toggle -->
+            <div class="seg-control" title="Confronta il funzionamento ordinario con ciò che accade in caso di sgancio VVF o scarica a terra">
+              <button class="seg-btn active" data-opstate="normal">🟢 Esercizio Normale</button>
+              <button class="seg-btn" data-opstate="emergency">🚨 Simula Sgancio / Scarica</button>
+            </div>
+
+            <button id="btnToggleFlow" class="btn" title="Pausa o avvia il movimento delle forme sui fili">⏸ Pausa</button>
+
+            <label class="btn" id="lblBridges" style="cursor:pointer;" title="Abilita i blocchi ponte verso gli altri impianti collegati (disattivato di default)">
               <input type="checkbox" id="chkBridges" style="margin:0;" /> 🔗 Ponti altri impianti
             </label>
-            <button id="btnResetExploded" class="btn" style="display:none; padding:5px 10px;">↺ Chiudi Circuiti</button>
-            <button id="btnFit" class="btn" style="padding:5px 10px;" title="Adatta il grafo allo schermo">🎯 Centra</button>
-            <button id="btnTogglePanel" class="btn" style="padding:5px 10px;" title="Mostra/Nascondi la scheda di destra">📋 Scheda</button>
-            <button id="btnExitFullscreen" class="btn btn-primary fs-only" style="padding:5px 11px;">✕ Esci Schermo Intero</button>
+
+            <button id="btnClearFocus" class="btn" style="display:none;" title="Torna a mostrare tutti i blocchi a piena luminosità">👁️ Mostra Tutti</button>
+            <button id="btnFit" class="btn" title="Centra e adatta il grafo">🎯 Centra</button>
+            <button id="btnTogglePanel" class="btn" title="Mostra/Nascondi scheda laterale">📋 Scheda</button>
+            <button id="btnExitFullscreen" class="btn btn-primary fs-only">✕ Esci Schermo Intero</button>
           </div>
         </div>
 
-        <!-- Cytoscape + 60fps Flow Animation Overlay -->
+        <!-- Cytoscape + Accessible Shape Flow Overlay -->
         <div class="cy-stage-wrap">
           <div id="cyCanvas"></div>
           <canvas id="flowCanvas"></canvas>
         </div>
 
-        <!-- Clear Flow Legend -->
+        <!-- Colorblind-Safe Shape Legend -->
         <div class="graph-legend">
           <div class="legend-group">
-            <strong style="color:var(--cp-text);">Flussi Animati sui Fili:</strong>
-            <span><i class="legend-dot" style="background:var(--cp-accent);"></i><strong>Pallini Continui</strong> = Energia Elettrica (da Sorgente → a Carico)</span>
-            <span><i class="legend-dot" style="background:var(--cp-danger);"></i><strong>Impulsi Rossi</strong> = Linea Ignifuga VVF / Comando Sgancio</span>
-            <span><i class="legend-dot" style="background:var(--cp-link);"></i><strong>Pacchetti Rapidi</strong> = Segnali Dati BMS / Fibra / Allarmi</span>
+            <strong style="color:var(--cp-text);">Forme sui Fili (distinguibili senza colori):</strong>
+            <span class="legend-shape" title="Potenza elettrica ordinaria o solare">
+              <svg width="15" height="13" viewBox="0 0 15 13"><polygon points="1,2 14,6.5 1,11" fill="var(--cp-accent)"/></svg>
+              <strong>Triangolo ➤</strong> Energia Elettrica
+            </span>
+            <span class="legend-shape" title="Alimentazione vitale antincendio o sotto UPS">
+              <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,4 13,10 7,13 1,10 1,4" fill="var(--cp-danger)"/><circle cx="7" cy="7" r="2.2" fill="var(--cp-surface)"/></svg>
+              <strong>Esagono ⬢</strong> Linea Sicurezza / UPS
+            </span>
+            <span class="legend-shape" title="Comunicazione digitale BMS, fibra o allarmi">
+              <svg width="16" height="12" viewBox="0 0 16 12"><rect x="1" y="3" width="5.5" height="6" rx="1" fill="var(--cp-link)"/><rect x="9" y="3" width="5.5" height="6" rx="1" fill="var(--cp-link)"/></svg>
+              <strong>Doppio Quadro ▪▪</strong> Dati / Segnali
+            </span>
+            <span class="legend-shape" title="Fermo in esercizio normale; si attiva simulando Sgancio/Scarica">
+              <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1.5 12.5,7 7,12.5 1.5,7" fill="none" stroke="var(--cp-danger)" stroke-width="2.2"/></svg>
+              <strong>Losanga ◇</strong> Comando Sgancio (in emergenza)
+            </span>
+            <span class="legend-shape" title="Fermo in esercizio normale; scarica VERSO terra solo in caso di guasto/fulmine">
+              <svg width="16" height="13" viewBox="0 0 16 13"><path d="M2,2 L7,6.5 L2,11 M8,2 L13,6.5 L8,11" fill="none" stroke="var(--cp-border-strong)" stroke-width="2.2" stroke-linecap="round"/></svg>
+              <strong>Doppia Onda ⟫</strong> Scarico verso Terra (solo su guasto)
+            </span>
           </div>
           <div>
-            💡 <strong>Clicca</strong> un blocco per vedere <em>Entrate / Uscite</em> · <strong>Doppio clic</strong> su un ponte tratteggiato per saltare all'altro impianto.
+            💡 <strong>Clic</strong> = evidenzia collegati · <strong>Doppio clic su un Quadro</strong> = entra nei componenti interni!
           </div>
         </div>
       </section>
 
-      <!-- Right Panel: Clear Functional Explanation + Progressive Technical Details -->
+      <!-- Right Contextual Drawer -->
       <aside id="inspector" class="inspector">
         <div id="inspHeader" class="insp-header"></div>
         <div id="inspBody" class="insp-body"></div>
@@ -881,7 +944,7 @@ details.acc-block[open] summary {
     </div>
   </div>
 
-  <!-- Clean Modal for Public PDF Datasheets & 10 Audit Findings -->
+  <!-- Modal for Public PDF Datasheets & 10 Audit Findings -->
   <div id="appModal" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-dialog">
       <div class="modal-hdr">
@@ -899,7 +962,6 @@ details.acc-block[open] summary {
     </div>
   </div>
 
-  <!-- Cytoscape + 4 Dynamic Layout Engines (Dagre, ELK, WebCola, fCoSE) -->
   <script src="./assets/vendor/dagre.min.js"></script>
   <script src="./assets/vendor/elk.bundled.js"></script>
   <script src="./assets/vendor/cola.min.js"></script>

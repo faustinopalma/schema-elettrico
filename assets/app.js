@@ -2,7 +2,6 @@
 (() => {
   "use strict";
 
-  // Register Cytoscape dynamic layout extensions safely
   if (typeof cytoscape !== "undefined") {
     if (typeof cytoscapeDagre !== "undefined") cytoscape.use(cytoscapeDagre);
     if (typeof cytoscapeElk !== "undefined") cytoscape.use(cytoscapeElk);
@@ -24,15 +23,37 @@
     });
   });
 
+  // Curated set of nodes for "0. Mappa Ingressi & Tutti i Contatori"
+  const METERS_OVERVIEW_IDS = new Set([
+    "RETE-DISTRIBUTORE",
+    "POD-SSC", "POD-SCA", "POD-SCB", "POD-PDC",
+    "CONTATORI-ALLOGGI-A", "CONTATORI-ALLOGGI-B",
+    "RIP-250", "QEPA",
+    "AVSSC", "QESSC",
+    "AVSCA", "QESCA",
+    "AVSCB", "QESCB",
+    "AVPC", "QEPC", "GEN-FV-ROOF"
+  ]);
+
+  // Branches interrupted when Emergency / Shunt Trip Simulation is active
+  const TRIPPED_SOURCES_IN_EMERGENCY = new Set([
+    "AVSSC", "AVSCA", "QESCA", "AVSCB", "QESCB", "AVPC", "QEPC", "GEN-FV-ROOF", "UPS-1-EI"
+  ]);
+  const TRIPPED_EDGE_IDS_IN_EMERGENCY = new Set([
+    "e07", "e52", "e53", "e_f1", "e20"
+  ]);
+
   const state = {
-    activePlant: "IMP-SSC",    // Start directly on Plant 1 (no chaotic 50-node holistic view)
-    layoutEngine: "elk",       // 'elk' | 'cola' | 'fcose' | 'dagre' | 'floors'
-    flowDir: "TB",             // 'TB' | 'LR'
+    activePlant: "IMP-INGRESSI", // Start on "0. Mappa Ingressi & Tutti i Contatori" so all meters are immediately clear!
+    drillBoardId: null,          // null = Plant Map | boardId = Level-2 Internal Switchboard Component Map!
+    layoutEngine: "elk",         // 'elk' | 'cola' | 'fcose' | 'dagre'
+    flowDir: "TB",               // 'TB' | 'LR'
+    groupBy: "none",             // 'none' | 'floor' | 'room' | 'role' | 'safety'
+    opState: "normal",           // 'normal' | 'emergency'
     animateFlows: true,
-    showBridges: false,        // Keep each plant ultra-clean by default; 1-click to reveal cross-plant bridges (auto-enabled on cross-cutting safety/BMS plants!)
-    explodedIds: new Set(),
-    selectedNodeId: "RIP-250",
-    hoveredNodeId: null,
+    showBridges: false,          // Strictly OFF by default! User can enable anytime.
+    selectedNodeId: "RETE-DISTRIBUTORE",
+    focusedNodeId: null,         // Click-only neighborhood highlight (NO hover dimming!)
     isFullscreen: false,
     activeLayoutHandle: null
   };
@@ -40,7 +61,7 @@
   let cyInstance = null;
   let rafId = null;
 
-  // ==================== DYNAMIC CSS PALETTE PROBE (ZERO HARDCODED HEX) ====================
+  // ==================== DYNAMIC CSS PALETTE PROBE ====================
   const _probeCanvas = document.createElement("canvas");
   _probeCanvas.width = 1;
   _probeCanvas.height = 1;
@@ -122,97 +143,93 @@
     }
   }
 
-  // ==================== BUILD GRAPH FOR THE ACTIVE PLANT ====================
-  function computePlantGraph() {
+  // ==================== BUILD GRAPH (LEVEL 1 PLANT MAP OR LEVEL 2 INTERNAL BOARD MAP) ====================
+  function computeCurrentGraph() {
+    // LEVEL 2: Internal Component Sub-Graph of a Specific Switchboard!
+    if (state.drillBoardId) {
+      const board = NODE_MAP.get(state.drillBoardId);
+      if (board && board.internalGraph) {
+        const subNodes = board.internalGraph.nodes.map((sn) => ({
+          ...sn,
+          plant: board.plant,
+          floor: board.floor,
+          roomGroup: board.roomGroup,
+          safetyZone: board.safetyZone,
+          roleGroup: sn.group || "Componenti Interni",
+          parentBoardId: board.id,
+          isInternalComp: true,
+          isBridge: false
+        }));
+        const subEdges = board.internalGraph.edges.map((se) => ({
+          ...se,
+          plant: board.plant
+        }));
+        const inDeg = new Map();
+        const outDeg = new Map();
+        subEdges.forEach((e) => {
+          outDeg.set(e.source, (outDeg.get(e.source) || 0) + 1);
+          inDeg.set(e.target, (inDeg.get(e.target) || 0) + 1);
+        });
+        subNodes.forEach((n) => {
+          n.visIn = inDeg.get(n.id) || 0;
+          n.visOut = outDeg.get(n.id) || 0;
+        });
+        return { nodes: subNodes, edges: subEdges, isInternal: true, parentBoard: board };
+      }
+    }
+
+    // LEVEL 1A: "0. Mappa Ingressi & Tutti i Contatori"
     const pid = state.activePlant;
     const nodes = [];
     const edges = [];
     const includedIds = new Set();
 
-    // Include Tier 1 + Tier 2 nodes belonging to activePlant (exclude abstract doc nodes on canvas to keep function crystal clear!)
-    const plantOwnNodes = DATA.nodes.filter((n) => n.plant === pid && n.tier <= 2 && n.nodeClass !== "doc_reference");
-    const ownSet = new Set(plantOwnNodes.map((n) => n.id));
-
-    plantOwnNodes.forEach((n) => {
-      nodes.push({ ...n, isBridge: false });
-      includedIds.add(n.id);
-    });
-
-    // Relevant edges (excluding doc_trace)
-    DATA.edges.forEach((e) => {
-      if (e.edgeType === "doc_trace") return;
-      const srcNode = NODE_MAP.get(e.source);
-      const tgtNode = NODE_MAP.get(e.target);
-      if (!srcNode || !tgtNode) return;
-
-      const sOwn = ownSet.has(e.source);
-      const tOwn = ownSet.has(e.target);
-      // Cross-cutting plants (Fire/UPS, BMS, TLC, Terra) naturally exist to connect to main boards, so always include their direct targets!
-      const isCrossCuttingPlant = pid === "IMP-FIRE" || pid === "IMP-BMS" || pid === "IMP-TLC" || pid === "IMP-GND";
-
-      if (sOwn && tOwn) {
-        edges.push({ ...e });
-      } else if ((state.showBridges || isCrossCuttingPlant) && (sOwn || tOwn || e.plant === pid)) {
-        [srcNode, tgtNode].forEach((endN) => {
-          if (!includedIds.has(endN.id)) {
-            nodes.push({ ...endN, isBridge: true });
-            includedIds.add(endN.id);
-          }
-        });
-        edges.push({ ...e });
-      }
-    });
-
-    // Inject exploded internal circuits if user expanded a switchboard
-    state.explodedIds.forEach((boardId) => {
-      if (!includedIds.has(boardId)) return;
-      const board = NODE_MAP.get(boardId);
-      if (!board) return;
-      (board.circuits || []).forEach((c, idx) => {
-        const cid = `${boardId}__CIRC_${idx}`;
-        nodes.push({
-          id: cid,
-          code: c.code,
-          label: c.desc,
-          plant: board.plant,
-          nodeClass: "circuit_leaf",
-          roleType: "load",
-          roleLabel: "🔌 LINEA INTERNA",
-          shortFunc: `${c.breaker || ""} · Cavo: ${c.cable || "standard"}`,
-          emergencyNote: "",
-          tier: 2,
-          floor: board.floor,
-          colHint: board.colHint,
-          parentBoardId: boardId,
-          specs: {
-            "Quadro origine": board.code,
-            "Sigla partenza": c.code,
-            "Protezione": c.breaker || "-",
-            "Conduttura": c.cable || "-"
-          },
-          desc: `Circuito interno derivato dal quadro ${board.label}: ${c.desc}.`,
-          circuits: [],
-          bom: [],
-          datasheetIds: board.datasheetIds || [],
-          docRefs: board.docRefs || [],
-          isDynamicLeaf: true,
-          isBridge: false
-        });
-        includedIds.add(cid);
-        edges.push({
-          id: `edge_${cid}`,
-          source: boardId,
-          target: cid,
-          edgeType: "power_bt",
-          flowCategory: "⚡ Linea",
-          plant: board.plant,
-          tier: 1,
-          label: c.code
-        });
+    if (pid === "IMP-INGRESSI") {
+      DATA.nodes.forEach((n) => {
+        if (METERS_OVERVIEW_IDS.has(n.id)) {
+          nodes.push({ ...n, isBridge: false });
+          includedIds.add(n.id);
+        }
       });
-    });
+      DATA.edges.forEach((e) => {
+        if (e.edgeType === "doc_trace") return;
+        if (includedIds.has(e.source) && includedIds.has(e.target)) {
+          edges.push({ ...e });
+        }
+      });
+    } else {
+      // LEVEL 1B: Specific Plant (1..8) — Bridges strictly OFF by default unless state.showBridges === true!
+      const plantOwnNodes = DATA.nodes.filter((n) => n.plant === pid && n.tier <= 2 && n.nodeClass !== "doc_reference");
+      const ownSet = new Set(plantOwnNodes.map((n) => n.id));
 
-    // Compute in-degree and out-degree within visible graph so every card knows if it has IN and/or OUT ports!
+      plantOwnNodes.forEach((n) => {
+        nodes.push({ ...n, isBridge: false });
+        includedIds.add(n.id);
+      });
+
+      DATA.edges.forEach((e) => {
+        if (e.edgeType === "doc_trace") return;
+        const srcNode = NODE_MAP.get(e.source);
+        const tgtNode = NODE_MAP.get(e.target);
+        if (!srcNode || !tgtNode) return;
+
+        const sOwn = ownSet.has(e.source);
+        const tOwn = ownSet.has(e.target);
+
+        if (sOwn && tOwn) {
+          edges.push({ ...e });
+        } else if (state.showBridges && (sOwn || tOwn || e.plant === pid)) {
+          [srcNode, tgtNode].forEach((endN) => {
+            if (!includedIds.has(endN.id)) {
+              nodes.push({ ...endN, isBridge: true });
+              includedIds.add(endN.id);
+            }
+          });
+          edges.push({ ...e });
+        }
+      });
+    }
+
     const inDeg = new Map();
     const outDeg = new Map();
     edges.forEach((e) => {
@@ -224,25 +241,50 @@
       n.visOut = outDeg.get(n.id) || 0;
     });
 
-    return { nodes, edges };
+    return { nodes, edges, isInternal: false, parentBoard: null };
   }
 
   function findNodeAny(id) {
     if (NODE_MAP.has(id)) return NODE_MAP.get(id);
-    const { nodes } = computePlantGraph();
+    const { nodes } = computeCurrentGraph();
     return nodes.find((n) => n.id === id) || DATA.nodes[0];
   }
 
-  // ==================== RICH SVG FUNCTIONAL BLOCK CARD GENERATOR ====================
+  // ==================== FLEXIBLE GROUPING RESOLVER (NOT LOCKED VERTICALLY!) ====================
+  function resolveNodeGroup(node, isInternal) {
+    if (isInternal) {
+      if (state.groupBy === "none") return null;
+      return { id: "IGRP_" + node.roleGroup, label: node.roleGroup };
+    }
+    if (state.groupBy === "none") return null;
+    if (state.groupBy === "floor") {
+      const fl = FLOOR_MAP.get(node.floor) || { id: node.floor, name: node.floor, elev: "" };
+      return { id: "GRP_FL_" + fl.id, label: `🏢 ${fl.name} (${fl.elev})` };
+    }
+    if (state.groupBy === "room") {
+      const rm = node.roomGroup || "Locali Tecnici";
+      return { id: "GRP_RM_" + rm, label: `📍 ${rm}` };
+    }
+    if (state.groupBy === "role") {
+      const rl = node.roleGroup || "2 · Quadri";
+      return { id: "GRP_RL_" + rl, label: `⚙️ ${rl}` };
+    }
+    if (state.groupBy === "safety") {
+      const sf = node.safetyZone || "Servizi Ordinari";
+      return { id: "GRP_SF_" + sf, label: `🔥 ${sf}` };
+    }
+    return null;
+  }
+
+  // ==================== SVG FUNCTIONAL BLOCK CARD GENERATOR ====================
   function wrapTextLines(text, maxChars, maxLines) {
     const words = String(text || "").split(/\s+/).filter(Boolean);
     const lines = [];
     let cur = "";
     for (const w of words) {
       const cand = cur ? `${cur} ${w}` : w;
-      if (cand.length <= maxChars) {
-        cur = cand;
-      } else {
+      if (cand.length <= maxChars) cur = cand;
+      else {
         if (cur) lines.push(cur);
         cur = w;
       }
@@ -264,41 +306,40 @@
   }
 
   function buildNodeCardDataUri(node, pal, isSelected) {
-    const W = node.isDynamicLeaf ? 248 : 302;
-    const H = node.isDynamicLeaf ? 88 : 122;
+    const W = node.isInternalComp ? 266 : 304;
+    const H = node.isInternalComp ? 102 : 124;
     const col = plantColors(node.plant, pal);
     const pInfo = PLANT_MAP.get(node.plant);
-    const isHorizontal = state.flowDir === "LR" && state.layoutEngine !== "floors";
+    const isHorizontal = state.flowDir === "LR";
 
     const cardBg = node.isBridge ? pal.bgElevated : pal.surface;
     const headerBg = node.isBridge ? pal.surfaceSoft : col.bg;
     const strokeCol = isSelected ? col.fg : (node.isBridge ? pal.borderStrong : col.fg);
-    const strokeW = isSelected ? 3.5 : (node.roleType === "source" ? 2.6 : 1.8);
+    const strokeW = isSelected ? 3.6 : (node.roleType === "source" ? 2.6 : 1.9);
     const dashAttr = node.isBridge ? 'stroke-dasharray="7,4"' : "";
 
     const roleBanner = node.isBridge
       ? `↪ PONTE · ${pInfo ? pInfo.shortName.toUpperCase() : ""}`
       : (node.roleLabel || "COMPONENTE");
 
-    const cleanTitle = node.label
-      .replace(/\s*\([^)]*\)\s*$/, "")
-      .trim();
-    const titleLines = wrapTextLines(cleanTitle, node.isDynamicLeaf ? 28 : 32, 1);
-    const funcLines = wrapTextLines(node.shortFunc || node.desc || "", node.isDynamicLeaf ? 33 : 41, node.isDynamicLeaf ? 2 : 2);
+    const cleanTitle = node.label.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    const titleLines = wrapTextLines(cleanTitle, node.isInternalComp ? 30 : 32, 1);
+    const funcLines = wrapTextLines(node.shortFunc || node.desc || "", node.isInternalComp ? 36 : 41, 2);
 
     const incs = INC_BY_NODE.get(node.id) || [];
-    const circCount = (node.circuits || []).length;
-    const rightTag = circCount > 0
-      ? (state.explodedIds.has(node.id) ? `−${circCount} linee` : `+${circCount} linee`)
-      : node.code;
+    const hasInternal = Boolean(node.internalGraph);
+    const rightTag = hasInternal ? `🔬 Quadro` : node.code;
 
-    // Input / Output visual port badges so it's unmistakable where power/signals ENTER and EXIT!
+    const isEarthSink = node.id === "TERRA-RETE" || (node.code && node.code.includes("TERRA PE"));
+
     let portsSvg = "";
     if (!isHorizontal) {
       if (node.visIn > 0) {
+        const inLabel = isEarthSink ? `⬇ RICEVE SCARICA (${node.visIn})` : `⬇ ENTRA (${node.visIn})`;
+        const pillW = isEarthSink ? 116 : 68;
         portsSvg += `
-          <rect x="${W / 2 - 34}" y="0" width="68" height="14" rx="5" fill="${pal.link}" />
-          <text x="${W / 2}" y="10" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="${pal.surface}">⬇ ENTRA (${node.visIn})</text>
+          <rect x="${W / 2 - pillW / 2}" y="0" width="${pillW}" height="14" rx="5" fill="${isEarthSink ? pal.borderStrong : pal.link}" />
+          <text x="${W / 2}" y="10" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="${pal.surface}">${inLabel}</text>
         `;
       } else if (node.roleType === "source") {
         portsSvg += `
@@ -306,44 +347,40 @@
           <text x="${W / 2}" y="10" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="${pal.surface}">★ ORIGINE FLUSSO</text>
         `;
       }
-      if (node.visOut > 0) {
+      if (node.visOut > 0 && !isEarthSink) {
         portsSvg += `
           <rect x="${W / 2 - 32}" y="${H - 14}" width="64" height="14" rx="5" fill="${col.fg}" />
           <text x="${W / 2}" y="${H - 4}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="8.5" font-weight="700" fill="${pal.surface}">ESCE (${node.visOut}) ⬇</text>
         `;
       }
     } else {
-      if (node.visIn > 0) {
-        portsSvg += `<circle cx="5" cy="${H / 2}" r="5" fill="${pal.link}" />`;
-      }
-      if (node.visOut > 0) {
-        portsSvg += `<circle cx="${W - 5}" cy="${H / 2}" r="5" fill="${col.fg}" />`;
-      }
+      if (node.visIn > 0) portsSvg += `<circle cx="5" cy="${H / 2}" r="5" fill="${pal.link}" />`;
+      if (node.visOut > 0 && !isEarthSink) portsSvg += `<circle cx="${W - 5}" cy="${H / 2}" r="5" fill="${col.fg}" />`;
     }
 
     const warnDot = incs.length > 0
       ? `<rect x="${W - 44}" y="18" width="34" height="16" rx="5" fill="${pal.warning}" /><text x="${W - 27}" y="29" text-anchor="middle" font-family="Consolas, monospace" font-size="9.5" font-weight="700" fill="${pal.text}">⚠ ${incs.length}</text>`
       : "";
 
+    const drillHint = hasInternal && !node.isInternalComp
+      ? `<text x="${W - 13}" y="${H - 19}" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="9" font-weight="700" fill="${col.fg}">🔬 2×clic = interno</text>`
+      : "";
+
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-      <!-- Main Card Body -->
       <rect x="4" y="7" width="${W - 8}" height="${H - 14}" rx="11" fill="${cardBg}" stroke="${strokeCol}" stroke-width="${strokeW}" ${dashAttr} />
-      <!-- Header Band -->
       <path d="M5,18 Q5,8 15,8 L${W - 15},8 Q${W - 5},8 ${W - 5},18 L${W - 5},37 L5,37 Z" fill="${headerBg}" />
       <line x1="5" y1="37" x2="${W - 5}" y2="37" stroke="${pal.border}" stroke-width="1" />
 
-      <!-- Role Label & Right Code/Circuits Tag -->
-      <text x="13" y="27" font-family="Segoe UI, sans-serif" font-size="9.8" font-weight="700" fill="${col.fg}">${escXml(roleBanner.slice(0, 27))}</text>
-      ${incs.length === 0 ? `<text x="${W - 13}" y="27" text-anchor="end" font-family="Consolas, monospace" font-size="9.5" font-weight="700" fill="${pal.textMuted}">${escXml(rightTag.slice(0, 12))}</text>` : warnDot}
+      <text x="13" y="27" font-family="Segoe UI, sans-serif" font-size="9.6" font-weight="700" fill="${col.fg}">${escXml(roleBanner.slice(0, 27))}</text>
+      ${incs.length === 0 ? `<text x="${W - 13}" y="27" text-anchor="end" font-family="Consolas, monospace" font-size="9.5" font-weight="700" fill="${pal.textMuted}">${escXml(rightTag.slice(0, 13))}</text>` : warnDot}
 
-      <!-- Block Title -->
-      <text x="13" y="56" font-family="Segoe UI, sans-serif" font-size="${node.isDynamicLeaf ? "11.5" : "12.8"}" font-weight="700" fill="${pal.text}">${escXml(titleLines[0] || node.code)}</text>
+      <text x="13" y="55" font-family="Segoe UI, sans-serif" font-size="${node.isInternalComp ? "11.8" : "12.6"}" font-weight="700" fill="${pal.text}">${escXml(titleLines[0] || node.code)}</text>
 
-      <!-- Plain-Language Function Lines -->
       ${funcLines.map((ln, idx) => `
-        <text x="13" y="${(node.isDynamicLeaf ? 72 : 75) + idx * 14}" font-family="Segoe UI, sans-serif" font-size="10.4" fill="${pal.textMuted}">${escXml(ln)}</text>
+        <text x="13" y="${73 + idx * 13.5}" font-family="Segoe UI, sans-serif" font-size="10.2" fill="${pal.textMuted}">${escXml(ln)}</text>
       `).join("")}
 
+      ${drillHint}
       ${portsSvg}
     </svg>`;
 
@@ -354,10 +391,11 @@
     };
   }
 
-  // ==================== DYNAMIC LAYOUT CONFIGURATIONS ====================
+  // ==================== DYNAMIC LAYOUT OPTIONS (WORKS WITH COMPOUND GROUPS!) ====================
   function buildLayoutOptions(nodes, edges, animateTransition) {
     const anim = Boolean(animateTransition);
     const dir = state.flowDir;
+    const hasGroups = state.groupBy !== "none";
 
     if (state.layoutEngine === "elk") {
       return {
@@ -371,12 +409,12 @@
         elk: {
           "algorithm": "layered",
           "elk.direction": dir === "LR" ? "RIGHT" : "DOWN",
-          "elk.spacing.nodeNode": "55",
-          "elk.layered.spacing.nodeNodeBetweenLayers": "95",
-          "elk.layered.spacing.edgeNodeBetweenLayers": "42",
+          "elk.hierarchyHandling": "INCLUDE_CHILDREN",
+          "elk.spacing.nodeNode": "52",
+          "elk.layered.spacing.nodeNodeBetweenLayers": "92",
           "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
           "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
-          "elk.edgeRouting": "SPLINES"
+          "elk.padding": "[top=42,left=24,bottom=24,right=24]"
         }
       };
     }
@@ -389,91 +427,56 @@
         maxSimulationTime: 2600,
         ungrabifyWhileSimulating: false,
         fit: true,
-        padding: 50,
-        nodeSpacing: 46,
+        padding: 48,
+        nodeSpacing: hasGroups ? 36 : 46,
         edgeLength: 330,
         avoidOverlap: true,
         handleDisconnected: true,
         flow: {
           axis: dir === "LR" ? "x" : "y",
-          minSeparation: dir === "LR" ? 370 : 195
+          minSeparation: dir === "LR" ? 365 : 190
         }
       };
     }
 
     if (state.layoutEngine === "fcose") {
-      // Build directional relativePlacementConstraint from power/fire edges (avoiding cycles!)
       const constraints = [];
-      const seenPair = new Set();
-      edges.forEach((e) => {
-        if (e.edgeType === "emergency_trip") return; // skip feedback edges so constraints stay DAG
-        const key = `${e.source}->${e.target}`;
-        const rev = `${e.target}->${e.source}`;
-        if (seenPair.has(key) || seenPair.has(rev)) return;
-        seenPair.add(key);
-        if (dir === "LR") constraints.push({ left: e.source, right: e.target, gap: 220 });
-        else constraints.push({ top: e.source, bottom: e.target, gap: 135 });
-      });
+      if (!hasGroups) {
+        const seen = new Set();
+        edges.forEach((e) => {
+          if (e.edgeType === "emergency_trip") return;
+          const k1 = `${e.source}->${e.target}`;
+          const k2 = `${e.target}->${e.source}`;
+          if (seen.has(k1) || seen.has(k2)) return;
+          seen.add(k1);
+          if (dir === "LR") constraints.push({ left: e.source, right: e.target, gap: 220 });
+          else constraints.push({ top: e.source, bottom: e.target, gap: 135 });
+        });
+      }
 
       return {
         name: "fcose",
         quality: "proof",
         randomize: true,
         animate: anim,
-        animationDuration: anim ? 560 : 0,
+        animationDuration: anim ? 550 : 0,
         fit: true,
-        padding: 50,
+        padding: 48,
         nodeSeparation: 120,
-        idealEdgeLength: 195,
-        nodeRepulsion: 18000,
-        gravity: 0.22,
-        relativePlacementConstraint: constraints.slice(0, 26)
+        idealEdgeLength: 210,
+        nodeRepulsion: 20000,
+        gravity: 0.24,
+        nestingFactor: 0.85,
+        relativePlacementConstraint: constraints.length ? constraints.slice(0, 24) : undefined
       };
     }
 
-    if (state.layoutEngine === "floors") {
-      // Compute clean non-overlapping positions per architectural floor (-2 -> Copertura)
-      const bandH = 185;
-      const byFloor = new Map();
-      DATA.floors.forEach((f) => byFloor.set(f.id, []));
-      nodes.forEach((n) => {
-        const fid = byFloor.has(n.floor) ? n.floor : "F_TERRA";
-        byFloor.get(fid).push(n);
-      });
-      const posObj = {};
-      let rankRow = 0;
-      DATA.floors.forEach((fl) => {
-        const row = byFloor.get(fl.id) || [];
-        if (!row.length) return;
-        row.sort((a, b) => (a.colHint ?? 2.5) - (b.colHint ?? 2.5));
-        const stepX = 338;
-        const totW = (row.length - 1) * stepX;
-        row.forEach((n, idx) => {
-          posObj[n.id] = {
-            x: -totW / 2 + idx * stepX,
-            y: rankRow * bandH
-          };
-        });
-        rankRow += 1;
-      });
-
-      return {
-        name: "preset",
-        positions: posObj,
-        animate: anim,
-        animationDuration: anim ? 520 : 0,
-        animationEasing: "ease-out-cubic",
-        fit: true,
-        padding: 54
-      };
-    }
-
-    // Default fallback: Dagre
+    // Dagre
     return {
       name: "dagre",
       rankDir: dir,
-      nodeSep: 54,
-      rankSep: dir === "LR" ? 130 : 100,
+      nodeSep: 52,
+      rankSep: dir === "LR" ? 130 : 98,
       animate: anim,
       animationDuration: anim ? 480 : 0,
       fit: true,
@@ -481,55 +484,86 @@
     };
   }
 
-  // ==================== RENDER CYTOSCAPE GRAPH ====================
+  // ==================== EMERGENCY / FAULT SIMULATION LOGIC ====================
+  function isEdgeInterruptedInEmergency(edgeObj) {
+    if (state.opState !== "emergency") return false;
+    const et = edgeObj.edgeType;
+    // Emergency trip commands, fire-resistant lines (except Q7 Portoni EI which opens to close fire doors!), and earth discharges are ACTIVE in emergency!
+    if (et === "emergency_trip" || et === "earth_pe") return false;
+    if (TRIPPED_EDGE_IDS_IN_EMERGENCY.has(edgeObj.id)) return true;
+    if (et === "fire_resistant") return false; // QEPA -> Fire pump & UPS-2 -> 24V loop stay alive!
+    if (TRIPPED_SOURCES_IN_EMERGENCY.has(edgeObj.source)) return true;
+    // Inside a drilled board: if parent board is tripped (not QEPA / RIP-250)
+    if (state.drillBoardId && TRIPPED_SOURCES_IN_EMERGENCY.has(state.drillBoardId) && et === "power_bt") return true;
+    return false;
+  }
+
+  // ==================== RENDER CYTOSCAPE ====================
   function renderCytoscape(animateRelayout = false) {
     const container = document.getElementById("cyCanvas");
     const pal = getPalette();
-    const { nodes, edges } = computePlantGraph();
+    const { nodes, edges, isInternal, parentBoard } = computeCurrentGraph();
 
-    document.getElementById("btnResetExploded").style.display = state.explodedIds.size > 0 ? "inline-flex" : "none";
+    // Update breadcrumb bar & bridges checkbox visibility
+    const bc = document.getElementById("drillBreadcrumb");
+    if (isInternal && parentBoard) {
+      bc.classList.add("active");
+      document.getElementById("drillTitle").textContent = `🔬 Dentro il Quadro: ${parentBoard.code} — ${parentBoard.label}`;
+      document.getElementById("drillSubtitle").textContent = `Mappa di dettaglio dei componenti interni (${nodes.length} componenti · ${edges.length} collegamenti interni)`;
+      document.getElementById("lblBridges").style.display = "none";
+    } else {
+      bc.classList.remove("active");
+      document.getElementById("lblBridges").style.display = state.activePlant === "IMP-INGRESSI" ? "none" : "inline-flex";
+    }
 
-    // Ensure selectedNodeId is visible in current plant; otherwise pick its main entry source!
     if (!nodes.some((n) => n.id === state.selectedNodeId)) {
-      const srcNode = nodes.find((n) => !n.isBridge && n.roleType === "source") || nodes.find((n) => !n.isBridge) || nodes[0];
-      if (srcNode) state.selectedNodeId = srcNode.id;
+      const defN = nodes.find((n) => !n.isBridge && n.roleType === "source") || nodes[0];
+      if (defN) state.selectedNodeId = defN.id;
     }
 
     const elements = [];
-
-    // If Floor mode is active, add subtle Floor Band parent containers!
-    if (state.layoutEngine === "floors") {
-      const usedFloors = new Set(nodes.map((n) => n.floor));
-      DATA.floors.forEach((fl) => {
-        if (!usedFloors.has(fl.id)) return;
-        elements.push({
-          data: {
-            id: "FLGRP_" + fl.id,
-            label: `${fl.name.toUpperCase()}  (${fl.elev})`,
-            isFloorBand: true,
-            bandBg: fl.order % 2 === 0 ? pal.surface : pal.bgElevated,
-            bandBorder: pal.borderStrong
-          }
-        });
-      });
-    }
+    const addedGroups = new Map();
 
     nodes.forEach((n) => {
+      const grp = resolveNodeGroup(n, isInternal);
+      if (grp && !addedGroups.has(grp.id)) {
+        addedGroups.set(grp.id, grp.label);
+      }
+    });
+
+    let gIdx = 0;
+    addedGroups.forEach((gLabel, gId) => {
+      elements.push({
+        data: {
+          id: gId,
+          label: gLabel,
+          isGroup: true,
+          grpBg: gIdx % 2 === 0 ? pal.surface : pal.bgElevated,
+          grpBorder: pal.borderStrong
+        }
+      });
+      gIdx += 1;
+    });
+
+    nodes.forEach((n) => {
+      const grp = resolveNodeGroup(n, isInternal);
       const card = buildNodeCardDataUri(n, pal, n.id === state.selectedNodeId);
       elements.push({
         data: {
           id: n.id,
-          parent: state.layoutEngine === "floors" ? "FLGRP_" + n.floor : undefined,
+          parent: grp ? grp.id : undefined,
           cardUri: card.uri,
           nodeW: card.w,
           nodeH: card.h,
           isBridge: Boolean(n.isBridge),
+          hasInternal: Boolean(n.internalGraph),
           plantId: n.plant
         }
       });
     });
 
     edges.forEach((e) => {
+      const interrupted = isEdgeInterruptedInEmergency(e);
       let color = plantColors(e.plant, pal).fg;
       let lineStyle = "solid";
       let width = 3.0;
@@ -537,23 +571,33 @@
 
       if (e.edgeType === "fire_resistant") {
         color = pal.danger;
-        width = 3.4;
+        width = 3.5;
       } else if (e.edgeType === "emergency_trip") {
         color = pal.danger;
         lineStyle = "dashed";
-        width = 2.6;
+        width = state.opState === "emergency" ? 3.5 : 2.2;
         arrowShape = "tee";
       } else if (e.edgeType === "bms_bus" || e.edgeType === "tlc_signal") {
         color = pal.link;
         lineStyle = "dashed";
         width = 2.4;
       } else if (e.edgeType === "earth_pe") {
-        color = pal.borderStrong;
+        color = state.opState === "emergency" ? pal.warning : pal.borderStrong;
         lineStyle = "dashed";
-        width = 2.2;
+        width = state.opState === "emergency" ? 3.4 : 2.0;
       } else if (e.edgeType === "power_fv") {
         color = pal.warning;
-        width = 3.6;
+        width = 3.4;
+      }
+
+      let lbl = `${e.flowCategory}: ${e.label}`;
+      if (interrupted) {
+        color = pal.borderStrong;
+        lineStyle = "dotted";
+        width = 2.0;
+        lbl = e.edgeType === "power_fv"
+          ? `⛔ STOP ANTI-ISOLA CEI 0-21 (${e.label})`
+          : `⛔ SEZIONATO DA SGANCIO (${e.label})`;
       }
 
       elements.push({
@@ -561,12 +605,14 @@
           id: e.id,
           source: e.source,
           target: e.target,
-          label: `${e.flowCategory}: ${e.label}`,
+          label: lbl,
           color,
           lineStyle,
           width,
           arrowShape,
-          edgeType: e.edgeType
+          edgeType: e.edgeType,
+          interrupted,
+          bidirectional: Boolean(e.bidirectional)
         }
       });
     });
@@ -583,11 +629,11 @@
       container,
       elements,
       wheelSensitivity: 0.24,
-      minZoom: 0.2,
+      minZoom: 0.18,
       maxZoom: 2.4,
       style: [
         {
-          selector: "node[!isFloorBand]",
+          selector: "node[!isGroup]",
           style: {
             "shape": "round-rectangle",
             "width": "data(nodeW)",
@@ -601,24 +647,31 @@
           }
         },
         {
-          selector: "node[?isFloorBand]",
+          selector: "node[?isGroup]",
           style: {
             "shape": "round-rectangle",
-            "background-color": "data(bandBg)",
-            "background-opacity": 0.65,
-            "border-color": "data(bandBorder)",
-            "border-width": 1.6,
+            "background-color": "data(grpBg)",
+            "background-opacity": 0.62,
+            "border-color": "data(grpBorder)",
+            "border-width": 2.0,
             "border-style": "dashed",
             "label": "data(label)",
             "color": pal.text,
             "font-family": '"Segoe UI", Aptos, sans-serif',
-            "font-size": 12.5,
+            "font-size": 15.5,
             "font-weight": 700,
             "text-valign": "top",
             "text-halign": "left",
             "text-margin-x": 14,
             "text-margin-y": -6,
-            "padding": "26px"
+            "text-background-opacity": 0.95,
+            "text-background-color": pal.surface,
+            "text-background-padding": "6px",
+            "text-background-shape": "roundrectangle",
+            "text-border-width": 1,
+            "text-border-color": pal.borderStrong,
+            "text-border-opacity": 0.85,
+            "padding": "32px"
           }
         },
         {
@@ -633,6 +686,8 @@
             "target-arrow-color": "data(color)",
             "target-arrow-shape": "data(arrowShape)",
             "arrow-scale": 1.25,
+            "source-arrow-color": "data(color)",
+            "source-arrow-shape": (ele) => ele.data("bidirectional") ? "triangle" : "none",
             "label": "data(label)",
             "font-family": '"Segoe UI", Aptos, sans-serif',
             "font-size": 10.5,
@@ -657,7 +712,7 @@
         {
           selector: "edge.flow-highlight",
           style: {
-            "width": 4.5,
+            "width": 4.4,
             "z-index": 20
           }
         }
@@ -665,71 +720,98 @@
       layout: { name: "grid" }
     });
 
-    const layoutOpts = buildLayoutOptions(nodes, edges, animateRelayout);
-    state.activeLayoutHandle = cyInstance.layout(layoutOpts);
+    state.activeLayoutHandle = cyInstance.layout(buildLayoutOptions(nodes, edges, animateRelayout));
     state.activeLayoutHandle.run();
 
-    // Interactions: Click, Hover X-Ray Flow, Double-Click Bridge/Explode
+    // Hover ONLY changes cursor (NO distracting hover dimming!)
+    cyInstance.on("mouseover", "node[!isGroup]", () => {
+      container.style.cursor = "pointer";
+    });
+    cyInstance.on("mouseout", "node[!isGroup]", () => {
+      container.style.cursor = "default";
+    });
+
+    // Click = Focus neighborhood; Double-click = Enter internal switchboard map (or jump bridge)!
     let lastTapTime = 0;
     let lastTapId = null;
 
-    cyInstance.on("tap", "node[!isFloorBand]", (evt) => {
+    cyInstance.on("tap", "node[!isGroup]", (evt) => {
       const n = evt.target;
       const nid = n.id();
       const now = Date.now();
-      const isDouble = lastTapId === nid && (now - lastTapTime) < 350;
+      const isDouble = lastTapId === nid && (now - lastTapTime) < 360;
       lastTapTime = now;
       lastTapId = nid;
 
       if (isDouble) {
-        if (n.data("isBridge")) {
-          // Jump seamlessly to the connected plant!
+        if (n.data("hasInternal") && !state.drillBoardId) {
+          enterBoardInternalMap(nid);
+          return;
+        }
+        if (n.data("isBridge") || (state.activePlant === "IMP-INGRESSI" && n.data("plantId") !== "IMP-INGRESSI")) {
           state.activePlant = n.data("plantId");
+          state.drillBoardId = null;
+          state.focusedNodeId = null;
           state.selectedNodeId = nid;
           refreshAll();
           return;
         }
-        const baseN = NODE_MAP.get(nid);
-        if (baseN && baseN.circuits && baseN.circuits.length > 0) {
-          toggleExplodeBoard(nid);
-          return;
-        }
       }
 
+      // Toggle click focus if clicking already-focused node, else focus it!
+      if (state.focusedNodeId === nid) {
+        state.focusedNodeId = null;
+      } else {
+        state.focusedNodeId = nid;
+      }
       selectNode(nid, false);
+
       if (state.isFullscreen) {
         document.getElementById("inspector").classList.remove("closed-in-fs");
       }
     });
 
-    cyInstance.on("mouseover", "node[!isFloorBand]", (evt) => {
-      state.hoveredNodeId = evt.target.id();
-      container.style.cursor = "pointer";
-      applyFlowXRay(state.hoveredNodeId);
-    });
-
-    cyInstance.on("mouseout", "node[!isFloorBand]", () => {
-      state.hoveredNodeId = null;
-      container.style.cursor = "default";
-      clearFlowXRay();
-    });
-
     cyInstance.on("tap", (evt) => {
       if (evt.target === cyInstance) {
-        clearFlowXRay();
+        state.focusedNodeId = null;
+        applyClickFocus();
         if (state.isFullscreen) {
           document.getElementById("inspector").classList.add("closed-in-fs");
         }
       }
     });
 
+    applyClickFocus();
     resizeFlowCanvas();
+  }
+
+  function applyClickFocus() {
+    const clearBtn = document.getElementById("btnClearFocus");
+    if (!cyInstance) return;
+    cyInstance.elements().removeClass("dimmed flow-highlight");
+
+    if (!state.focusedNodeId) {
+      clearBtn.style.display = "none";
+      return;
+    }
+
+    const node = cyInstance.getElementById(state.focusedNodeId);
+    if (!node || !node.length) {
+      clearBtn.style.display = "none";
+      return;
+    }
+
+    clearBtn.style.display = "inline-flex";
+    const neighborhood = node.neighborhood().union(node);
+    const parents = neighborhood.parents();
+    cyInstance.elements().not(neighborhood.union(parents)).addClass("dimmed");
+    node.connectedEdges().addClass("flow-highlight");
   }
 
   function refreshSelectedCardGraphics() {
     if (!cyInstance) return;
     const pal = getPalette();
-    const { nodes } = computePlantGraph();
+    const { nodes } = computeCurrentGraph();
     nodes.forEach((n) => {
       const cyNode = cyInstance.getElementById(n.id);
       if (cyNode && cyNode.length) {
@@ -739,43 +821,26 @@
     });
   }
 
-  function applyFlowXRay(focusId) {
-    if (!cyInstance || !focusId) return;
-    const node = cyInstance.getElementById(focusId);
-    if (!node || !node.length) return;
-    const neighborhood = node.neighborhood().union(node);
-    const parents = neighborhood.parents();
-    cyInstance.elements().removeClass("dimmed flow-highlight");
-    cyInstance.elements().not(neighborhood.union(parents)).addClass("dimmed");
-    node.connectedEdges().addClass("flow-highlight");
+  function enterBoardInternalMap(boardId) {
+    const b = NODE_MAP.get(boardId);
+    if (!b || !b.internalGraph) return;
+    state.drillBoardId = boardId;
+    state.focusedNodeId = null;
+    state.selectedNodeId = `${boardId}__MAIN`;
+    renderCytoscape(true);
+    renderInspector();
   }
 
-  function clearFlowXRay() {
-    if (!cyInstance) return;
-    cyInstance.elements().removeClass("dimmed flow-highlight");
+  function exitBoardInternalMap() {
+    const prevBoard = state.drillBoardId;
+    state.drillBoardId = null;
+    state.focusedNodeId = null;
+    if (prevBoard) state.selectedNodeId = prevBoard;
+    renderCytoscape(true);
+    renderInspector();
   }
 
-  function triggerAnimatedReLayout() {
-    if (!cyInstance) return;
-    if (state.layoutEngine === "floors") {
-      // Re-render to include floor compound bands cleanly
-      renderCytoscape(true);
-      return;
-    }
-    // If switching away from floors where compound parents existed, rebuild cleanly
-    if (cyInstance.nodes("[?isFloorBand]").length > 0) {
-      renderCytoscape(true);
-      return;
-    }
-    const { nodes, edges } = computePlantGraph();
-    if (state.activeLayoutHandle && typeof state.activeLayoutHandle.stop === "function") {
-      try { state.activeLayoutHandle.stop(); } catch (_) { /* ignore */ }
-    }
-    state.activeLayoutHandle = cyInstance.layout(buildLayoutOptions(nodes, edges, true));
-    state.activeLayoutHandle.run();
-  }
-
-  // ==================== 60 FPS ANIMATED WIRE FLOW PARTICLES ====================
+  // ==================== COLORBLIND-SAFE ORIENTED FLOW SHAPES (60 FPS) ====================
   function resizeFlowCanvas() {
     const canvas = document.getElementById("flowCanvas");
     const wrap = canvas.parentElement;
@@ -789,24 +854,13 @@
     }
   }
 
-  // Sample exact point & tangent at parameter t in [0,1] along a Cytoscape edge
   function sampleEdgePoint(edge, t, zoom, pan) {
     const s = edge.renderedSourceEndpoint();
     const d = edge.renderedTargetEndpoint();
     if (!s || !d || Number.isNaN(s.x) || Number.isNaN(d.x)) return null;
 
     const cps = edge.controlPoints();
-    if (cps && cps.length === 1) {
-      // Quadratic Bezier
-      const cx = cps[0].x * zoom + pan.x;
-      const cy = cps[0].y * zoom + pan.y;
-      const mt = 1 - t;
-      const x = mt * mt * s.x + 2 * mt * t * cx + t * t * d.x;
-      const y = mt * mt * s.y + 2 * mt * t * cy + t * t * d.y;
-      return { x, y };
-    }
-    if (cps && cps.length >= 2) {
-      // Approximate polyline / multi-bezier smoothly via midpoint control
+    if (cps && cps.length >= 1) {
       const cx = cps[0].x * zoom + pan.x;
       const cy = cps[0].y * zoom + pan.y;
       const mt = 1 - t;
@@ -840,11 +894,94 @@
       }
     }
 
-    // Straight line
     return {
       x: s.x + (d.x - s.x) * t,
       y: s.y + (d.y - s.y) * t
     };
+  }
+
+  // Draw distinct geometric shapes oriented along angle theta (radians) for colorblind accessibility!
+  function drawAccessibleFlowShape(ctx, shapeKind, x, y, theta, size, color, surfaceColor) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(theta);
+
+    if (shapeKind === "triangle") {
+      // ➤ Directional Solid Triangle / Chevron (Electrical Energy)
+      ctx.beginPath();
+      ctx.moveTo(size * 1.45, 0);
+      ctx.lineTo(-size * 1.05, -size * 0.95);
+      ctx.lineTo(-size * 0.55, 0);
+      ctx.lineTo(-size * 1.05, size * 0.95);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = surfaceColor;
+      ctx.stroke();
+    } else if (shapeKind === "hexagon") {
+      // ⬢ Solid Hexagon with contrasting center dot (Fire-Resistant / UPS Safety Power)
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        const px = Math.cos(a) * size * 1.25;
+        const py = Math.sin(a) * size * 1.25;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = surfaceColor;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.42, 0, Math.PI * 2);
+      ctx.fillStyle = surfaceColor;
+      ctx.fill();
+    } else if (shapeKind === "packets") {
+      // ▪▪ Twin Rectangular Digital Packets (BMS / Fiber / Intercom Signals)
+      const w = size * 1.05;
+      const h = size * 1.15;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = surfaceColor;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.rect(-w * 1.25, -h / 2, w, h);
+      ctx.rect(w * 0.25, -h / 2, w, h);
+      ctx.fill();
+      ctx.stroke();
+    } else if (shapeKind === "diamond") {
+      // ◇ Hollow High-Contrast Diamond (Emergency Trip Command)
+      ctx.beginPath();
+      ctx.moveTo(size * 1.4, 0);
+      ctx.lineTo(0, -size * 1.15);
+      ctx.lineTo(-size * 1.4, 0);
+      ctx.lineTo(0, size * 1.15);
+      ctx.closePath();
+      ctx.fillStyle = surfaceColor;
+      ctx.fill();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    } else if (shapeKind === "earth_wave") {
+      // ⟫ Double Open Discharge Chevron toward Earth (Fault / Surge Discharge ONLY in Emergency)
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.9, -size * 0.95);
+      ctx.lineTo(size * 0.1, 0);
+      ctx.lineTo(-size * 0.9, size * 0.95);
+      ctx.moveTo(size * 0.15, -size * 0.95);
+      ctx.lineTo(size * 1.15, 0);
+      ctx.lineTo(size * 0.15, size * 0.95);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
 
   function startFlowAnimationLoop() {
@@ -860,59 +997,57 @@
       ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
       if (state.animateFlows && cyInstance) {
+        const pal = getPalette();
         const zoom = cyInstance.zoom();
         const pan = cyInstance.pan();
-        const focusId = state.hoveredNodeId;
 
         cyInstance.edges(":visible").forEach((edge, idx) => {
           if (edge.hasClass("dimmed")) return;
+          if (edge.data("interrupted")) return; // Tripped branches have ZERO flow!
+
+          const eType = edge.data("edgeType");
+
+          // PHYSICAL FIDELITY: In Normal Operation, Earth (PE) and Emergency Trip wires carry NO flowing current!
+          if (state.opState === "normal" && (eType === "earth_pe" || eType === "emergency_trip")) {
+            return;
+          }
 
           const s = edge.renderedSourceEndpoint();
           const d = edge.renderedTargetEndpoint();
           if (!s || !d) return;
           const dist = Math.hypot(d.x - s.x, d.y - s.y);
-          if (dist < 18) return;
+          if (dist < 22) return;
 
-          const eType = edge.data("edgeType");
+          let shapeKind = "triangle";
+          let speed = 0.00026;
+          if (eType === "fire_resistant") {
+            shapeKind = "hexagon";
+            speed = 0.00030;
+          } else if (eType === "bms_bus" || eType === "tlc_signal") {
+            shapeKind = "packets";
+            speed = 0.00038;
+          } else if (eType === "emergency_trip") {
+            shapeKind = "diamond";
+            speed = 0.00048;
+          } else if (eType === "earth_pe") {
+            shapeKind = "earth_wave";
+            speed = 0.00046;
+          }
+
+          const count = Math.max(2, Math.min(4, Math.round(dist / 145)));
+          const size = 5.4 * Math.min(1.22, Math.max(0.72, zoom));
           const col = edge.data("color");
-          const isHighlighted = focusId && (edge.source().id() === focusId || edge.target().id() === focusId);
-
-          // Speed & particle count tuned by flow nature (fast data packets vs steady energy droplets)
-          const isSignalOrTrip = eType === "bms_bus" || eType === "tlc_signal" || eType === "emergency_trip";
-          const speed = (isSignalOrTrip ? 0.00044 : 0.00028) * (isHighlighted ? 1.35 : 1.0);
-          const count = Math.max(2, Math.min(5, Math.round(dist / 130)));
-          const baseRadius = (isSignalOrTrip ? 3.4 : 4.4) * Math.min(1.25, Math.max(0.72, zoom));
-          const phaseShift = (idx * 0.19) % 1;
+          const phaseShift = (idx * 0.23) % 1;
 
           for (let k = 0; k < count; k++) {
             const t = ((timestamp * speed) + phaseShift + k / count) % 1;
             const pt = sampleEdgePoint(edge, t, zoom, pan);
-            if (!pt) continue;
+            const ptAhead = sampleEdgePoint(edge, Math.min(1, t + 0.02), zoom, pan);
+            const ptBehind = sampleEdgePoint(edge, Math.max(0, t - 0.02), zoom, pan);
+            if (!pt || !ptAhead || !ptBehind) continue;
 
-            // Subtle trailing tail behind droplet to accentuate direction of travel!
-            const tTail = Math.max(0, t - 0.035);
-            const ptTail = sampleEdgePoint(edge, tTail, zoom, pan);
-            if (ptTail) {
-              ctx.beginPath();
-              ctx.moveTo(ptTail.x, ptTail.y);
-              ctx.lineTo(pt.x, pt.y);
-              ctx.strokeStyle = toRgba(col, 0.55);
-              ctx.lineWidth = baseRadius * 1.45;
-              ctx.lineCap = "round";
-              ctx.stroke();
-            }
-
-            // Outer soft halo
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, baseRadius * 1.75, 0, Math.PI * 2);
-            ctx.fillStyle = toRgba(col, 0.24);
-            ctx.fill();
-
-            // Crisp moving core droplet
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, baseRadius, 0, Math.PI * 2);
-            ctx.fillStyle = col;
-            ctx.fill();
+            const theta = Math.atan2(ptAhead.y - ptBehind.y, ptAhead.x - ptBehind.x);
+            drawAccessibleFlowShape(ctx, shapeKind, pt.x, pt.y, theta, size, col, pal.surface);
           }
         });
       }
@@ -923,7 +1058,7 @@
     rafId = requestAnimationFrame(drawFrame);
   }
 
-  // ==================== PLANT STRIP & 3-STEP HOW-IT-WORKS BANNER ====================
+  // ==================== TOP STRIP & BANNER ====================
   function renderPlantStripAndBanner() {
     const strip = document.getElementById("plantStrip");
     const fsSelect = document.getElementById("fsPlantSelect");
@@ -944,13 +1079,14 @@
     strip.querySelectorAll(".plant-pill").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.activePlant = btn.dataset.plant;
-        state.explodedIds.clear();
+        state.drillBoardId = null;
+        state.focusedNodeId = null;
         refreshAll();
       });
     });
 
     fsSelect.innerHTML = DATA.plants.map((p) =>
-      `<option value="${p.id}" ${p.id === state.activePlant ? "selected" : ""}>${p.name} (${p.shortName})</option>`
+      `<option value="${p.id}" ${p.id === state.activePlant ? "selected" : ""}>${p.name}</option>`
     ).join("");
 
     const activeP = PLANT_MAP.get(state.activePlant) || DATA.plants[0];
@@ -959,15 +1095,15 @@
 
     document.getElementById("howBanner").innerHTML = `
       <div class="how-step">
-        <div class="how-step-k" style="color:var(--cp-success);">1 · 📥 Da dove entra (Origine)</div>
+        <div class="how-step-k" style="color:var(--cp-success);">1 · 📥 Origine / Ingresso</div>
         <div>${fg.in || "-"}</div>
       </div>
       <div class="how-step">
-        <div class="how-step-k" style="color:${cVar};">2 · 🛡️ Come viene gestito e protetto</div>
+        <div class="how-step-k" style="color:${cVar};">2 · 🛡️ Gestione &amp; Protezione</div>
         <div>${fg.process || "-"}</div>
       </div>
       <div class="how-step">
-        <div class="how-step-k" style="color:var(--cp-link);">3 · 📤 Dove esce e cosa fa funzionare</div>
+        <div class="how-step-k" style="color:var(--cp-link);">3 · 📤 Destinazione / Servizio</div>
         <div>${fg.out || "-"}</div>
       </div>
       <div style="text-align:right;">
@@ -976,18 +1112,17 @@
     `;
   }
 
-  // ==================== RIGHT PANEL: CLEAR BLOCK EXPLANATION + DRILL-DOWN ====================
+  // ==================== RIGHT INSPECTOR PANEL ====================
   function renderInspector() {
     const node = findNodeAny(state.selectedNodeId);
     if (!node) return;
 
     const p = PLANT_MAP.get(node.plant) || DATA.plants[0];
-    const fl = FLOOR_MAP.get(node.floor) || { name: node.floor, elev: "" };
+    const fl = FLOOR_MAP.get(node.floor) || { name: node.floor || "" };
     const cVar = `var(--plant-${p.swatch})`;
-    const isBridgeFromOther = node.plant !== state.activePlant;
 
-    const canExplode = NODE_MAP.has(node.id) && node.circuits && node.circuits.length > 0;
-    const isExploded = state.explodedIds.has(node.id);
+    const canDrillInternal = Boolean(node.internalGraph) && !state.drillBoardId;
+    const canJumpPlant = !state.drillBoardId && node.plant !== state.activePlant && node.plant !== "IMP-INGRESSI";
 
     document.getElementById("inspHeader").innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
@@ -996,53 +1131,59 @@
           <span>${node.roleLabel || p.shortName}</span>
         </span>
         <div style="display:flex; align-items:center; gap:6px;">
-          <span class="mono" style="font-size:11px; color:var(--cp-text-muted);">${fl.short || fl.name}</span>
-          <button id="btnCloseInspMobile" class="btn fs-only" style="padding:2px 7px; font-size:11px;">✕</button>
+          <span class="mono" style="font-size:11px; color:var(--cp-text-muted);">${node.roomGroup || fl.name}</span>
+          <button id="btnCloseInspFs" class="btn fs-only" style="padding:2px 7px; font-size:11px;">✕</button>
         </div>
       </div>
       <h3 class="insp-title">${node.label}</h3>
-      <div class="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · Ubicazione: ${fl.name}</div>
+      <div class="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · ${fl.name}</div>
 
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
-        ${isBridgeFromOther ? `
-          <button id="btnJumpBridgePlant" class="btn btn-primary" style="font-size:12px;">
-            ↪ Passa all'impianto "${p.shortName}" →
+        ${canDrillInternal ? `
+          <button id="btnEnterInternal" class="btn btn-primary" style="font-size:12px;">
+            🔬 Esplora Componenti Interni del Quadro (${node.internalGraph.nodes.length})
           </button>
         ` : ""}
-        ${canExplode ? `
-          <button id="btnInspExplode" class="btn ${isExploded ? "" : "btn-primary"}" style="font-size:12px;">
-            ${isExploded ? "− Richiudi Linee sul Grafo" : `＋ Mostra le ${node.circuits.length} Linee sul Grafo`}
-          </button>
+        ${state.drillBoardId ? `
+          <button id="btnBackFromInsp" class="btn" style="font-size:12px;">← Torna alla Mappa Impianto</button>
         ` : ""}
-        ${node.parentBoardId ? `
-          <button id="btnInspParent" class="btn" style="font-size:12px;">↑ Torna al Quadro</button>
+        ${canJumpPlant ? `
+          <button id="btnJumpPlant" class="btn" style="font-size:12px;">↪ Apri Impianto "${p.shortName}" →</button>
         ` : ""}
       </div>
     `;
 
-    const btnCloseFs = document.getElementById("btnCloseInspMobile");
-    if (btnCloseFs) btnCloseFs.addEventListener("click", () => document.getElementById("inspector").classList.add("closed-in-fs"));
-    const btnJump = document.getElementById("btnJumpBridgePlant");
-    if (btnJump) btnJump.addEventListener("click", () => {
+    const bClose = document.getElementById("btnCloseInspFs");
+    if (bClose) bClose.addEventListener("click", () => document.getElementById("inspector").classList.add("closed-in-fs"));
+    const bInt = document.getElementById("btnEnterInternal");
+    if (bInt) bInt.addEventListener("click", () => enterBoardInternalMap(node.id));
+    const bBack = document.getElementById("btnBackFromInsp");
+    if (bBack) bBack.addEventListener("click", exitBoardInternalMap);
+    const bJump = document.getElementById("btnJumpPlant");
+    if (bJump) bJump.addEventListener("click", () => {
       state.activePlant = node.plant;
+      state.drillBoardId = null;
+      state.focusedNodeId = null;
       refreshAll();
     });
-    const btnExp = document.getElementById("btnInspExplode");
-    if (btnExp) btnExp.addEventListener("click", () => toggleExplodeBoard(node.id));
-    const btnPar = document.getElementById("btnInspParent");
-    if (btnPar) btnPar.addEventListener("click", () => selectNode(node.parentBoardId, true));
 
-    // Compute ALL incoming and outgoing edges across the entire verified plant model!
-    const incoming = DATA.edges.filter((e) => e.target === node.id && e.edgeType !== "doc_trace");
-    const outgoing = DATA.edges.filter((e) => e.source === node.id && e.edgeType !== "doc_trace");
+    const { edges: curEdges, nodes: curNodes, isInternal } = computeCurrentGraph();
+    const curMap = new Map(curNodes.map((x) => [x.id, x]));
+    const refEdges = isInternal ? curEdges : DATA.edges.filter((e) => e.edgeType !== "doc_trace");
+    const lookupNode = (id) => curMap.get(id) || NODE_MAP.get(id);
+
+    const incoming = refEdges.filter((e) => e.target === node.id);
+    const outgoing = refEdges.filter((e) => e.source === node.id);
     const dsList = (node.datasheetIds || []).map((id) => DS_MAP.get(id)).filter(Boolean);
     const incs = INC_BY_NODE.get(node.id) || [];
 
     const renderIoCard = (edge, otherId, dirPrefix) => {
-      const other = NODE_MAP.get(otherId);
+      const other = lookupNode(otherId);
       if (!other) return "";
-      const op = PLANT_MAP.get(other.plant);
-      const crossTag = other.plant !== node.plant ? `<span class="pill" style="font-size:10px; color:var(--plant-${op.swatch});">🔗 ${op.shortName}</span>` : "";
+      const op = PLANT_MAP.get(other.plant) || p;
+      const crossTag = (!isInternal && other.plant !== node.plant)
+        ? `<span class="pill" style="font-size:10px; color:var(--plant-${op.swatch});">🔗 ${op.shortName}</span>`
+        : "";
       return `
         <div class="io-card" data-goto="${other.id}">
           <div>
@@ -1054,45 +1195,46 @@
       `;
     };
 
+    const isEarthSink = node.id === "TERRA-RETE" || (node.code && node.code.includes("TERRA PE"));
+
     const body = document.getElementById("inspBody");
     body.innerHTML = `
-      <!-- 1. Clear Function Callout -->
       <div class="func-callout">
         <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--cp-accent); margin-bottom:3px;">Funzione del Blocco</div>
         <div style="font-weight:700; font-size:13.5px; margin-bottom:5px;">${node.shortFunc || ""}</div>
-        <div style="font-size:12.5px; color:var(--cp-text-muted);">${node.desc || ""}</div>
+        ${node.desc ? `<div style="font-size:12.5px; color:var(--cp-text-muted);">${node.desc}</div>` : ""}
       </div>
 
       ${node.emergencyNote ? `
         <div class="emg-callout">
-          <strong>🚒 Comportamento in Emergenza / Blackout:</strong><br/>
+          <strong>🚒 Comportamento in Emergenza / Nota Tecnica:</strong><br/>
           ${node.emergencyNote}
         </div>
       ` : ""}
 
-      <!-- 2. Explicit Inputs (ENTRA DA) & Outputs (ESCE VERSO) -->
       <div class="io-section">
-        <h4 class="io-hdr" style="color:var(--cp-link);">📥 Da dove entra energia / segnale (${incoming.length})</h4>
+        <h4 class="io-hdr" style="color:var(--cp-link);">
+          ${isEarthSink ? `⏚ Riceve scariche di guasto / fulmine da (${incoming.length})` : `📥 Da dove entra energia / segnale (${incoming.length})`}
+        </h4>
         ${incoming.length
-          ? incoming.map((e) => renderIoCard(e, e.source, "⬅ Riceve da:")).join("")
-          : `<div style="font-size:12px; color:var(--cp-text-muted); padding:4px 2px;">★ Punto sorgente primario: alimentato direttamente dalla rete esterna o dai pannelli/antenne.</div>`
+          ? incoming.map((e) => renderIoCard(e, e.source, "⬅ Da:")).join("")
+          : `<div style="font-size:12px; color:var(--cp-text-muted);">★ Origine primaria del flusso (alimentato da rete esterna o captazione diretta).</div>`
         }
       </div>
 
       <div class="io-section">
         <h4 class="io-hdr" style="color:var(--cp-accent);">📤 Dove esce / cosa alimenta o comanda (${outgoing.length})</h4>
         ${outgoing.length
-          ? outgoing.map((e) => renderIoCard(e, e.target, "➡ Invia a:")).join("")
-          : `<div style="font-size:12px; color:var(--cp-text-muted); padding:4px 2px;">🎯 Utilizzatore finale: trasforma l'energia ricevuta in servizio utile (luce, movimento, calore, sicurezza).</div>`
+          ? outgoing.map((e) => renderIoCard(e, e.target, "➡ Verso:")).join("")
+          : `<div style="font-size:12px; color:var(--cp-text-muted);">${isEarthSink ? "⏚ Disperde nel terreno: non invia mai elettricità verso l'impianto." : "🎯 Destinazione finale del servizio."}</div>`
         }
       </div>
 
-      <!-- 3. Progressive Technical Accordions (Zero content lost!) -->
       ${(node.circuits && node.circuits.length) ? `
         <details class="acc-block" open>
           <summary>
-            <span>🔌 Partenze &amp; Circuiti Interni (${node.circuits.length})</span>
-            <span class="mono" style="font-size:11px; color:var(--cp-accent);">Espandi/Chiudi ▾</span>
+            <span>🔌 Elenco Partenze &amp; Circuiti Interni (${node.circuits.length})</span>
+            <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
           </summary>
           <div class="acc-content" style="padding:0;">
             <table class="data-table">
@@ -1114,7 +1256,7 @@
       ${(dsList.length || (node.bom && node.bom.length)) ? `
         <details class="acc-block" ${(node.circuits && node.circuits.length) ? "" : "open"}>
           <summary>
-            <span>📚 Componenti &amp; Schede Tecniche PDF (${dsList.length} PDF · ${(node.bom || []).length} BOM)</span>
+            <span>📚 Componenti &amp; Schede Tecniche PDF (${dsList.length} PDF)</span>
             <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
           </summary>
           <div class="acc-content">
@@ -1149,7 +1291,7 @@
 
       <details class="acc-block">
         <summary>
-          <span>📐 Caratteristiche di Targa &amp; Riferimenti Documentali</span>
+          <span>📐 Dati di Targa &amp; Riferimenti Documentali</span>
           <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
         </summary>
         <div class="acc-content">
@@ -1187,16 +1329,17 @@
     body.querySelectorAll("[data-goto]").forEach((card) => {
       card.addEventListener("click", () => {
         const tid = card.dataset.goto;
-        const target = NODE_MAP.get(tid);
-        if (!target) return;
-        // If target isn't currently visible on canvas, switch to its plant
-        const { nodes } = computePlantGraph();
-        if (!nodes.some((x) => x.id === tid)) {
+        const { nodes: visNodes } = computeCurrentGraph();
+        if (visNodes.some((x) => x.id === tid)) {
+          state.focusedNodeId = tid;
+          selectNode(tid, true);
+        } else if (NODE_MAP.has(tid)) {
+          const target = NODE_MAP.get(tid);
+          state.drillBoardId = null;
           state.activePlant = target.plant;
           state.selectedNodeId = tid;
+          state.focusedNodeId = tid;
           refreshAll();
-        } else {
-          selectNode(tid, true);
         }
       });
     });
@@ -1210,27 +1353,17 @@
   function selectNode(nodeId, centerInGraph) {
     state.selectedNodeId = nodeId;
     refreshSelectedCardGraphics();
+    applyClickFocus();
     renderInspector();
-    if (cyInstance) {
-      applyFlowXRay(nodeId);
-      if (centerInGraph) {
-        const el = cyInstance.getElementById(nodeId);
-        if (el && el.length) cyInstance.animate({ center: { eles: el }, duration: 300 });
-      }
+    if (centerInGraph && cyInstance) {
+      const el = cyInstance.getElementById(nodeId);
+      if (el && el.length) cyInstance.animate({ center: { eles: el }, duration: 280 });
     }
-  }
-
-  function toggleExplodeBoard(boardId) {
-    if (state.explodedIds.has(boardId)) state.explodedIds.delete(boardId);
-    else state.explodedIds.add(boardId);
-    renderCytoscape(true);
-    renderInspector();
   }
 
   function setFullscreenState(enable) {
     state.isFullscreen = enable;
-    const shell = document.getElementById("appShell");
-    shell.classList.toggle("is-fullscreen", enable);
+    document.getElementById("appShell").classList.toggle("is-fullscreen", enable);
     if (enable) {
       document.getElementById("inspector").classList.add("closed-in-fs");
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -1243,7 +1376,7 @@
       resizeFlowCanvas();
       if (cyInstance) {
         cyInstance.resize();
-        cyInstance.fit(undefined, 54);
+        cyInstance.fit(undefined, 48);
       }
     }, 80);
   }
@@ -1326,10 +1459,11 @@
         if (inc && inc.affectedNodes && inc.affectedNodes.length) {
           const first = NODE_MAP.get(inc.affectedNodes[0]);
           if (first) {
+            state.drillBoardId = null;
             state.activePlant = first.plant;
             state.selectedNodeId = first.id;
+            state.focusedNodeId = first.id;
             refreshAll();
-            setTimeout(() => selectNode(first.id, true), 350);
           }
         }
       });
@@ -1355,11 +1489,11 @@
         if (n.nodeClass === "doc_reference") return;
         const hay = `${n.code} ${n.label} ${n.shortFunc || ""} ${n.desc}`.toLowerCase();
         if (hay.includes(q)) {
-          hits.push({ kind: PLANT_MAP.get(n.plant).shortName, title: `${n.label} (${n.code})`, sub: n.shortFunc, nodeId: n.id });
+          hits.push({ kind: PLANT_MAP.get(n.plant)?.shortName || "Impianto", title: `${n.label} (${n.code})`, sub: n.shortFunc, nodeId: n.id, drill: false });
         }
         (n.circuits || []).forEach((c) => {
           if (`${c.code} ${c.desc} ${c.breaker || ""}`.toLowerCase().includes(q)) {
-            hits.push({ kind: `Circuito in ${n.code}`, title: `${c.code} — ${c.desc}`, sub: c.breaker || "", nodeId: n.id });
+            hits.push({ kind: `🔬 Interno ${n.code}`, title: `${c.code} — ${c.desc}`, sub: c.breaker || "", nodeId: n.id, drill: true });
           }
         });
       });
@@ -1390,9 +1524,15 @@
           } else if (h.nodeId) {
             const target = NODE_MAP.get(h.nodeId);
             state.activePlant = target.plant;
-            state.selectedNodeId = target.id;
-            refreshAll();
-            setTimeout(() => selectNode(target.id, true), 350);
+            if (h.drill && target.internalGraph) {
+              renderPlantStripAndBanner();
+              enterBoardInternalMap(target.id);
+            } else {
+              state.drillBoardId = null;
+              state.selectedNodeId = target.id;
+              state.focusedNodeId = target.id;
+              refreshAll();
+            }
           }
         });
       });
@@ -1411,34 +1551,42 @@
   }
 
   function init() {
-    // Dynamic Layout Switcher
     document.querySelectorAll("[data-layout]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.layoutEngine = btn.dataset.layout;
         document.querySelectorAll("[data-layout]").forEach((b) => b.classList.toggle("active", b === btn));
-        document.getElementById("dirSwitcher").style.display = state.layoutEngine === "floors" ? "none" : "inline-flex";
-        refreshSelectedCardGraphics();
-        triggerAnimatedReLayout();
+        renderCytoscape(true);
       });
     });
 
-    // Flow Direction Switcher (Vertical vs Horizontal)
     document.querySelectorAll("[data-dir]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.flowDir = btn.dataset.dir;
         document.querySelectorAll("[data-dir]").forEach((b) => b.classList.toggle("active", b === btn));
-        refreshSelectedCardGraphics();
-        triggerAnimatedReLayout();
+        renderCytoscape(true);
       });
     });
 
-    document.getElementById("btnReLayout").addEventListener("click", () => triggerAnimatedReLayout());
+    document.getElementById("groupSelect").addEventListener("change", (e) => {
+      state.groupBy = e.target.value;
+      renderCytoscape(true);
+    });
+
+    document.getElementById("btnReLayout").addEventListener("click", () => {
+      renderCytoscape(true);
+    });
+
+    document.querySelectorAll("[data-opstate]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.opState = btn.dataset.opstate;
+        document.querySelectorAll("[data-opstate]").forEach((b) => b.classList.toggle("active", b === btn));
+        renderCytoscape(false);
+      });
+    });
 
     document.getElementById("btnToggleFlow").addEventListener("click", (e) => {
       state.animateFlows = !state.animateFlows;
-      const b = e.currentTarget;
-      b.textContent = state.animateFlows ? "⏸ Flussi Attivi" : "▶ Avvia Flussi";
-      b.classList.toggle("btn-primary", state.animateFlows);
+      e.currentTarget.textContent = state.animateFlows ? "⏸ Pausa" : "▶ Avvia";
     });
 
     document.getElementById("chkBridges").addEventListener("change", (e) => {
@@ -1446,11 +1594,12 @@
       renderCytoscape(true);
     });
 
-    document.getElementById("btnResetExploded").addEventListener("click", () => {
-      state.explodedIds.clear();
-      renderCytoscape(true);
-      renderInspector();
+    document.getElementById("btnClearFocus").addEventListener("click", () => {
+      state.focusedNodeId = null;
+      applyClickFocus();
     });
+
+    document.getElementById("btnExitBoardDrill").addEventListener("click", exitBoardInternalMap);
 
     document.getElementById("btnFit").addEventListener("click", () => {
       if (cyInstance) cyInstance.fit(undefined, 48);
@@ -1461,19 +1610,16 @@
         document.getElementById("inspector").classList.toggle("closed-in-fs");
       } else {
         document.getElementById("mainSplit").classList.toggle("panel-hidden");
-        setTimeout(() => {
-          resizeFlowCanvas();
-          if (cyInstance) cyInstance.resize();
-        }, 60);
+        setTimeout(() => { resizeFlowCanvas(); if (cyInstance) cyInstance.resize(); }, 60);
       }
     });
 
-    // Fullscreen buttons & keyboard shortcuts ('F' and 'Escape')
     document.getElementById("btnFullscreen").addEventListener("click", () => setFullscreenState(true));
     document.getElementById("btnExitFullscreen").addEventListener("click", () => setFullscreenState(false));
     document.getElementById("fsPlantSelect").addEventListener("change", (e) => {
       state.activePlant = e.target.value;
-      state.explodedIds.clear();
+      state.drillBoardId = null;
+      state.focusedNodeId = null;
       refreshAll();
     });
 
@@ -1493,13 +1639,14 @@
       } else if (e.key === "Escape") {
         if (document.getElementById("appModal").classList.contains("open")) {
           document.getElementById("appModal").classList.remove("open");
+        } else if (state.drillBoardId) {
+          exitBoardInternalMap();
         } else if (state.isFullscreen) {
           setFullscreenState(false);
         }
       }
     });
 
-    // Header Modals & Theme
     document.getElementById("btnOpenDatasheets").addEventListener("click", openDatasheetsCatalogModal);
     document.getElementById("btnOpenAudit").addEventListener("click", openAuditModal);
     document.getElementById("btnCloseModal").addEventListener("click", () => {
