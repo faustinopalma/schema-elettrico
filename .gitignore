@@ -1,0 +1,7 @@
+# Original signed project documents (kept strictly local/private)
+private/
+
+# OS & editor artifacts
+Thumbs.db
+.DS_Store
+*.tmp

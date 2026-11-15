@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Come Funzionano gli Impianti — Complesso Residenziale, ambito urbano</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23b11f4b'/%3E%3Cpath d='M18 4L8 18h7l-1 10 10-14h-7z' fill='%23ffffff'/%3E%3C/svg%3E" />
+  <style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f5f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+
+/* Derived plant tokens strictly from var(--cp-*) */
+:root, html[data-theme="dark"] {
+  --plant-ssc: var(--cp-accent);
+  --plant-ssc-bg: color-mix(in srgb, var(--cp-accent) 11%, var(--cp-surface));
+  --plant-sca: var(--cp-link);
+  --plant-sca-bg: color-mix(in srgb, var(--cp-link) 11%, var(--cp-surface));
+  --plant-scb: var(--cp-success);
+  --plant-scb-bg: color-mix(in srgb, var(--cp-success) 11%, var(--cp-surface));
+  --plant-pdc: var(--cp-warning);
+  --plant-pdc-bg: color-mix(in srgb, var(--cp-warning) 14%, var(--cp-surface));
+  --plant-fire: var(--cp-danger);
+  --plant-fire-bg: color-mix(in srgb, var(--cp-danger) 12%, var(--cp-surface));
+  --plant-bms: color-mix(in srgb, var(--cp-link) 56%, var(--cp-accent));
+  --plant-bms-bg: color-mix(in srgb, var(--plant-bms) 12%, var(--cp-surface));
+  --plant-tlc: color-mix(in srgb, var(--cp-success) 52%, var(--cp-link));
+  --plant-tlc-bg: color-mix(in srgb, var(--plant-tlc) 12%, var(--cp-surface));
+  --plant-gnd: var(--cp-border-strong);
+  --plant-gnd-bg: color-mix(in srgb, var(--cp-border-strong) 14%, var(--cp-surface));
+  --card-subtle: 0 1px 3px color-mix(in srgb, var(--cp-text) 10%, transparent);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+code, pre, .mono {
+  font-family: Consolas, "Courier New", Courier, monospace;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Fullscreen Mode: Graph fills 100% of screen */
+.app-shell.is-fullscreen {
+  grid-template-rows: 1fr;
+}
+
+.app-shell.is-fullscreen .topbar,
+.app-shell.is-fullscreen .plant-strip {
+  display: none;
+}
+
+.app-shell.is-fullscreen .main-split {
+  grid-template-columns: 1fr !important;
+}
+
+.app-shell.is-fullscreen .inspector {
+  position: fixed;
+  top: 68px;
+  right: 16px;
+  bottom: 48px;
+  width: min(430px, calc(100vw - 32px));
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 16px;
+  box-shadow: var(--cp-shadow);
+  z-index: 60;
+}
+
+.app-shell.is-fullscreen .inspector.closed-in-fs {
+  display: none;
+}
+
+/* Top Bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 16px;
+  background: var(--cp-surface);
+  border-bottom: 1px solid var(--cp-border);
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-text p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--cp-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  width: 280px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 6px 11px 6px 30px;
+  border-radius: 0.625rem;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-bg-elevated);
+  color: var(--cp-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--cp-accent);
+  background: var(--cp-surface);
+}
+
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12.5px;
+  pointer-events: none;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 0.625rem;
+  box-shadow: var(--cp-shadow);
+  z-index: 150;
+  display: none;
+}
+
+.search-dropdown.open {
+  display: block;
+}
+
+.search-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cp-border);
+  cursor: pointer;
+}
+
+.search-item:hover {
+  background: var(--cp-accent-soft);
+}
+
+/* Horizontal 8-Plant Selector Strip */
+.plant-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: var(--cp-bg-elevated);
+  border-bottom: 1px solid var(--cp-border);
+  overflow-x: auto;
+}
+
+.plant-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 0.625rem;
+  border: 1.5px solid var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.plant-pill:hover {
+  border-color: var(--cp-border-strong);
+  background: var(--cp-surface-soft);
+}
+
+.plant-pill.active {
+  border-width: 2px;
+  box-shadow: var(--card-subtle);
+}
+
+/* Buttons & Segmented Controls */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 0.625rem;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--cp-border-strong);
+  background: var(--cp-surface-soft);
+}
+
+.btn-primary {
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+  border-color: var(--cp-accent);
+}
+
+.btn-primary:hover {
+  background: var(--cp-accent-hover);
+  border-color: var(--cp-accent-hover);
+}
+
+.seg-control {
+  display: inline-flex;
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  padding: 2px;
+  gap: 2px;
+}
+
+.seg-btn {
+  border: none;
+  background: transparent;
+  color: var(--cp-text-muted);
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seg-btn:hover {
+  color: var(--cp-text);
+}
+
+.seg-btn.active {
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+
+/* Main Split: Wide Graph Canvas + Right Explanatory Card */
+.main-split {
+  display: grid;
+  grid-template-columns: 1fr 415px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-split.panel-hidden {
+  grid-template-columns: 1fr 0px;
+}
+
+.graph-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--cp-bg);
+  position: relative;
+}
+
+/* 3-Step "How this plant works" Banner */
+.how-banner {
+  padding: 9px 16px;
+  background: var(--cp-panel-strong);
+  border-bottom: 1px solid var(--cp-border);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.app-shell.is-fullscreen .how-banner {
+  display: none;
+}
+
+.how-step {
+  background: var(--cp-bg-elevated);
+  border: 1px solid var(--cp-border);
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.how-step-k {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 1px;
+}
+
+/* Graph Controls Toolbar */
+.graph-toolbar {
+  padding: 7px 14px;
+  background: var(--cp-bg-elevated);
+  border-bottom: 1px solid var(--cp-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 25;
+}
+
+.fs-only {
+  display: none;
+}
+
+.app-shell.is-fullscreen .fs-only {
+  display: inline-flex;
+}
+
+/* Cytoscape + Flow Particle Overlay Wrapper */
+.cy-stage-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  width: 100%;
+}
+
+#cyCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#flowCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Bottom Legend Bar */
+.graph-legend {
+  padding: 6px 14px;
+  background: var(--cp-panel-strong);
+  border-top: 1px solid var(--cp-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--cp-text-muted);
+}
+
+.legend-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+/* Right Node Explanation & Drill-Down Drawer */
+.inspector {
+  background: var(--cp-surface);
+  border-left: 1px solid var(--cp-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-split.panel-hidden .inspector {
+  border-left: none;
+}
+
+.insp-header {
+  padding: 13px 16px 11px;
+  border-bottom: 1px solid var(--cp-border);
+  background: var(--cp-bg-elevated);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+}
+
+.insp-title {
+  margin: 6px 0 2px;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.insp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 28px;
+}
+
+.func-callout {
+  background: var(--cp-bg-elevated);
+  border: 1px solid var(--cp-border);
+  border-left: 4px solid var(--cp-accent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.emg-callout {
+  background: color-mix(in srgb, var(--cp-warning) 10%, var(--cp-surface));
+  border: 1px solid color-mix(in srgb, var(--cp-warning) 45%, var(--cp-border));
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+}
+
+.io-section {
+  margin-bottom: 12px;
+}
+
+.io-hdr {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.io-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-bg-elevated);
+  margin-bottom: 5px;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+
+.io-card:hover {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+}
+
+/* Progressive Details Accordions inside Inspector */
+details.acc-block {
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+  background: var(--cp-surface);
+  margin-bottom: 9px;
+  overflow: hidden;
+}
+
+details.acc-block summary {
+  padding: 9px 12px;
+  background: var(--cp-bg-elevated);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+}
+
+details.acc-block summary::-webkit-details-marker {
+  display: none;
+}
+
+details.acc-block[open] summary {
+  border-bottom: 1px solid var(--cp-border);
+}
+
+.acc-content {
+  padding: 10px 12px;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.spec-box {
+  background: var(--cp-bg-elevated);
+  border: 1px solid var(--cp-border);
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.spec-k {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--cp-text-muted);
+}
+
+.spec-v {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.data-table th, .data-table td {
+  padding: 6px 7px;
+  text-align: left;
+  border-bottom: 1px solid var(--cp-border);
+  vertical-align: top;
+}
+
+.data-table th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: var(--cp-text-muted);
+  background: var(--cp-surface-soft);
+}
+
+/* Modal for Datasheets & Project Audit Notes */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--cp-overlay);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-backdrop.open {
+  display: flex;
+}
+
+.modal-dialog {
+  width: min(1240px, 96vw);
+  height: min(860px, 92vh);
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 16px;
+  box-shadow: var(--cp-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-hdr {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--cp-border);
+  background: var(--cp-bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--cp-bg);
+}
+
+.modal-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+
+.ds-card, .audit-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--card-subtle);
+}
+
+.audit-card {
+  margin: 0 18px 12px;
+}
+
+.sev-critica { border-left: 5px solid var(--cp-danger); }
+.sev-alta { border-left: 5px solid var(--cp-warning); }
+.sev-media { border-left: 5px solid var(--cp-link); }
+.sev-bassa { border-left: 5px solid var(--cp-border-strong); }
+.sev-info { border-left: 5px solid var(--cp-success); }
+
+/* Hidden CSS variable probes for Canvas */
+.cp-probes {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (max-width: 1100px) {
+  .how-banner {
+    grid-template-columns: 1fr;
+  }
+  .main-split {
+    grid-template-columns: 1fr 350px;
+  }
+}
+  </style>
+</head>
+<body>
+  <!-- Hidden CSS token probes for Canvas rendering -->
+  <div class="cp-probes" aria-hidden="true">
+    <span id="probe-bg" style="color: var(--cp-bg); background: var(--cp-bg-elevated)"></span>
+    <span id="probe-surface" style="color: var(--cp-surface); background: var(--cp-surface-soft)"></span>
+    <span id="probe-text" style="color: var(--cp-text); background: var(--cp-text-muted)"></span>
+    <span id="probe-border" style="color: var(--cp-border); background: var(--cp-border-strong)"></span>
+    <span id="probe-status" style="color: var(--cp-danger); background: var(--cp-warning)"></span>
+    <span id="probe-ok" style="color: var(--cp-success); background: var(--cp-link)"></span>
+    <span id="probe-accent" style="color: var(--cp-accent); background: var(--cp-accent-fg)"></span>
+    <span id="probe-ssc" style="color: var(--plant-ssc); background: var(--plant-ssc-bg)"></span>
+    <span id="probe-sca" style="color: var(--plant-sca); background: var(--plant-sca-bg)"></span>
+    <span id="probe-scb" style="color: var(--plant-scb); background: var(--plant-scb-bg)"></span>
+    <span id="probe-pdc" style="color: var(--plant-pdc); background: var(--plant-pdc-bg)"></span>
+    <span id="probe-fire" style="color: var(--plant-fire); background: var(--plant-fire-bg)"></span>
+    <span id="probe-bms" style="color: var(--plant-bms); background: var(--plant-bms-bg)"></span>
+    <span id="probe-tlc" style="color: var(--plant-tlc); background: var(--plant-tlc-bg)"></span>
+    <span id="probe-gnd" style="color: var(--plant-gnd); background: var(--plant-gnd-bg)"></span>
+  </div>
+
+  <div id="appShell" class="app-shell">
+    <!-- Compact Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">⚡</div>
+        <div class="brand-text">
+          <h1>Come Funzionano gli Impianti — Complesso Residenziale, ambito urbano</h1>
+          <p>Esplora ciascuno degli 8 impianti: segui i flussi animati da dove entrano a cosa alimentano, e clicca i blocchi per i dettagli</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="search-wrap">
+          <span class="search-icon">🔎</span>
+          <input id="globalSearch" class="search-input" type="search" placeholder="Cerca blocco, utenza, circuito, componente..." autocomplete="off" />
+          <div id="searchDropdown" class="search-dropdown"></div>
+        </div>
+        <button id="btnOpenDatasheets" class="btn" title="Consulta le 17 schede tecniche PDF pubbliche dei componenti">📚 Schede PDF (17)</button>
+        <button id="btnOpenAudit" class="btn" title="Consulta le 10 verifiche e incoerenze riscontrate nel progetto">⚠️ Rilievi (10)</button>
+        <button id="btnThemeToggle" class="btn" title="Cambia tema Chiaro / Scuro">🌓 Tema</button>
+        <button id="btnFullscreen" class="btn btn-primary" title="Espandi il grafo a schermo intero (tasto F)">⛶ Schermo Intero</button>
+      </div>
+    </header>
+
+    <!-- 8 Individual Plants Strip (No chaotic 50-node holistic view) -->
+    <nav id="plantStrip" class="plant-strip" aria-label="Seleziona uno degli 8 impianti"></nav>
+
+    <!-- Main Workspace: Graph + Contextual Block Card -->
+    <div id="mainSplit" class="main-split">
+      <section class="graph-column">
+        <!-- Plain-language 3-step explanation of how the active plant works -->
+        <div id="howBanner" class="how-banner"></div>
+
+        <!-- Dynamic Layout & Flow Controls -->
+        <div class="graph-toolbar">
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+            <!-- Plant dropdown visible only when in Fullscreen -->
+            <select id="fsPlantSelect" class="search-input fs-only" style="width:auto; padding-left:10px; font-weight:700;"></select>
+
+            <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Riordino Dinamico:</span>
+            <div class="seg-control" id="layoutSwitcher" role="group" aria-label="Motore automatico di distribuzione nodi">
+              <button class="seg-btn active" data-layout="elk" title="Eclipse ELK Layered: minimizza gli incroci e allinea Ingressi → Quadri → Uscite">1 · ELK Schematico</button>
+              <button class="seg-btn" data-layout="cola" title="WebCola Fisica Viva: trascina un blocco e gli altri si spostano da soli mantenendo il flusso!">2 · Cola Fisica Viva</button>
+              <button class="seg-btn" data-layout="fcose" title="fCoSE Molle Elastiche: raggruppa dinamicamente i blocchi più connessi">3 · fCoSE Elastico</button>
+              <button class="seg-btn" data-layout="dagre" title="Dagre Gerarchico: albero classico per livelli">4 · Dagre Albero</button>
+              <button class="seg-btn" data-layout="floors" title="Quote Edificio: ordina i blocchi dal Piano -2 fino al Tetto (+48m)">5 · Piani Edificio</button>
+            </div>
+
+            <div class="seg-control" id="dirSwitcher" title="Direzione principale del flusso">
+              <button class="seg-btn active" data-dir="TB">⬇ Alto→Basso</button>
+              <button class="seg-btn" data-dir="LR">➡ Sinistra→Destra</button>
+            </div>
+
+            <button id="btnReLayout" class="btn" title="Ricalcola e riordina animatamente la posizione di tutti i blocchi">✨ Riordina Ora</button>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+            <button id="btnToggleFlow" class="btn btn-primary" style="padding:5px 10px;" title="Attiva/Pausa il movimento animato lungo i cavi">⏸ Flussi Attivi</button>
+            <label class="btn" style="padding:5px 10px; cursor:pointer;" title="Mostra anche i blocchi ponte verso gli altri impianti collegati">
+              <input type="checkbox" id="chkBridges" style="margin:0;" /> 🔗 Ponti altri impianti
+            </label>
+            <button id="btnResetExploded" class="btn" style="display:none; padding:5px 10px;">↺ Chiudi Circuiti</button>
+            <button id="btnFit" class="btn" style="padding:5px 10px;" title="Adatta il grafo allo schermo">🎯 Centra</button>
+            <button id="btnTogglePanel" class="btn" style="padding:5px 10px;" title="Mostra/Nascondi la scheda di destra">📋 Scheda</button>
+            <button id="btnExitFullscreen" class="btn btn-primary fs-only" style="padding:5px 11px;">✕ Esci Schermo Intero</button>
+          </div>
+        </div>
+
+        <!-- Cytoscape + 60fps Flow Animation Overlay -->
+        <div class="cy-stage-wrap">
+          <div id="cyCanvas"></div>
+          <canvas id="flowCanvas"></canvas>
+        </div>
+
+        <!-- Clear Flow Legend -->
+        <div class="graph-legend">
+          <div class="legend-group">
+            <strong style="color:var(--cp-text);">Flussi Animati sui Fili:</strong>
+            <span><i class="legend-dot" style="background:var(--cp-accent);"></i><strong>Pallini Continui</strong> = Energia Elettrica (da Sorgente → a Carico)</span>
+            <span><i class="legend-dot" style="background:var(--cp-danger);"></i><strong>Impulsi Rossi</strong> = Linea Ignifuga VVF / Comando Sgancio</span>
+            <span><i class="legend-dot" style="background:var(--cp-link);"></i><strong>Pacchetti Rapidi</strong> = Segnali Dati BMS / Fibra / Allarmi</span>
+          </div>
+          <div>
+            💡 <strong>Clicca</strong> un blocco per vedere <em>Entrate / Uscite</em> · <strong>Doppio clic</strong> su un ponte tratteggiato per saltare all'altro impianto.
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Clear Functional Explanation + Progressive Technical Details -->
+      <aside id="inspector" class="inspector">
+        <div id="inspHeader" class="insp-header"></div>
+        <div id="inspBody" class="insp-body"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Clean Modal for Public PDF Datasheets & 10 Audit Findings -->
+  <div id="appModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-hdr">
+        <div>
+          <strong id="modalTitle" style="font-size:15px;">Dettaglio</strong>
+          <div id="modalSub" style="font-size:12px; color:var(--cp-text-muted);"></div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <a id="modalVendorBtn" class="btn" href="#" target="_blank" rel="noopener" style="display:none;">🌐 Sito Produttore</a>
+          <a id="modalNewTabBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener" style="display:none;">↗ Apri PDF in Nuova Scheda</a>
+          <button id="btnCloseModal" class="btn">✕ Chiudi</button>
+        </div>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Cytoscape + 4 Dynamic Layout Engines (Dagre, ELK, WebCola, fCoSE) -->
+  <script src="./assets/vendor/dagre.min.js"></script>
+  <script src="./assets/vendor/elk.bundled.js"></script>
+  <script src="./assets/vendor/cola.min.js"></script>
+  <script src="./assets/vendor/layout-base.js"></script>
+  <script src="./assets/vendor/cose-base.js"></script>
+  <script src="./assets/vendor/cytoscape.min.js"></script>
+  <script src="./assets/vendor/cytoscape-dagre.js"></script>
+  <script src="./assets/vendor/cytoscape-elk.js"></script>
+  <script src="./assets/vendor/cytoscape-cola.js"></script>
+  <script src="./assets/vendor/cytoscape-fcose.js"></script>
+  <script src="./assets/data/impianto_data.js"></script>
+  <script src="./assets/app.js"></script>
+</body>
+</html>
