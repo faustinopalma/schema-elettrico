@@ -23,13 +23,14 @@
     });
   });
 
-  // Curated set of nodes for "0. Mappa Ingressi & Tutti i Contatori"
+  // Curated set of nodes for "0. Mappa Contatori, Ingressi & Alimentazione Box"
   const METERS_OVERVIEW_IDS = new Set([
     "RETE-DISTRIBUTORE",
     "POD-SSC", "POD-SCA", "POD-SCB", "POD-PDC",
     "CONTATORI-ALLOGGI-A", "CONTATORI-ALLOGGI-B",
     "RIP-250", "QEPA",
     "AVSSC", "QESSC",
+    "Q6-BOX-SEC", "BOX-INTERNI-P1", "BOX-INTERNI-P2",
     "AVSCA", "QESCA",
     "AVSCB", "QESCB",
     "AVPC", "QEPC", "GEN-FV-ROOF"
@@ -37,18 +38,18 @@
 
   // Branches interrupted when Emergency / Shunt Trip Simulation is active
   const TRIPPED_SOURCES_IN_EMERGENCY = new Set([
-    "AVSSC", "AVSCA", "QESCA", "AVSCB", "QESCB", "AVPC", "QEPC", "GEN-FV-ROOF", "UPS-1-EI"
+    "Q6-BOX-SEC", "QELP", "AVSCA", "QESCA", "AVSCB", "QESCB", "AVPC", "QEPC", "GEN-FV-ROOF", "UPS-1-EI"
   ]);
   const TRIPPED_EDGE_IDS_IN_EMERGENCY = new Set([
-    "e07", "e52", "e53", "e_f1", "e20"
+    "e07", "e_q6_in", "e_box_p1", "e_box_p2", "e52", "e53", "e_f1", "e20"
   ]);
 
   const state = {
-    activePlant: "IMP-INGRESSI", // Start on "0. Mappa Ingressi & Tutti i Contatori" so all meters are immediately clear!
+    activePlant: "IMP-INGRESSI", // Start on "0. Mappa Contatori, Ingressi & Alimentazione Box"
     drillBoardId: null,          // null = Plant Map | boardId = Level-2 Internal Switchboard Component Map!
     layoutEngine: "elk",         // 'elk' | 'cola' | 'fcose' | 'dagre'
     flowDir: "TB",               // 'TB' | 'LR'
-    groupBy: "none",             // 'none' | 'floor' | 'room' | 'role' | 'safety'
+    groupBy: "room",             // Default to physical rooms so the 3 Meter Rooms & Garage Box jump out immediately!
     opState: "normal",           // 'normal' | 'emergency'
     animateFlows: true,
     showBridges: false,          // Strictly OFF by default! User can enable anytime.
@@ -1484,19 +1485,21 @@
         return;
       }
 
-      const hits = [];
+      const nodeHits = [];
+      const circHits = [];
       DATA.nodes.forEach((n) => {
         if (n.nodeClass === "doc_reference") return;
-        const hay = `${n.code} ${n.label} ${n.shortFunc || ""} ${n.desc}`.toLowerCase();
+        const hay = `${n.code} ${n.label} ${n.shortFunc || ""} ${n.roomGroup || ""} ${n.desc}`.toLowerCase();
         if (hay.includes(q)) {
-          hits.push({ kind: PLANT_MAP.get(n.plant)?.shortName || "Impianto", title: `${n.label} (${n.code})`, sub: n.shortFunc, nodeId: n.id, drill: false });
+          nodeHits.push({ kind: PLANT_MAP.get(n.plant)?.shortName || "Impianto", title: `${n.label} (${n.code})`, sub: n.shortFunc, nodeId: n.id, drill: false });
         }
         (n.circuits || []).forEach((c) => {
           if (`${c.code} ${c.desc} ${c.breaker || ""}`.toLowerCase().includes(q)) {
-            hits.push({ kind: `🔬 Interno ${n.code}`, title: `${c.code} — ${c.desc}`, sub: c.breaker || "", nodeId: n.id, drill: true });
+            circHits.push({ kind: `🔬 Interno ${n.code}`, title: `${c.code} — ${c.desc}`, sub: c.breaker || "", nodeId: n.id, drill: true });
           }
         });
       });
+      const hits = [...nodeHits, ...circHits];
 
       DATA.datasheets.forEach((d) => {
         if (`${d.brand} ${d.family} ${(d.models || []).join(" ")}`.toLowerCase().includes(q)) {

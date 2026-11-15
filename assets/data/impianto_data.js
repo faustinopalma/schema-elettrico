@@ -9,24 +9,24 @@ window.IMPIANTO_DATA = {
     {
       "id": "IMP-INGRESSI",
       "code": "POD",
-      "name": "0. Mappa Ingressi & Tutti i Contatori",
-      "shortName": "Tutti i Contatori (340 kW + Alloggi)",
-      "power": "4 POD Parti Comuni (340 kW) + 2 Sale Contatori Alloggi + FV",
+      "name": "0. Mappa Contatori, Ingressi & Alimentazione Box",
+      "shortName": "Contatori & Box (3 Locali Contatori)",
+      "power": "4 Contatori Parti Comuni (P.T., 340 kW) + 2 Sale Contatori Alloggi (P.-1) + 152 Box sotto 80 kW",
       "swatch": "ssc",
       "shape": "round-hexagon",
       "edgeStyle": "solid",
       "icon": "grid",
-      "summary": "Panoramica completa di tutti i punti di ingresso e misura dell'energia: i 4 Contatori Parti Comuni nel Locale Contatori Principale al Piano Terra (80 + 50 + 50 + 160 = 340 kW), il Fotovoltaico sul tetto e le 2 Sale Contatori degli Appartamenti privati al Piano -1 (Torri A e B).",
+      "summary": "Risponde subito a due domande chiave: DOVE SONO I CONTATORI (3 locali fisici distinti: Locale Contatori Principale al Piano Terra per i 4 POD Parti Comuni da 340 kW, più 2 Locali Contatori al Piano -1 per gli appartamenti di Torre A e Torre B) e COME SONO ALIMENTATI I 152 BOX (tutti derivati dal Contatore Condominiale da 80 kW tramite QE.SSC → Sezione Q6, senza contatori individuali nei singoli box).",
       "metrics": {
-        "Contatori Parti Comuni": "4 POD (P.Terra)",
-        "Contatori Appartamenti": "2 Sale (P.-1 A/B)",
-        "Multimetri di Quadro": "4× Vemer EV3M",
-        "Autoproduzione": "Fotovoltaico Tetto"
+        "Locale Contatori P.Terra": "4 POD Comuni (340 kW)",
+        "Sale Contatori Piano -1": "2 Sale Alloggi (A e B)",
+        "Alimentazione 152 Box": "Da POD 80 kW → QE.SSC Q6",
+        "Contatori singoli Box": "Assenti (4 linee 5G4)"
       },
       "flowGuide": {
-        "in": "Rete pubblica BT 400/230V sulla rete stradale pubblica (pozzetti 'E') + Pannelli Fotovoltaici sul tetto",
-        "process": "Nel Locale Contatori Principale al Piano Terra 4 Contatori misurano separatamente le Parti Comuni; i contatori privati degli alloggi sono invece in 2 locali dedicati al Piano -1 (fuori perimetro schemi parti comuni)",
-        "out": "Alimentano i 4 rami principali indipendenti. Fai doppio clic su qualunque quadro per entrare nella Mappa di Dettaglio dei suoi componenti interni!"
+        "in": "Rete pubblica BT 400/230V da cavidotti stradali (pozzetti 'E') + Pannelli Fotovoltaici in copertura",
+        "process": "Al Piano Terra (ingresso carraio) i 4 Contatori Parti Comuni misurano 80+50+50+160 kW; al Piano -1 (zona cantine) due sale separate ospitano i contatori privati degli appartamenti",
+        "out": "I 152 Box Auto (-1 e -2) NON dipendono dai contatori appartamenti: sono alimentati tutti dal Contatore 80 kW → QE.SSC → Sezione Q6 (4 circuiti Q6.3–Q6.6 per sgancio VVF unico)"
       }
     },
     {
@@ -39,7 +39,7 @@ window.IMPIANTO_DATA = {
       "shape": "round-hexagon",
       "edgeStyle": "solid",
       "icon": "grid",
-      "summary": "Fornitura BT principale da 80 kW (Icc 15 kA trifase) attestata nel Locale Contatori generale al Piano Terra. Tramite il Ripartitore da 250A e l'avanquadro AVSSC alimenta la Portineria (QE-POR), il quadro generale QE.SSC (autorimessa 152 box su 2 interrati, corselli, rampa, luci esterne) e le tre centrali tecnologiche interrate: Centrale Idrica al Piano -1 (QE.CI) e Centrale Tecnologica + Locale Pompe Falda al Piano -2 (QE.CT, QE.LP).",
+      "summary": "Ramo alimentato dal Contatore Supercondominiale da 80 kW (Locale Contatori Principale al Piano Terra): alimenta subito a monte la Pompa Antincendio, poi tramite QE.SSC distribuisce energia alla Sezione Autorimessa Q6 (che alimenta luce e presa interna di tutti i 152 Box ai piani -1 e -2 su 4 dorsali Q6.3–Q6.6, oltre a corselli, rampa e pompe meteo), alla Portineria, alle Luci Esterne e alle 3 Centrali Tecniche (Idrica -1, Termica -2, Pozzi -2).",
       "metrics": {
         "Potenza Contrattuale": "80 kW",
         "Taglia Generale": "250 A (ABB XT3N)",
@@ -47,9 +47,9 @@ window.IMPIANTO_DATA = {
         "Piani Serviti": "Esterni, P.T, -1, -2"
       },
       "flowGuide": {
-        "in": "Contatore da 80 kW al Piano Terra (Locale Contatori Principale al Piano Terra)",
-        "process": "Il Ripartitore da 250A separa subito la linea antincendio; poi AVSSC e il grande quadro QE.SSC smistano e proteggono le dorsali",
-        "out": "Alimenta Portineria, 152 Box e corselli (-1/-2), Luci Esterne, i 2 UPS e le 3 Centrali interrate (Idrica al -1, Termica e Pozzi al -2)"
+        "in": "Contatore Ente Distributore da 80 kW nel Locale Contatori Principale al Piano Terra (ingresso carraio)",
+        "process": "Il Ripartitore da 250A separa a monte la linea antincendio; poi AVSSC e il quadro generale QE.SSC smistano le dorsali, inclusa la Sezione Autorimessa Q6 (63A con sgancio VVF 24Vac)",
+        "out": "Alimenta i 152 Box privati (-1 e -2, senza contatori singoli), Corselli/Rampa, Portineria, Luci Esterne, 2 UPS e le 3 Centrali interrate"
       }
     },
     {
@@ -148,13 +148,13 @@ window.IMPIANTO_DATA = {
       "id": "IMP-BMS",
       "code": "BMS/REG",
       "name": "6. Regolazione Termica, BMS & M-Bus",
-      "shortName": "Automazione BMS Cylon/M-Bus",
+      "shortName": "Automazione BMS & M-Bus",
       "power": "230/24Vac · BACnet & Modbus",
       "swatch": "bms",
       "shape": "hexagon",
       "edgeStyle": "dotted",
       "icon": "cpu",
-      "summary": "Sistema digitale di automazione, telegestione 4G e contabilizzazione (M-Bus BMS-CT): il quadro QE-REG in Centrale Tecnologica (-2) ospita il supervisore ABB Cylon MATRIX-216 e i moduli I/O CBX/FLX collegati in rete RS-485 BACnet/Modbus al modulo remoto CBX1 in QE.LP, alle pompe/sonde di QE.CT (ST01–ST19), agli allarmi di QE.PC e QE.CI, e agli amplificatori M-Bus / controlli cappe nelle Torri A e B (piani Terra, 7° e 10°).",
+      "summary": "Sistema digitale di automazione, telegestione 4G e contabilizzazione termica M-Bus: il quadro QE-REG in Centrale Tecnologica (-2) acquisisce 19 sonde di temperatura e governa valvole miscelatrici, pompe e centraline su bus RS485 Modbus.",
       "metrics": {
         "PLC Supervisore": "ABB Cylon MATRIX-216",
         "Punti I/O & Sonde": "19 sonde + 5 moduli CBX/FLX",
@@ -185,7 +185,7 @@ window.IMPIANTO_DATA = {
         "Separazione Pose": "Montanti e cavidotti dedicati"
       },
       "flowGuide": {
-        "in": "Fibre ottiche degli operatori telefonici da strada + Antenne TV terrestre/satellitare in copertura",
+        "in": "Fibre ottiche degli operatori telefonici dai pozzetti esterni + Antenne TV terrestre/satellitare in copertura",
         "process": "Il Centro Servizi Ottico (CSOE/ROE) e il convertitore ottico TV (STOM) unificano i segnali su dorsali in fibra separate dai cavi elettrici",
         "out": "Porta fibra FTTH e TV nelle scatole STOA/QDSA di ogni appartamento, gestisce i 3 varchi Videocitofonici e gli allarmi tirante bagni disabili"
       }
@@ -276,7 +276,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "POD-SSC",
       "code": "POD-SSC",
-      "label": "Fornitura BT Servizi Supercondominiali (80 kW)",
+      "label": "Contatore 1 · Servizi Supercondominiali & 152 Box (80 kW)",
       "plant": "IMP-SSC",
       "nodeClass": "supply_pod",
       "tier": 1,
@@ -287,7 +287,9 @@ window.IMPIANTO_DATA = {
         "Tensione": "400/230V 3F+N 50Hz",
         "Sistema neutro": "TT",
         "Icc presunta CEI 0-21": "15 kA (3F) / 6 kA (F-N)",
-        "Locale": "Locale Contatori Generale (Piano Terra)"
+        "Locale": "Locale Contatori Generale (Piano Terra)",
+        "Ubicazione Fisica": "Locale Contatori Principale — Piano Terra (lato ingresso carraio, Tav. PL.11)",
+        "Cosa Contabilizza": "152 Box Auto (-1/-2) + Corselli/Rampa + Portineria + Luci Esterne + Centrali Idrica/Termica/Pozzi + Pompa VVF"
       },
       "desc": "Punto di consegna principale dell'ente distributore per le utenze comuni generali dell'insediamento, le centrali tecnologiche/idriche/pozzi, l'autorimessa interrata e la motopompa antincendio.",
       "sld": null,
@@ -321,95 +323,13 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "source",
-      "roleLabel": "⚡ INGRESSO RETE 80 kW",
-      "shortFunc": "Consegna energia dalla rete pubblica per autorimessa, portineria, luci esterne, centrali e antincendio.",
+      "roleLabel": "⚡ CONTATORE P.TERRA · 80 kW",
+      "shortFunc": "Installato nel Locale Contatori Principale al Piano Terra (PL.11): misura TUTTI i 152 Box (-1/-2), corselli, centrali, portineria e antincendio.",
       "emergencyNote": "Resta sempre in tensione dalla rete pubblica; è l'origine primaria da cui dipende anche la pompa antincendio.",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
-      "internalGraph": {
-        "nodes": [
-          {
-            "id": "POD-SSC__IN",
-            "code": "ARRIVO LINEA",
-            "label": "Ingresso Alimentazione Quadro POD-SSC",
-            "roleType": "source",
-            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
-            "shortFunc": "Linea di alimentazione a monte",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Provenienza e Cavo": "Linea di alimentazione a monte"
-            }
-          },
-          {
-            "id": "POD-SSC__MAIN",
-            "code": "GENERALE Q1",
-            "label": "Organo di Manovra / Protezione Generale",
-            "roleType": "hub",
-            "roleLabel": "🛡️ GENERALE DI QUADRO",
-            "shortFunc": "Apparecchio Generale",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Apparecchiatura": "Apparecchio Generale"
-            }
-          },
-          {
-            "id": "POD-SSC__BUS",
-            "code": "SBARRA RAME",
-            "label": "Sbarra / Ripartitore Principale POD-SSC",
-            "roleType": "hub",
-            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
-            "shortFunc": "Sistema di distribuzione interno",
-            "group": "2 · Sbarra, Misura & Protezione Fulmini",
-            "specs": {
-              "Caratteristiche sbarra": "Sistema di distribuzione interno"
-            }
-          },
-          {
-            "id": "POD-SSC__C_0",
-            "code": "MONT-SSC",
-            "label": "Cavo FG16OM16 3×(1×150)+1×150N mm² verso Ripartitore 250A",
-            "roleType": "load",
-            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
-            "shortFunc": "Protezione: DG Ente Distributore  |  Cavo: 3×150 + 1×150N mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
-            "specs": {
-              "Sigla Linea": "MONT-SSC",
-              "Apparecchio di Protezione": "DG Ente Distributore",
-              "Cavo in Uscita": "3×150 + 1×150N mm²"
-            },
-            "datasheetIds": [
-              "DS-CAVO-FG16"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "id": "POD-SSC__e_in",
-            "source": "POD-SSC__IN",
-            "target": "POD-SSC__MAIN",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Ingresso",
-            "label": "Morsetti arrivo"
-          },
-          {
-            "id": "POD-SSC__e_bus",
-            "source": "POD-SSC__MAIN",
-            "target": "POD-SSC__BUS",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Potenza",
-            "label": "Alimenta sbarra"
-          },
-          {
-            "id": "POD-SSC__ec_0",
-            "source": "POD-SSC__BUS",
-            "target": "POD-SSC__C_0",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "MONT-SSC"
-          }
-        ]
-      }
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
     },
     {
       "id": "RIP-250",
@@ -516,7 +436,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: Diretta su sbarre (protetta a valle da QE.PA)  |  Cavo: FTG18OM16 3×16 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "USC-VVF",
               "Apparecchio di Protezione": "Diretta su sbarre (protetta a valle da QE.PA)",
@@ -534,7 +454,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: Diretta su sbarre (protetta a valle da AVSSC Q1)  |  Cavo: FG16OM16 3×150+150N mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "USC-SSC",
               "Apparecchio di Protezione": "Diretta su sbarre (protetta a valle da AVSSC Q1)",
@@ -722,7 +642,7 @@ window.IMPIANTO_DATA = {
       "shortFunc": "Protegge il montante da 250A verso QE.SSC e alimenta direttamente Portineria, Cancello, Irrigazione e Ausiliari VVF.",
       "emergencyNote": "Dotato di bobina di sgancio (SOR): se comandato in emergenza apre tutto a valle (inclusi Portineria e Ausiliari PA).",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
-      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "safetyZone": "1 · Attivo Permanente (Alimenta Portineria, Idrica e UPS)",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
         "nodes": [
@@ -784,7 +704,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT3N 250 4P TMD (36 kA)  |  Cavo: FG16OM16 3×150+150N+75PE (185 su QE.SSC)",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2",
               "Apparecchio di Protezione": "ABB XT3N 250 4P TMD (36 kA)",
@@ -804,7 +724,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A + Fus. 2A gG  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3 + F3",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A + Fus. 2A gG",
@@ -824,7 +744,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A (6 kA)  |  Cavo: FG16OM16 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4",
               "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A (6 kA)",
@@ -844,7 +764,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
@@ -864,7 +784,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
@@ -884,7 +804,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S202 C40A 2P (6 kA)  |  Cavo: FG16OM16 3G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q7",
               "Apparecchio di Protezione": "ABB S202 C40A 2P (6 kA)",
@@ -904,7 +824,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
@@ -924,7 +844,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204P C32A (15 kA) + Diff. DDA204 A 0,3A  |  Cavo: FG16OM16 5G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9",
               "Apparecchio di Protezione": "ABB S204P C32A (15 kA) + Diff. DDA204 A 0,3A",
@@ -1187,7 +1107,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🎛️ SOTTOQUADRO LOCALE",
       "shortFunc": "Alimenta la Portineria, il rack dati, la pompa acque piovane, le luci esterne e il pannello allarmi antincendio.",
       "emergencyNote": "In caso di blackout si accendono le lampade di emergenza autonome; il pannello allarmi PA passa su batteria interna.",
-      "roomGroup": "Portineria & Ingressi (P.T)",
+      "roomGroup": "Portineria & Ingressi (P. Terra)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
@@ -1235,7 +1155,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: FG16OM16 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -1256,7 +1176,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -1277,7 +1197,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -1298,7 +1218,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A gG  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 + F5",
               "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A gG",
@@ -1319,7 +1239,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: FG16OM16 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -1340,7 +1260,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q7",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -1361,7 +1281,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GN8813F16 (C16 30mA Tipo F 6kA)  |  Cavo: FG16OM16 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8",
               "Apparecchio di Protezione": "BTicino GN8813F16 (C16 30mA Tipo F 6kA)",
@@ -1382,7 +1302,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -1403,7 +1323,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q10",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -1424,7 +1344,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + FT1A1N230M 25A  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q11 + OR11",
               "Apparecchio di Protezione": "BTicino GA8813A10 + FT1A1N230M 25A",
@@ -1445,7 +1365,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + GA8813A16  |  Cavo: Morsetti interni",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q12–Q13",
               "Apparecchio di Protezione": "BTicino GA8813A10 + GA8813A16",
@@ -1635,10 +1555,28 @@ window.IMPIANTO_DATA = {
           "cable": "2× FG16OM16 5G6 mm²"
         },
         {
-          "code": "Q6.3 – Q6.6",
-          "desc": "4× Dorsali Prese/Luce Interno 152 Box (2 circuiti Piano -1 + 2 circuiti Piano -2)",
-          "breaker": "4× ABB S204P-C16 (25 kA) + Diff. 30mA Tipo A",
-          "cable": "4× FG16OM16 5G4 mm²"
+          "code": "Q6.3",
+          "desc": "Prese/Luce Interno Box Piano -1 · Circuito 1",
+          "breaker": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.4",
+          "desc": "Prese/Luce Interno Box Piano -1 · Circuito 2",
+          "breaker": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.5",
+          "desc": "Prese/Luce Interno Box Piano -2 · Circuito 1",
+          "breaker": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.6",
+          "desc": "Prese/Luce Interno Box Piano -2 · Circuito 2",
+          "breaker": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+          "cable": "FG16OM16 5G4 mm²"
         },
         {
           "code": "Q6.7",
@@ -1759,10 +1697,10 @@ window.IMPIANTO_DATA = {
       ],
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO PRINCIPALE",
-      "shortFunc": "Cuore distributivo: alimenta i 152 Box, corselli, rampa, luci vialetti, i 2 UPS e le 3 Centrali (-1 e -2).",
+      "shortFunc": "Quadro principale nel Locale Contatori P.Terra: tramite la Sezione Q6 alimenta tutti i 152 Box (-1/-2), più centrali, luci esterne e 2 UPS.",
       "emergencyNote": "Se si preme lo sgancio VVF Box, il relè K1 (24V) apre solo Q5 (Locale Pompe), Q6 (Box) e Q7 (Portoni EI); Centrali Termica e Idrica restano attive.",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
-      "safetyZone": "5 · Servizi Ordinari / Passivi",
+      "safetyZone": "1 · Sbarra Attiva (Sgancia solo Q5, Q6 Box e Q7)",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
         "nodes": [
@@ -1831,17 +1769,32 @@ window.IMPIANTO_DATA = {
           },
           {
             "id": "QESSC__M1",
-            "code": "M1 · CONTATORE INTERNO",
-            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "code": "M1 · WATTMETRO INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + Trasformatori TA",
             "roleType": "control",
-            "roleLabel": "📊 STRUMENTO DI MISURA",
-            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "roleLabel": "📊 STRUMENTO DI MISURA QUADRO",
+            "shortFunc": "Misura tensioni, correnti, potenze (kW/kVAr) ed energia complessiva del quadro (non dei singoli box).",
             "group": "2 · Sbarra, Misura & Protezione Fulmini",
             "specs": {
-              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + TA amperometrici IME"
             },
             "datasheetIds": [
               "DS-VEMER-AST"
+            ]
+          },
+          {
+            "id": "QESSC__Q6_RP1",
+            "code": "Q6 [UVR] + RP1",
+            "label": "Generale Sezione Autorimessa Q6 (4P 63A + Sgancio VVF 24V) & Ripartitore RP1 (125A)",
+            "roleType": "hub",
+            "roleLabel": "🚗 SBARRA AUTORIMESSA & 152 BOX",
+            "shortFunc": "Seziona con un unico comando VVF tutte le linee Q6.3–Q6.6 dei 152 Box e le luci/pompe corselli.",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
+            "specs": {
+              "Interruttore": "ABB S204P-C63 4P + Bobina min. tensione 24Vac + Ripartitore RP1 125A"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200"
             ]
           },
           {
@@ -1851,7 +1804,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 3P TMD (70–100A, 18kA)  |  Cavo: FG16OM16 4G35 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2",
               "Apparecchio di Protezione": "ABB XT1B 160 3P TMD (70–100A, 18kA)",
@@ -1872,7 +1825,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 4P TMD (56–80A, 18kA)  |  Cavo: FG16OM16 5G16 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "ABB XT1B 160 4P TMD (56–80A, 18kA)",
@@ -1893,7 +1846,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 4P TMD (56–80A, 18kA)  |  Cavo: FG16OM16 5G16 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4",
               "Apparecchio di Protezione": "ABB XT1B 160 4P TMD (56–80A, 18kA)",
@@ -1914,32 +1867,11 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
             "shortFunc": "Protezione: ABB XT3N 250 4P TMD (112–160A, 36kA) + UVR 24V  |  Cavo: FG16OM16 3×120+120N+70PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 [UVR]",
               "Apparecchio di Protezione": "ABB XT3N 250 4P TMD (112–160A, 36kA) + UVR 24V",
               "Cavo in Uscita": "FG16OM16 3×120+120N+70PE"
-            },
-            "datasheetIds": [
-              "DS-ABB-XT",
-              "DS-DEHN-941315",
-              "DS-ABB-S200",
-              "DS-VEMER-AST",
-              "DS-CAVO-FG16"
-            ]
-          },
-          {
-            "id": "QESSC__C_5",
-            "code": "Q6 [UVR]",
-            "label": "Generale Sezione Autorimessa (alimenta ripartitore RP1 125A) · Sotto sgancio K1 24Vac",
-            "roleType": "load",
-            "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
-            "shortFunc": "Protezione: ABB S204P-C63 4P (15 kA) + UVR S2C-UA 24Vac  |  Cavo: FS17 16 mm² interno",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
-            "specs": {
-              "Sigla Linea": "Q6 [UVR]",
-              "Apparecchio di Protezione": "ABB S204P-C63 4P (15 kA) + UVR S2C-UA 24Vac",
-              "Cavo in Uscita": "FS17 16 mm² interno"
             },
             "datasheetIds": [
               "DS-ABB-XT",
@@ -1956,7 +1888,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB S204P-D20 (25 kA) + Diff. 0,3A Tipo A  |  Cavo: 2× FG16OM16 5G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
             "specs": {
               "Sigla Linea": "Q6.1 / Q6.2",
               "Apparecchio di Protezione": "2× ABB S204P-D20 (25 kA) + Diff. 0,3A Tipo A",
@@ -1972,16 +1904,16 @@ window.IMPIANTO_DATA = {
           },
           {
             "id": "QESSC__C_7",
-            "code": "Q6.3 – Q6.6",
-            "label": "4× Dorsali Prese/Luce Interno 152 Box (2 circuiti Piano -1 + 2 circuiti Piano -2)",
+            "code": "Q6.3",
+            "label": "Prese/Luce Interno Box Piano -1 · Circuito 1",
             "roleType": "load",
-            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
-            "shortFunc": "Protezione: 4× ABB S204P-C16 (25 kA) + Diff. 30mA Tipo A  |  Cavo: 4× FG16OM16 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "roleLabel": "🚗 LINEA INTERNO BOX",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. 30mA Tipo A  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
             "specs": {
-              "Sigla Linea": "Q6.3 – Q6.6",
-              "Apparecchio di Protezione": "4× ABB S204P-C16 (25 kA) + Diff. 30mA Tipo A",
-              "Cavo in Uscita": "4× FG16OM16 5G4 mm²"
+              "Sigla Linea": "Q6.3",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
             },
             "datasheetIds": [
               "DS-ABB-XT",
@@ -1993,12 +1925,75 @@ window.IMPIANTO_DATA = {
           },
           {
             "id": "QESSC__C_8",
+            "code": "Q6.4",
+            "label": "Prese/Luce Interno Box Piano -1 · Circuito 2",
+            "roleType": "load",
+            "roleLabel": "🚗 LINEA INTERNO BOX",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. 30mA Tipo A  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
+            "specs": {
+              "Sigla Linea": "Q6.4",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_9",
+            "code": "Q6.5",
+            "label": "Prese/Luce Interno Box Piano -2 · Circuito 1",
+            "roleType": "load",
+            "roleLabel": "🚗 LINEA INTERNO BOX",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. 30mA Tipo A  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
+            "specs": {
+              "Sigla Linea": "Q6.5",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_10",
+            "code": "Q6.6",
+            "label": "Prese/Luce Interno Box Piano -2 · Circuito 2",
+            "roleType": "load",
+            "roleLabel": "🚗 LINEA INTERNO BOX",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. 30mA Tipo A  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
+            "specs": {
+              "Sigla Linea": "Q6.6",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. 30mA Tipo A",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-XT",
+              "DS-DEHN-941315",
+              "DS-ABB-S200",
+              "DS-VEMER-AST",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "QESSC__C_11",
             "code": "Q6.7",
             "label": "Prese di servizio parti comuni Autorimessa",
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A  |  Cavo: FG16OM16 3G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
             "specs": {
               "Sigla Linea": "Q6.7",
               "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A",
@@ -2013,13 +2008,13 @@ window.IMPIANTO_DATA = {
             ]
           },
           {
-            "id": "QESSC__C_9",
+            "id": "QESSC__C_12",
             "code": "Q6.8 (.1/.2)",
             "label": "Illuminazione Rampa Box (Notturna astronomica, Biregime sett., Emergenza)",
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C16A + 2× SN201 C10 + Contattori EN20  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
             "specs": {
               "Sigla Linea": "Q6.8 (.1/.2)",
               "Apparecchio di Protezione": "ABB DS201 C16A + 2× SN201 C10 + Contattori EN20",
@@ -2034,13 +2029,13 @@ window.IMPIANTO_DATA = {
             ]
           },
           {
-            "id": "QESSC__C_10",
+            "id": "QESSC__C_13",
             "code": "Q6.9 / Q6.10",
             "label": "Illuminazione Corselli Box Piano -1 e Piano -2 (Temporizzata sensori, Notturna, EM)",
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB DS201 C16A + 4× SN201 C10 + Timer E232  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
             "specs": {
               "Sigla Linea": "Q6.9 / Q6.10",
               "Apparecchio di Protezione": "2× ABB DS201 C16A + 4× SN201 C10 + Timer E232",
@@ -2055,13 +2050,13 @@ window.IMPIANTO_DATA = {
             ]
           },
           {
-            "id": "QESSC__C_11",
+            "id": "QESSC__C_14",
             "code": "Q6.11 → Q7 [UVR]",
             "label": "Ingresso/Uscita UPS 1 (1000VA) Alimentazione Portoni Tagliafuoco (mors. XUPS)",
             "roleType": "load",
             "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
             "shortFunc": "Protezione: Q6.11 DS201 C10A → UPS1 → Q7 S202 C10A + UVR 24V  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "4 · Sotto-Sezione Autorimessa Q6 & Circuiti 152 Box",
             "specs": {
               "Sigla Linea": "Q6.11 → Q7 [UVR]",
               "Apparecchio di Protezione": "Q6.11 DS201 C10A → UPS1 → Q7 S202 C10A + UVR 24V",
@@ -2076,13 +2071,13 @@ window.IMPIANTO_DATA = {
             ]
           },
           {
-            "id": "QESSC__C_12",
+            "id": "QESSC__C_15",
             "code": "Q8 / Q9 / Q10",
             "label": "Luce Notturna e Biregime Percorsi Pedonali P.Terra ed Area Esterna (OR8/OR9)",
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 3× ABB S201Na C10 + Diff. 30mA + Contattori EN20/ESB20  |  Cavo: FG16OM16 3G4 / 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8 / Q9 / Q10",
               "Apparecchio di Protezione": "3× ABB S201Na C10 + Diff. 30mA + Contattori EN20/ESB20",
@@ -2097,13 +2092,13 @@ window.IMPIANTO_DATA = {
             ]
           },
           {
-            "id": "QESSC__C_13",
+            "id": "QESSC__C_16",
             "code": "Q11",
             "label": "Alimentazione generale Impianto Videocitofono",
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S201Na C10 + Diff. 30mA  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q11",
               "Apparecchio di Protezione": "ABB S201Na C10 + Diff. 30mA",
@@ -2118,13 +2113,13 @@ window.IMPIANTO_DATA = {
             ]
           },
           {
-            "id": "QESSC__C_14",
+            "id": "QESSC__C_17",
             "code": "Q14 + T14 + K1",
             "label": "Ingresso/Uscita UPS 2 (2000VA) + Trasf. 230/24Vac 63VA Circuito Sgancio Autorimessa",
             "roleType": "load",
             "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
             "shortFunc": "Protezione: ABB S201Na C10 30mA + Fus. F14/F3 4A gG  |  Cavo: FG16OM16 3G2,5 / 2×1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q14 + T14 + K1",
               "Apparecchio di Protezione": "ABB S201Na C10 30mA + Fus. F14/F3 4A gG",
@@ -2178,7 +2173,15 @@ window.IMPIANTO_DATA = {
             "target": "QESSC__M1",
             "edgeType": "tlc_signal",
             "flowCategory": "📊 Misura V/I",
-            "label": "Segnali 3 TA + Tensione"
+            "label": "Segnali TA + Tensione"
+          },
+          {
+            "id": "QESSC__e_q6hub",
+            "source": "QESSC__BUS",
+            "target": "QESSC__Q6_RP1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Dorsale Q6",
+            "label": "Q6 63A [Sgancio 24V]"
           },
           {
             "id": "QESSC__ec_1",
@@ -2213,81 +2216,97 @@ window.IMPIANTO_DATA = {
             "label": "Q5 [UVR]"
           },
           {
-            "id": "QESSC__ec_5",
-            "source": "QESSC__BUS",
-            "target": "QESSC__C_5",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "Q6 [UVR]"
-          },
-          {
             "id": "QESSC__ec_6",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_6",
             "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
+            "flowCategory": "⚡ Corselli",
             "label": "Q6.1 / Q6.2"
           },
           {
             "id": "QESSC__ec_7",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_7",
             "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "Q6.3 – Q6.6"
+            "flowCategory": "🚗 Linea Box",
+            "label": "Q6.3"
           },
           {
             "id": "QESSC__ec_8",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_8",
             "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "Q6.7"
+            "flowCategory": "🚗 Linea Box",
+            "label": "Q6.4"
           },
           {
             "id": "QESSC__ec_9",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_9",
             "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "Q6.8 (.1/.2)"
+            "flowCategory": "🚗 Linea Box",
+            "label": "Q6.5"
           },
           {
             "id": "QESSC__ec_10",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_10",
             "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "Q6.9 / Q6.10"
+            "flowCategory": "🚗 Linea Box",
+            "label": "Q6.6"
           },
           {
             "id": "QESSC__ec_11",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_11",
             "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "Q6.11 → Q7 [UVR]"
+            "flowCategory": "⚡ Corselli",
+            "label": "Q6.7"
           },
           {
             "id": "QESSC__ec_12",
-            "source": "QESSC__BUS",
+            "source": "QESSC__Q6_RP1",
             "target": "QESSC__C_12",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Corselli",
+            "label": "Q6.8 (.1/.2)"
+          },
+          {
+            "id": "QESSC__ec_13",
+            "source": "QESSC__Q6_RP1",
+            "target": "QESSC__C_13",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Corselli",
+            "label": "Q6.9 / Q6.10"
+          },
+          {
+            "id": "QESSC__ec_14",
+            "source": "QESSC__Q6_RP1",
+            "target": "QESSC__C_14",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Corselli",
+            "label": "Q6.11 → Q7 [UVR]"
+          },
+          {
+            "id": "QESSC__ec_15",
+            "source": "QESSC__BUS",
+            "target": "QESSC__C_15",
             "edgeType": "power_bt",
             "flowCategory": "⚡ Alimenta",
             "label": "Q8 / Q9 / Q10"
           },
           {
-            "id": "QESSC__ec_13",
+            "id": "QESSC__ec_16",
             "source": "QESSC__BUS",
-            "target": "QESSC__C_13",
+            "target": "QESSC__C_16",
             "edgeType": "power_bt",
             "flowCategory": "⚡ Alimenta",
             "label": "Q11"
           },
           {
-            "id": "QESSC__ec_14",
+            "id": "QESSC__ec_17",
             "source": "QESSC__BUS",
-            "target": "QESSC__C_14",
+            "target": "QESSC__C_17",
             "edgeType": "power_bt",
             "flowCategory": "⚡ Alimenta",
             "label": "Q14 + T14 + K1"
@@ -2537,7 +2556,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA + Fus. 2A gG  |  Cavo: FG16OM16 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 + F2",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA + Fus. 2A gG",
@@ -2556,7 +2575,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C16 + Diff. 30mA Tipo A (10 kA)  |  Cavo: FG16OM16 5G4",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "ABB S204M C16 + Diff. 30mA Tipo A (10 kA)",
@@ -2575,7 +2594,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DS201 C16 0,3A + 2× SN201 C10A  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4 (.1/.2)",
               "Apparecchio di Protezione": "DS201 C16 0,3A + 2× SN201 C10A",
@@ -2594,7 +2613,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DS201 C16 0,3A + 2× SN201 C10A  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 (.1/.2)",
               "Apparecchio di Protezione": "DS201 C16 0,3A + 2× SN201 C10A",
@@ -2613,7 +2632,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB DS201 C10A 0,3A Tipo A  |  Cavo: 2× 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6 / Q7",
               "Apparecchio di Protezione": "2× ABB DS201 C10A 0,3A Tipo A",
@@ -2632,7 +2651,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8 (.1/.2)",
               "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
@@ -2651,7 +2670,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9 (.1/.2)",
               "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
@@ -2670,7 +2689,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q10 (.1/.2)",
               "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
@@ -2689,7 +2708,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25  |  Cavo: 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q11 (.2/.3)",
               "Apparecchio di Protezione": "S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25",
@@ -2708,7 +2727,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10  |  Cavo: 5G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q12 (.1/.2)",
               "Apparecchio di Protezione": "S204M C16 + DDA204 Tipo B 0,3A + 2× S204M C10",
@@ -2727,7 +2746,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25  |  Cavo: 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q13 (.2/.3)",
               "Apparecchio di Protezione": "S204M D32 + F204B 40A Tipo B 0,3A + 2× S204M D25",
@@ -2746,7 +2765,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q14",
               "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A",
@@ -2765,7 +2784,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q15 / Q16",
               "Apparecchio di Protezione": "2× ABB DS201 C10A 30mA Tipo A",
@@ -2784,7 +2803,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 4× ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 / 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q17–Q20",
               "Apparecchio di Protezione": "4× ABB DS201 C10A 30mA Tipo A",
@@ -2803,7 +2822,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C16A / C10A 30mA  |  Cavo: Interno",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q21–Q23",
               "Apparecchio di Protezione": "ABB DS201 C16A / C10A 30mA",
@@ -3138,7 +3157,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA + Fus. 2A gG  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 + F2",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA + Fus. 2A gG",
@@ -3156,7 +3175,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C16 + Diff. 30mA Tipo A  |  Cavo: 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "ABB S204M C16 + Diff. 30mA Tipo A",
@@ -3174,7 +3193,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A  |  Cavo: 5G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4 / Q4.1",
               "Apparecchio di Protezione": "ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A",
@@ -3192,7 +3211,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A  |  Cavo: 5G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 / Q5.1",
               "Apparecchio di Protezione": "ABB S204M D40 (10 kA) + Diff. F204B 40A Tipo B 0,3A",
@@ -3210,7 +3229,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB S204M C16 + Diff. DDA204 A 0,3A  |  Cavo: 2× 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6 / Q7",
               "Apparecchio di Protezione": "2× ABB S204M C16 + Diff. DDA204 A 0,3A",
@@ -3228,7 +3247,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
@@ -3246,7 +3265,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 30mA Tipo A  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9",
               "Apparecchio di Protezione": "ABB DS201 C10A 30mA Tipo A",
@@ -3264,7 +3283,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C16A / C10A 30mA  |  Cavo: Interno",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q10–Q12",
               "Apparecchio di Protezione": "ABB DS201 C16A / C10A 30mA",
@@ -3475,7 +3494,7 @@ window.IMPIANTO_DATA = {
       "shortFunc": "Alimenta le pompe sommerse che prelevano acqua di falda per le pompe di calore; ospita il modulo BMS CBX1.",
       "emergencyNote": "Soggetto allo sgancio VVF autorimessa (bobina minima tensione su Q5 in QE.SSC) poiché ubicato nel compartimento -2.",
       "roomGroup": "Locale Pompe & Antincendio (P.-2)",
-      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q5)",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
         "nodes": [
@@ -3537,7 +3556,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DS201 C10 30mA + S204M C16 30mA  |  Cavo: 3G2,5 / 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 + F2 / Q3",
               "Apparecchio di Protezione": "DS201 C10 30mA + S204M C16 30mA",
@@ -3557,7 +3576,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B  |  Cavo: FG16OM16 35 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4 + RD4",
               "Apparecchio di Protezione": "ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B",
@@ -3577,7 +3596,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B  |  Cavo: FG16OM16 35 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 + RD5",
               "Apparecchio di Protezione": "ABB XT1B 125 TMD (87,5–125A, 18kA) + Dossena DER3BDUAL/6D Tipo B",
@@ -3597,7 +3616,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C16 + Diff. 0,3A  |  Cavo: 4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6",
               "Apparecchio di Protezione": "ABB S204M C16 + Diff. 0,3A",
@@ -3617,7 +3636,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 0,3A  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q7",
               "Apparecchio di Protezione": "ABB DS201 C10A 0,3A",
@@ -3637,7 +3656,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB DS201 C10A 0,3A + Fus. 1A/4A  |  Cavo: Bus RS-485 da QE-REG",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8 + T8 + CBX1",
               "Apparecchio di Protezione": "ABB DS201 C10A 0,3A + Fus. 1A/4A",
@@ -3730,7 +3749,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "POD-SCA",
       "code": "POD-SC.A",
-      "label": "Fornitura BT Scala / Torre A (50 kW)",
+      "label": "Contatore 2 · Parti Comuni Scala / Torre A (50 kW)",
       "plant": "IMP-SCA",
       "nodeClass": "supply_pod",
       "tier": 1,
@@ -3741,7 +3760,8 @@ window.IMPIANTO_DATA = {
         "Tensione": "400/230V 3F+N 50Hz",
         "Sistema neutro": "TT",
         "Icc presunta": "15 kA (3F) / 6 kA (F-N)",
-        "Locale": "Locale Contatori Generale (Piano Terra)"
+        "Locale": "Locale Contatori Generale (Piano Terra)",
+        "Ubicazione Fisica": "Locale Contatori Principale — Piano Terra (lato ingresso carraio, Tav. PL.11)"
       },
       "desc": "Punto di consegna BT dedicato ai servizi comuni verticali e ai locali condominiali dell'edificio Torre A (14 piani fuori terra, h > 32 m).",
       "sld": null,
@@ -3770,95 +3790,13 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "source",
-      "roleLabel": "⚡ INGRESSO RETE 50 kW",
-      "shortFunc": "Consegna energia dalla rete pubblica per tutti gli impianti comuni e gli ascensori della Torre A.",
+      "roleLabel": "⚡ CONTATORE P.TERRA · 50 kW",
+      "shortFunc": "Installato nel Locale Contatori Principale al Piano Terra (PL.11): misura ascensori, luci scale/cantine, UTA e locali comuni Torre A.",
       "emergencyNote": "Origine elettrica dedicata alla sola Torre A (indipendente da Torre B e Supercondominio).",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
-      "internalGraph": {
-        "nodes": [
-          {
-            "id": "POD-SCA__IN",
-            "code": "ARRIVO LINEA",
-            "label": "Ingresso Alimentazione Quadro POD-SC.A",
-            "roleType": "source",
-            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
-            "shortFunc": "Linea di alimentazione a monte",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Provenienza e Cavo": "Linea di alimentazione a monte"
-            }
-          },
-          {
-            "id": "POD-SCA__MAIN",
-            "code": "GENERALE Q1",
-            "label": "Organo di Manovra / Protezione Generale",
-            "roleType": "hub",
-            "roleLabel": "🛡️ GENERALE DI QUADRO",
-            "shortFunc": "Apparecchio Generale",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Apparecchiatura": "Apparecchio Generale"
-            }
-          },
-          {
-            "id": "POD-SCA__BUS",
-            "code": "SBARRA RAME",
-            "label": "Sbarra / Ripartitore Principale POD-SC.A",
-            "roleType": "hub",
-            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
-            "shortFunc": "Sistema di distribuzione interno",
-            "group": "2 · Sbarra, Misura & Protezione Fulmini",
-            "specs": {
-              "Caratteristiche sbarra": "Sistema di distribuzione interno"
-            }
-          },
-          {
-            "id": "POD-SCA__C_0",
-            "code": "MONT-AVSCA",
-            "label": "Collegamento verso Avanquadro AVSC-A",
-            "roleType": "load",
-            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
-            "shortFunc": "Protezione: DG Distributore  |  Cavo: FG16OM16 3×(1×70)+1×70N mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
-            "specs": {
-              "Sigla Linea": "MONT-AVSCA",
-              "Apparecchio di Protezione": "DG Distributore",
-              "Cavo in Uscita": "FG16OM16 3×(1×70)+1×70N mm²"
-            },
-            "datasheetIds": [
-              "DS-CAVO-FG16"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "id": "POD-SCA__e_in",
-            "source": "POD-SCA__IN",
-            "target": "POD-SCA__MAIN",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Ingresso",
-            "label": "Morsetti arrivo"
-          },
-          {
-            "id": "POD-SCA__e_bus",
-            "source": "POD-SCA__MAIN",
-            "target": "POD-SCA__BUS",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Potenza",
-            "label": "Alimenta sbarra"
-          },
-          {
-            "id": "POD-SCA__ec_0",
-            "source": "POD-SCA__BUS",
-            "target": "POD-SCA__C_0",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "MONT-AVSCA"
-          }
-        ]
-      }
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
     },
     {
       "id": "AVSCA",
@@ -3996,7 +3934,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 4P TMD + Diff. Tipo B  |  Cavo: FG16OM16 3×(1×70)+1×70N+1×35PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q1",
               "Apparecchio di Protezione": "ABB XT1B 160 4P TMD + Diff. Tipo B",
@@ -4015,7 +3953,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
             "shortFunc": "Protezione: Portafusibile ABB E90 1P+N 10×38 1A gG  |  Cavo: FG16OM16 2×1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "F1",
               "Apparecchio di Protezione": "Portafusibile ABB E90 1P+N 10×38 1A gG",
@@ -4236,7 +4174,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🎛️ QUADRO EDIFICIO A",
       "shortFunc": "Distribuisce corrente a 2 ascensori, UTA/cappe sul tetto, Palestra, Bici, cantine, scale e 16 quadri di piano.",
       "emergencyNote": "Se disalimentato, entrano in funzione le luci di emergenza autonome (1h) lungo scale, filtri fumo e cantine.",
-      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "roomGroup": "Locale Contatori Scala A — Piano -1 (PL.02)",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
@@ -4321,14 +4259,14 @@ window.IMPIANTO_DATA = {
           },
           {
             "id": "QESCA__M1",
-            "code": "M1 · CONTATORE INTERNO",
-            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "code": "M1 · WATTMETRO INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + Trasformatori TA",
             "roleType": "control",
-            "roleLabel": "📊 STRUMENTO DI MISURA",
-            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "roleLabel": "📊 STRUMENTO DI MISURA QUADRO",
+            "shortFunc": "Misura tensioni, correnti, potenze (kW/kVAr) ed energia complessiva del quadro (non dei singoli box).",
             "group": "2 · Sbarra, Misura & Protezione Fulmini",
             "specs": {
-              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + TA amperometrici IME"
             },
             "datasheetIds": [
               "DS-VEMER-AST"
@@ -4341,7 +4279,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B  |  Cavo: FG16OM16 5G25 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 + RD2",
               "Apparecchio di Protezione": "ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B",
@@ -4362,7 +4300,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S203M C32 + Diff. DDA203 A 0,3A  |  Cavo: FG16OM16 4G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "ABB S203M C32 + Diff. DDA203 A 0,3A",
@@ -4383,7 +4321,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A  |  Cavo: 5G6 / 3G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4 / Q5",
               "Apparecchio di Protezione": "S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A",
@@ -4404,7 +4342,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A  |  Cavo: 5G6 / 3G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6 / Q7",
               "Apparecchio di Protezione": "S204M K20 + DDA204 Tipo B APR 0,3A / DS201 C16 0,3A",
@@ -4425,7 +4363,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C20 + DDA204 Tipo B APR 0,3A  |  Cavo: FG16OM16 5G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8",
               "Apparecchio di Protezione": "ABB S204M C20 + DDA204 Tipo B APR 0,3A",
@@ -4446,7 +4384,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C50 4P (10 kA)  |  Cavo: FG16OM16 5G16 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9",
               "Apparecchio di Protezione": "ABB S204M C50 4P (10 kA)",
@@ -4467,7 +4405,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C25 4P (10 kA)  |  Cavo: FG16OM16 5G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q10",
               "Apparecchio di Protezione": "ABB S204M C25 4P (10 kA)",
@@ -4488,7 +4426,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S201Na C10 + Diff. 30mA  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q11",
               "Apparecchio di Protezione": "ABB S201Na C10 + Diff. 30mA",
@@ -4509,7 +4447,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB DS201 C16A 30mA + Contatt. ESB20 + Fus. 2A  |  Cavo: 3G6 / 5G4 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q12 / Q13",
               "Apparecchio di Protezione": "2× ABB DS201 C16A 30mA + Contatt. ESB20 + Fus. 2A",
@@ -4530,7 +4468,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 3× C10 30mA + 3× DS201 C16 30mA + 3× Fus. 2A  |  Cavo: 5G2,5 / 3G6 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q14–Q19",
               "Apparecchio di Protezione": "3× C10 30mA + 3× DS201 C16 30mA + 3× Fus. 2A",
@@ -4551,7 +4489,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× DS201 C25A 30mA + SN201 C16/C10  |  Cavo: 3G4 / 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q20 / Q21",
               "Apparecchio di Protezione": "2× DS201 C25A 30mA + SN201 C16/C10",
@@ -4572,7 +4510,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S201Na C25 1P+N (6 kA)  |  Cavo: FG16OM16 3G6 (3G10 lato QE.01)",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q22",
               "Apparecchio di Protezione": "ABB S201Na C25 1P+N (6 kA)",
@@ -4593,7 +4531,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB S201Na C10 + Diff. 30mA  |  Cavo: 2× FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q23 / Q24",
               "Apparecchio di Protezione": "2× ABB S201Na C10 + Diff. 30mA",
@@ -4614,7 +4552,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 3× ABB S201Na C10 + Diff. 30mA + Contatt. ESB20  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q26 / Q27 / Q28",
               "Apparecchio di Protezione": "3× ABB S201Na C10 + Diff. 30mA + Contatt. ESB20",
@@ -4676,7 +4614,7 @@ window.IMPIANTO_DATA = {
             "target": "QESCA__M1",
             "edgeType": "tlc_signal",
             "flowCategory": "📊 Misura V/I",
-            "label": "Segnali 3 TA + Tensione"
+            "label": "Segnali TA + Tensione"
           },
           {
             "id": "QESCA__ec_1",
@@ -4954,7 +4892,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 2× 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 / Q3",
               "Apparecchio di Protezione": "2× BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -4973,7 +4911,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -4992,7 +4930,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 + F5",
               "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
@@ -5011,7 +4949,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A6 (C6 30mA Tipo A)  |  Cavo: 5G1,5 + 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6 + R6",
               "Apparecchio di Protezione": "BTicino GA8813A6 (C6 30mA Tipo A)",
@@ -5030,7 +4968,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q7",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -5049,7 +4987,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -5068,7 +5006,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino FN84D20 (4P D20 6kA) + Diff. G744B40 Tipo B 0,3A  |  Cavo: 5G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9 / Q9.1",
               "Apparecchio di Protezione": "BTicino FN84D20 (4P D20 6kA) + Diff. G744B40 Tipo B 0,3A",
@@ -5289,7 +5227,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -5308,7 +5246,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -5327,7 +5265,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -5346,7 +5284,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 + F5",
               "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
@@ -5539,7 +5477,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.01 (×1 · P.Terra)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
@@ -5558,7 +5496,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A)  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.02 (×1 · Ingr. A)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A)",
@@ -5577,7 +5515,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.03 (×11 · Piani Tipo)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10",
@@ -5596,7 +5534,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.04 (×2 · Piani 7°/10°)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
@@ -5615,7 +5553,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.05 (×1 · Piano 14°)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10",
@@ -5691,7 +5629,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "POD-SCB",
       "code": "POD-SC.B",
-      "label": "Fornitura BT Scala / Torre B (50 kW)",
+      "label": "Contatore 3 · Parti Comuni Scala / Torre B (50 kW)",
       "plant": "IMP-SCB",
       "nodeClass": "supply_pod",
       "tier": 1,
@@ -5702,7 +5640,8 @@ window.IMPIANTO_DATA = {
         "Tensione": "400/230V 3F+N 50Hz",
         "Sistema neutro": "TT",
         "Icc presunta": "15 kA (3F) / 6 kA (F-N)",
-        "Locale": "Locale Contatori Generale (Piano Terra)"
+        "Locale": "Locale Contatori Generale (Piano Terra)",
+        "Ubicazione Fisica": "Locale Contatori Principale — Piano Terra (lato ingresso carraio, Tav. PL.11)"
       },
       "desc": "Punto di consegna BT dedicato ai servizi comuni verticali e ai locali condominiali dell'edificio Torre B (14 piani fuori terra, h > 32 m).",
       "sld": null,
@@ -5726,95 +5665,13 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "source",
-      "roleLabel": "⚡ INGRESSO RETE 50 kW",
-      "shortFunc": "Consegna energia dalla rete pubblica per tutti gli impianti comuni e gli ascensori della Torre B.",
+      "roleLabel": "⚡ CONTATORE P.TERRA · 50 kW",
+      "shortFunc": "Installato nel Locale Contatori Principale al Piano Terra (PL.11): misura ascensori, luci scale/cantine, UTA e locali comuni Torre B.",
       "emergencyNote": "Origine elettrica dedicata alla sola Torre B.",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
-      "internalGraph": {
-        "nodes": [
-          {
-            "id": "POD-SCB__IN",
-            "code": "ARRIVO LINEA",
-            "label": "Ingresso Alimentazione Quadro POD-SC.B",
-            "roleType": "source",
-            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
-            "shortFunc": "Linea di alimentazione a monte",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Provenienza e Cavo": "Linea di alimentazione a monte"
-            }
-          },
-          {
-            "id": "POD-SCB__MAIN",
-            "code": "GENERALE Q1",
-            "label": "Organo di Manovra / Protezione Generale",
-            "roleType": "hub",
-            "roleLabel": "🛡️ GENERALE DI QUADRO",
-            "shortFunc": "Apparecchio Generale",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Apparecchiatura": "Apparecchio Generale"
-            }
-          },
-          {
-            "id": "POD-SCB__BUS",
-            "code": "SBARRA RAME",
-            "label": "Sbarra / Ripartitore Principale POD-SC.B",
-            "roleType": "hub",
-            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
-            "shortFunc": "Sistema di distribuzione interno",
-            "group": "2 · Sbarra, Misura & Protezione Fulmini",
-            "specs": {
-              "Caratteristiche sbarra": "Sistema di distribuzione interno"
-            }
-          },
-          {
-            "id": "POD-SCB__C_0",
-            "code": "MONT-AVSCB",
-            "label": "Collegamento verso Avanquadro AVSC-B",
-            "roleType": "load",
-            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
-            "shortFunc": "Protezione: DG Distributore  |  Cavo: FG16OM16 3×(1×70)+1×70N mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
-            "specs": {
-              "Sigla Linea": "MONT-AVSCB",
-              "Apparecchio di Protezione": "DG Distributore",
-              "Cavo in Uscita": "FG16OM16 3×(1×70)+1×70N mm²"
-            },
-            "datasheetIds": [
-              "DS-CAVO-FG16"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "id": "POD-SCB__e_in",
-            "source": "POD-SCB__IN",
-            "target": "POD-SCB__MAIN",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Ingresso",
-            "label": "Morsetti arrivo"
-          },
-          {
-            "id": "POD-SCB__e_bus",
-            "source": "POD-SCB__MAIN",
-            "target": "POD-SCB__BUS",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Potenza",
-            "label": "Alimenta sbarra"
-          },
-          {
-            "id": "POD-SCB__ec_0",
-            "source": "POD-SCB__BUS",
-            "target": "POD-SCB__C_0",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "MONT-AVSCB"
-          }
-        ]
-      }
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
     },
     {
       "id": "AVSCB",
@@ -5952,7 +5809,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 4P TMD + Diff. Tipo B  |  Cavo: FG16OM16 3×(1×70)+1×70N+1×35PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q1",
               "Apparecchio di Protezione": "ABB XT1B 160 4P TMD + Diff. Tipo B",
@@ -5971,7 +5828,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
             "shortFunc": "Protezione: Portafusibile ABB E90 1P+N 10×38 1A gG  |  Cavo: FG16OM16 2×1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "F1",
               "Apparecchio di Protezione": "Portafusibile ABB E90 1P+N 10×38 1A gG",
@@ -6180,7 +6037,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🎛️ QUADRO EDIFICIO B",
       "shortFunc": "Distribuisce corrente a 2 ascensori, UTA/cappe sul tetto, Sala Riunioni, Lavanderia, cantine e 16 quadri di piano.",
       "emergencyNote": "Se disalimentato, si attivano le lampade autonome di emergenza lungo l'intero vano scala B.",
-      "roomGroup": "Locale Contatori Scala B (P.-1)",
+      "roomGroup": "Locale Contatori Scala B — Piano -1 (PL.02)",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
@@ -6265,14 +6122,14 @@ window.IMPIANTO_DATA = {
           },
           {
             "id": "QESCB__M1",
-            "code": "M1 · CONTATORE INTERNO",
-            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "code": "M1 · WATTMETRO INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + Trasformatori TA",
             "roleType": "control",
-            "roleLabel": "📊 STRUMENTO DI MISURA",
-            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "roleLabel": "📊 STRUMENTO DI MISURA QUADRO",
+            "shortFunc": "Misura tensioni, correnti, potenze (kW/kVAr) ed energia complessiva del quadro (non dei singoli box).",
             "group": "2 · Sbarra, Misura & Protezione Fulmini",
             "specs": {
-              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + TA amperometrici IME"
             },
             "datasheetIds": [
               "DS-VEMER-AST"
@@ -6285,7 +6142,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B  |  Cavo: FG16OM16 5G25 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 + RD2",
               "Apparecchio di Protezione": "ABB XT1B 160 TMD (56–80A) + Diff. Dossena Tipo B",
@@ -6306,7 +6163,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S203M C32 + Diff. DDA203 A 0,3A  |  Cavo: FG16OM16 4G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "ABB S203M C32 + Diff. DDA203 A 0,3A",
@@ -6327,7 +6184,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× (S204M K20 + DDA204 Tipo B APR) + 2× DS201 C16  |  Cavo: 5G6 / 3G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4–Q7",
               "Apparecchio di Protezione": "2× (S204M K20 + DDA204 Tipo B APR) + 2× DS201 C16",
@@ -6348,7 +6205,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C20 + DDA204 Tipo B APR 0,3A  |  Cavo: FG16OM16 5G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q8",
               "Apparecchio di Protezione": "ABB S204M C20 + DDA204 Tipo B APR 0,3A",
@@ -6369,7 +6226,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C32 4P (10 kA)  |  Cavo: FG16OM16 5G10 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q9",
               "Apparecchio di Protezione": "ABB S204M C32 4P (10 kA)",
@@ -6390,7 +6247,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S204M C25 4P (10 kA)  |  Cavo: FG16OM16 5G6 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q10",
               "Apparecchio di Protezione": "ABB S204M C25 4P (10 kA)",
@@ -6411,7 +6268,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S201Na C10 + Diff. 30mA  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q11",
               "Apparecchio di Protezione": "ABB S201Na C10 + Diff. 30mA",
@@ -6432,7 +6289,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB DS201 C16A 30mA + Contatt. ESB20  |  Cavo: 3G6 / 5G4 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q12 / Q13",
               "Apparecchio di Protezione": "2× ABB DS201 C16A 30mA + Contatt. ESB20",
@@ -6453,7 +6310,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× C10 30mA + 2× DS201 C16 30mA + Fus. 2A  |  Cavo: 5G2,5 / 3G6 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q14–Q15 / Q18–Q19",
               "Apparecchio di Protezione": "2× C10 30mA + 2× DS201 C16 30mA + Fus. 2A",
@@ -6474,7 +6331,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× DS201 C25A 30mA + SN201 C16/C10  |  Cavo: 3G4 / 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q20 / Q21",
               "Apparecchio di Protezione": "2× DS201 C25A 30mA + SN201 C16/C10",
@@ -6495,7 +6352,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S201Na C25 1P+N (6 kA)  |  Cavo: FG16OM16 3G6 (3G10 lato QE.02)",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q22",
               "Apparecchio di Protezione": "ABB S201Na C25 1P+N (6 kA)",
@@ -6516,7 +6373,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 2× ABB S201Na C10 + Diff. 30mA  |  Cavo: 2× FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q23 / Q24",
               "Apparecchio di Protezione": "2× ABB S201Na C10 + Diff. 30mA",
@@ -6537,7 +6394,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DS201 C16 + 3× S201Na C10 30mA + ESB20  |  Cavo: FG16OM16 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q25–Q28",
               "Apparecchio di Protezione": "DS201 C16 + 3× S201Na C10 30mA + ESB20",
@@ -6599,7 +6456,7 @@ window.IMPIANTO_DATA = {
             "target": "QESCB__M1",
             "edgeType": "tlc_signal",
             "flowCategory": "📊 Misura V/I",
-            "label": "Segnali 3 TA + Tensione"
+            "label": "Segnali TA + Tensione"
           },
           {
             "id": "QESCB__ec_1",
@@ -6851,7 +6708,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (C16 30mA Tipo A)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2",
               "Apparecchio di Protezione": "BTicino GA8813A16 (C16 30mA Tipo A)",
@@ -6870,7 +6727,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (C10 30mA Tipo A)  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "BTicino GA8813A10 (C10 30mA Tipo A)",
@@ -6889,7 +6746,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A6 (C6 30mA Tipo A)  |  Cavo: 5G1,5 + 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4 + R4",
               "Apparecchio di Protezione": "BTicino GA8813A6 (C6 30mA Tipo A)",
@@ -6908,7 +6765,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 + F5",
               "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
@@ -6927,7 +6784,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 + GA8813A10  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6 / Q7",
               "Apparecchio di Protezione": "BTicino GA8813A16 + GA8813A10",
@@ -7138,7 +6995,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 (1P+N C16 30mA)  |  Cavo: 3G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2",
               "Apparecchio di Protezione": "BTicino GA8813A16 (1P+N C16 30mA)",
@@ -7157,7 +7014,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GN8843A16 (4P C16 30mA Tipo A 6kA)  |  Cavo: 5G4 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3",
               "Apparecchio di Protezione": "BTicino GN8843A16 (4P C16 30mA Tipo A 6kA)",
@@ -7176,7 +7033,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 (1P+N C10 30mA)  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4",
               "Apparecchio di Protezione": "BTicino GA8813A10 (1P+N C10 30mA)",
@@ -7195,7 +7052,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A10 + Portafus. F321N 2A  |  Cavo: 3G2,5 / 3G1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5 + F5",
               "Apparecchio di Protezione": "BTicino GA8813A10 + Portafus. F321N 2A",
@@ -7214,7 +7071,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: BTicino GA8813A16 + GA8813A10  |  Cavo: 3G2,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q6 / Q7",
               "Apparecchio di Protezione": "BTicino GA8813A16 + GA8813A10",
@@ -7410,7 +7267,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.01 (×1 · P.Terra B)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
@@ -7429,7 +7286,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A)  |  Cavo: 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.02 (×1 · Ingr. B)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A)",
@@ -7448,7 +7305,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10  |  Cavo: 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.03 (×11 · Piani Tipo)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + Scorta C10",
@@ -7467,7 +7324,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus  |  Cavo: 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.04 (×2 · Piani 7°/10°)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10 M-Bus",
@@ -7486,7 +7343,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10  |  Cavo: 3G2,5 / 3G1,5",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "QEP.05 (×1 · Piano 14°)",
               "Apparecchio di Protezione": "DG C25 + MTD C16 + MTD C10 (K1 25A) + MTD C10",
@@ -7562,7 +7419,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "POD-PDC",
       "code": "POD-PDC",
-      "label": "Fornitura BT Pompe di Calore (160 kW)",
+      "label": "Contatore 4 · Centrale Pompe di Calore (160 kW)",
       "plant": "IMP-PDC",
       "nodeClass": "supply_pod",
       "tier": 1,
@@ -7573,7 +7430,8 @@ window.IMPIANTO_DATA = {
         "Tensione": "400/230V 3F+N 50Hz",
         "Sistema neutro": "TT",
         "Icc presunta": "15 kA (3F) / 6 kA (F-N)",
-        "Locale": "Locale Contatori Generale (Piano Terra)"
+        "Locale": "Locale Contatori Generale (Piano Terra)",
+        "Ubicazione Fisica": "Locale Contatori Principale — Piano Terra (lato ingresso carraio, Tav. PL.11)"
       },
       "desc": "Fornitura BT dedicata di grande potenza (160 kW) per la centrale di climatizzazione e produzione ACS geotermica ad acqua di falda.",
       "sld": null,
@@ -7597,95 +7455,13 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "source",
-      "roleLabel": "⚡ INGRESSO RETE 160 kW",
-      "shortFunc": "Fornitura di alta potenza dedicata esclusivamente alla centrale di climatizzazione e acqua calda geotermica.",
+      "roleLabel": "⚡ CONTATORE P.TERRA · 160 kW",
+      "shortFunc": "Installato nel Locale Contatori Principale al Piano Terra (PL.11): misura le grandi Pompe di Calore geotermiche in Centrale -2.",
       "emergencyNote": "Separata dalle altre forniture per non disturbare ascensori e servizi civili allo spunto dei compressori.",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
-      "internalGraph": {
-        "nodes": [
-          {
-            "id": "POD-PDC__IN",
-            "code": "ARRIVO LINEA",
-            "label": "Ingresso Alimentazione Quadro POD-PDC",
-            "roleType": "source",
-            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
-            "shortFunc": "Linea di alimentazione a monte",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Provenienza e Cavo": "Linea di alimentazione a monte"
-            }
-          },
-          {
-            "id": "POD-PDC__MAIN",
-            "code": "GENERALE Q1",
-            "label": "Organo di Manovra / Protezione Generale",
-            "roleType": "hub",
-            "roleLabel": "🛡️ GENERALE DI QUADRO",
-            "shortFunc": "Apparecchio Generale",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Apparecchiatura": "Apparecchio Generale"
-            }
-          },
-          {
-            "id": "POD-PDC__BUS",
-            "code": "SBARRA RAME",
-            "label": "Sbarra / Ripartitore Principale POD-PDC",
-            "roleType": "hub",
-            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
-            "shortFunc": "Sistema di distribuzione interno",
-            "group": "2 · Sbarra, Misura & Protezione Fulmini",
-            "specs": {
-              "Caratteristiche sbarra": "Sistema di distribuzione interno"
-            }
-          },
-          {
-            "id": "POD-PDC__C_0",
-            "code": "MONT-AVPC",
-            "label": "Doppia terna unipolare FG16OM16 3×(2×185)+1×185N verso AVPC",
-            "roleType": "load",
-            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
-            "shortFunc": "Protezione: DG Distributore  |  Cavo: 6×185 + 1×185N mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
-            "specs": {
-              "Sigla Linea": "MONT-AVPC",
-              "Apparecchio di Protezione": "DG Distributore",
-              "Cavo in Uscita": "6×185 + 1×185N mm²"
-            },
-            "datasheetIds": [
-              "DS-CAVO-FG16"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "id": "POD-PDC__e_in",
-            "source": "POD-PDC__IN",
-            "target": "POD-PDC__MAIN",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Ingresso",
-            "label": "Morsetti arrivo"
-          },
-          {
-            "id": "POD-PDC__e_bus",
-            "source": "POD-PDC__MAIN",
-            "target": "POD-PDC__BUS",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Potenza",
-            "label": "Alimenta sbarra"
-          },
-          {
-            "id": "POD-PDC__ec_0",
-            "source": "POD-PDC__BUS",
-            "target": "POD-PDC__C_0",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "MONT-AVPC"
-          }
-        ]
-      }
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
     },
     {
       "id": "AVPC",
@@ -7828,7 +7604,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB T5N 630A + Diff. Tipo B (1A / 1s)  |  Cavo: FG16OM16 3×(2×185)+1×185N+1×185PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q1",
               "Apparecchio di Protezione": "ABB T5N 630A + Diff. Tipo B (1A / 1s)",
@@ -7847,7 +7623,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🚨 PARTENZA SOTTO SGANCIO",
             "shortFunc": "Protezione: Portafusibile ABB E90 1P+N 10×38 4A gG  |  Cavo: FS17 2,5 / 1,5 mm²",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "F1",
               "Apparecchio di Protezione": "Portafusibile ABB E90 1P+N 10×38 4A gG",
@@ -8105,14 +7881,14 @@ window.IMPIANTO_DATA = {
           },
           {
             "id": "QEPC__M1",
-            "code": "M1 · CONTATORE INTERNO",
-            "label": "Multimetro Digitale Trifase Vemer EV3M + 3 Trasformatori TA",
+            "code": "M1 · WATTMETRO INTERNO",
+            "label": "Multimetro Digitale Trifase Vemer EV3M + Trasformatori TA",
             "roleType": "control",
-            "roleLabel": "📊 STRUMENTO DI MISURA",
-            "shortFunc": "Misura in tempo reale tensioni, correnti, potenze (kW/kVAr) ed energia consumata da questo quadro.",
+            "roleLabel": "📊 STRUMENTO DI MISURA QUADRO",
+            "shortFunc": "Misura tensioni, correnti, potenze (kW/kVAr) ed energia complessiva del quadro (non dei singoli box).",
             "group": "2 · Sbarra, Misura & Protezione Fulmini",
             "specs": {
-              "Strumento": "Vemer EV3M-4DIN (VE333100) + 3 TA amperometrici IME"
+              "Strumento": "Vemer EV3M-4DIN (VE333100) + TA amperometrici IME"
             },
             "datasheetIds": [
               "DS-VEMER-AST"
@@ -8125,7 +7901,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT1C 160 TMD (tar. 112A, 25kA) + Dossena Tipo B (Ø110mm)  |  Cavo: FG16OM16 3×70+70N+35PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q2 + RD2",
               "Apparecchio di Protezione": "ABB XT1C 160 TMD (tar. 112A, 25kA) + Dossena Tipo B (Ø110mm)",
@@ -8146,7 +7922,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)  |  Cavo: FG16OM16 3×95+95N+50PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q3 + RD3",
               "Apparecchio di Protezione": "ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)",
@@ -8167,7 +7943,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)  |  Cavo: FG16OM16 3×95+95N+50PE",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q4 + RD4",
               "Apparecchio di Protezione": "ABB XT3N 200 TMD (140–200A, 25kA) + Dossena Tipo B (Ø110mm)",
@@ -8188,7 +7964,7 @@ window.IMPIANTO_DATA = {
             "roleType": "source",
             "roleLabel": "☀️ INGRESSO PARALLELO FV",
             "shortFunc": "Protezione: ABB S204M C50 4P (10 kA — nota: senza BA nello schema quadrista)  |  Cavo: FS17 16 mm² a morsettiera X1",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q5",
               "Apparecchio di Protezione": "ABB S204M C50 4P (10 kA — nota: senza BA nello schema quadrista)",
@@ -8250,7 +8026,7 @@ window.IMPIANTO_DATA = {
             "target": "QEPC__M1",
             "edgeType": "tlc_signal",
             "flowCategory": "📊 Misura V/I",
-            "label": "Segnali 3 TA + Tensione"
+            "label": "Segnali TA + Tensione"
           },
           {
             "id": "QEPC__ec_1",
@@ -8334,90 +8110,8 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "PERCHÉ LO SGANCIO APRE LA RETE (AVPC) MA NON MOSTRA UNA FRECCIA SUL FOTOVOLTAICO: nello schema As-Built parti comuni l'interruttore Q5 del Fotovoltaico in QE.PC è montato senza bobina di sgancio (rilievo INC-04, lasciata al progetto FV). Quando AVPC apre e toglie i 400V di rete, l'inverter solare spegne automaticamente l'immissione in <0,2 s per protezione anti-isola obbligatoria CEI 0-21 (non può funzionare in isola senza rete); per sezionare anche la linea DC/AC sul tetto occorre verificare il comando VVF dedicato nel fascicolo dell'impianto FV.",
       "roomGroup": "Copertura Edifici (+48 m)",
       "safetyZone": "4 · Stop Automatico Anti-Isola CEI 0-21 (Nota INC-04)",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
-      "internalGraph": {
-        "nodes": [
-          {
-            "id": "GEN-FV-ROOF__IN",
-            "code": "ARRIVO LINEA",
-            "label": "Ingresso Alimentazione Quadro GEN-FV",
-            "roleType": "source",
-            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
-            "shortFunc": "Linea di alimentazione a monte",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Provenienza e Cavo": "Linea di alimentazione a monte"
-            }
-          },
-          {
-            "id": "GEN-FV-ROOF__MAIN",
-            "code": "GENERALE Q1",
-            "label": "Organo di Manovra / Protezione Generale",
-            "roleType": "hub",
-            "roleLabel": "🛡️ GENERALE DI QUADRO",
-            "shortFunc": "Apparecchio Generale",
-            "group": "1 · Sezione Ingresso & Generale",
-            "specs": {
-              "Apparecchiatura": "Apparecchio Generale"
-            }
-          },
-          {
-            "id": "GEN-FV-ROOF__BUS",
-            "code": "SBARRA RAME",
-            "label": "Sbarra / Ripartitore Principale GEN-FV",
-            "roleType": "hub",
-            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
-            "shortFunc": "Sistema di distribuzione interno",
-            "group": "2 · Sbarra, Misura & Protezione Fulmini",
-            "specs": {
-              "Caratteristiche sbarra": "Sistema di distribuzione interno"
-            }
-          },
-          {
-            "id": "GEN-FV-ROOF__C_0",
-            "code": "LIN-FV",
-            "label": "Montante AC trifase da sezione inverter FV a QE.PC (Q5)",
-            "roleType": "load",
-            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
-            "shortFunc": "Protezione: ABB S204M 4P C50A  |  Cavo: Morsettiera X1 QE.PC (16 mm²)",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
-            "specs": {
-              "Sigla Linea": "LIN-FV",
-              "Apparecchio di Protezione": "ABB S204M 4P C50A",
-              "Cavo in Uscita": "Morsettiera X1 QE.PC (16 mm²)"
-            },
-            "datasheetIds": [
-              "DS-ABB-S200"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "id": "GEN-FV-ROOF__e_in",
-            "source": "GEN-FV-ROOF__IN",
-            "target": "GEN-FV-ROOF__MAIN",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Ingresso",
-            "label": "Morsetti arrivo"
-          },
-          {
-            "id": "GEN-FV-ROOF__e_bus",
-            "source": "GEN-FV-ROOF__MAIN",
-            "target": "GEN-FV-ROOF__BUS",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Potenza",
-            "label": "Alimenta sbarra"
-          },
-          {
-            "id": "GEN-FV-ROOF__ec_0",
-            "source": "GEN-FV-ROOF__BUS",
-            "target": "GEN-FV-ROOF__C_0",
-            "edgeType": "power_bt",
-            "flowCategory": "⚡ Alimenta",
-            "label": "LIN-FV"
-          }
-        ]
-      }
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
     },
     {
       "id": "QEPA",
@@ -8549,7 +8243,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: ABB S615099 Solo Magnetico 3P 40A + Diff. 0,5A  |  Cavo: FTG18OM16 4G16 mm² (refuso FG16 su tab. quadrista)",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "Q1",
               "Apparecchio di Protezione": "ABB S615099 Solo Magnetico 3P 40A + Diff. 0,5A",
@@ -8627,7 +8321,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🔋 BATTERIA PORTONI EI",
       "shortFunc": "UPS online 1000VA: mantiene alimentati i portoni tagliafuoco dei box; al comando VVF viene staccato per farli chiudere.",
       "emergencyNote": "Autonomia ~11 min a metà carico; in caso di sgancio incendio l'interruttore d'uscita Q7 si apre e compartimenta i box.",
-      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "roomGroup": "Locale Contatori Scala A — Piano -1 (PL.02)",
       "safetyZone": "2 · Sezionato in Uscita (Q7) per Chiusura Portoni EI",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -8670,7 +8364,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🔋 BATTERIA SGANCIO 24V",
       "shortFunc": "UPS online 2000VA: tiene vivo l'anello a 24V dello sgancio box per evitare che un calo di rete apra i quadri per errore.",
       "emergencyNote": "Attenzione: se questo UPS si guasta o si scarica del tutto, per sicurezza apre automaticamente Box, Pozzi e Portoni EI!",
-      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "roomGroup": "Locale Contatori Scala A — Piano -1 (PL.02)",
       "safetyZone": "1 · Presidio Sicurezza & Batteria Tampone",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -8707,7 +8401,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🚨 COMANDI EMERGENZA VVF",
       "shortFunc": "3 pulsanti sotto vetro (Box, Scala A, Scala B) per permettere ai Vigili del Fuoco di togliere tensione in sicurezza.",
       "emergencyNote": "Azione selettiva: ciascun pulsante spegne solo il proprio compartimento lasciando operativa la pompa antincendio.",
-      "roomGroup": "Portineria & Ingressi (P.T)",
+      "roomGroup": "Portineria & Ingressi (P. Terra)",
       "safetyZone": "1 · Presidio Sicurezza & Batteria Tampone",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -8743,7 +8437,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🔔 RIVELAZIONE & ALLARMI",
       "shortFunc": "Centrali rivelazione fumi delle Torri A/B (>32m) e pannello in Portineria che segnala anomalie alla pompa VVF.",
       "emergencyNote": "Dotate di proprie batterie tampone interne per sorvegliare l'edificio anche a rete elettrica staccata.",
-      "roomGroup": "Portineria & Ingressi (P.T)",
+      "roomGroup": "Portineria & Ingressi (P. Terra)",
       "safetyZone": "1 · Presidio Sicurezza & Batteria Tampone",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -8898,7 +8592,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: Fusibile F1 2A + Alimentaz. 24Vac  |  Cavo: Ethernet LAN + 2× RS-485",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "MTX1 + EXP1 + 4G",
               "Apparecchio di Protezione": "Fusibile F1 2A + Alimentaz. 24Vac",
@@ -8917,7 +8611,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: 24Vac protetto  |  Cavo: Morsettiera X2 + Relè Cabur K1",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "CBX2 (Addr. 2)",
               "Apparecchio di Protezione": "24Vac protetto",
@@ -8936,7 +8630,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: Bus FLX 24Vac  |  Cavo: Morsettiera X2 + Relè Cabur K2",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "FLX1 (Addr. 1)",
               "Apparecchio di Protezione": "Bus FLX 24Vac",
@@ -8955,7 +8649,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: Bus FLX 24Vac  |  Cavo: Morsettiera X2",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "FLX2 (Addr. 2)",
               "Apparecchio di Protezione": "Bus FLX 24Vac",
@@ -8974,7 +8668,7 @@ window.IMPIANTO_DATA = {
             "roleType": "load",
             "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
             "shortFunc": "Protezione: Bus FLX 24Vac  |  Cavo: Morsettiera X2 (mors. 104–127)",
-            "group": "3 · Interruttori di Partenza & Linee Uscita",
+            "group": "3 · Interruttori di Partenza Principali",
             "specs": {
               "Sigla Linea": "FLX3 (Addr. 3)",
               "Apparecchio di Protezione": "Bus FLX 24Vac",
@@ -9079,7 +8773,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "📡 RETE CONTAB. & CAPPE",
       "shortFunc": "Rete dati lungo le due torri che legge i consumi di ogni alloggio e regola l'aspirazione cappe cucina (7°/10°).",
       "emergencyNote": "Sistema a bassissima tensione distribuito nei cavedi con amplificatori di segnale alla base delle scale.",
-      "roomGroup": "Piani Residenziali 1°–14°",
+      "roomGroup": "Locali Tecnici Comuni",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -9116,9 +8810,9 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🌐 CENTRO FIBRA & TV-SAT",
       "shortFunc": "Raccoglie la fibra Internet dalla strada (ROE) e il segnale antenne TV dal tetto portandoli in fibra in ogni casa.",
       "emergencyNote": "Rete ottica passiva immune ai disturbi elettrici; gli amplificatori attivi di testa sono alimentati dai quadri scala.",
-      "roomGroup": "Portineria & Ingressi (P.T)",
+      "roomGroup": "Portineria & Ingressi (P. Terra)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
       "internalGraph": null
     },
     {
@@ -9154,7 +8848,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "🔔 CITOFONI & SOCCORSO",
       "shortFunc": "Gestisce le 3 targhe videocitofoniche agli ingressi (Portineria, A, B), le serrature e gli allarmi tirante disabili.",
       "emergencyNote": "Pulsanti di sblocco locale garantiscono sempre l'uscita pedonale dalle porte anche in assenza di tensione.",
-      "roomGroup": "Portineria & Ingressi (P.T)",
+      "roomGroup": "Portineria & Ingressi (P. Terra)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -9198,13 +8892,13 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "In esercizio ordinario sul filo di terra NON scorre corrente (flusso fermo). Solo durante un guasto d'isolamento o una scarica SPD la corrente viaggia DAI quadri VERSO la terra.",
       "roomGroup": "Aree Esterne & Sottosuolo",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
       "id": "LD-BOX",
-      "code": "152 BOX + CORSELLI",
-      "label": "Autorimessa -1/-2 (152 Box, Corselli, Rampa, Portoni EI, PS1/PS2)",
+      "code": "CORSELLI & RAMPA",
+      "label": "Corselli Manovra, Rampa, Pompe Meteo PS1/PS2 & Portoni EI (-1 / -2)",
       "plant": "IMP-SSC",
       "nodeClass": "field_subsystem",
       "tier": 2,
@@ -9232,12 +8926,12 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "load",
-      "roleLabel": "🎯 UTENZE AUTORIMESSA",
-      "shortFunc": "Luce e presa interna dei 152 box privati, luci corselli/rampa con sensori, portoni EI e 2 pompe antiallagamento.",
+      "roleLabel": "🛞 CORSELLI, RAMPA & POMPE METEO",
+      "shortFunc": "Luci temporizzate/notturne/emergenza corselli e rampa (Q6.8–Q6.10), prese corselli (Q6.7), pompe meteo PS1/PS2 (Q6.1–Q6.2) e portoni EI.",
       "emergencyNote": "Messa completamente fuori tensione al comando del pulsante VVF Autorimessa (salvo lampade autonome di esodo).",
-      "roomGroup": "Autorimessa Box (Piani -1 e -2)",
-      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1)",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roomGroup": "Autorimessa 152 Box (Piani -1 e -2, PL.01–02)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q6)",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9274,7 +8968,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Restano funzionanti anche se scatta lo sgancio interno dell'autorimessa, illuminando i percorsi esterni.",
       "roomGroup": "Aree Esterne & Sottosuolo",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9311,7 +9005,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Pompe gemellari (A+B): se una pompa si blocca, il BMS QE-REG avvia automaticamente la gemella di riserva.",
       "roomGroup": "Centrale Tecnologica (Piano -2)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9346,7 +9040,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Doppio gruppo indipendente per garantire continuità del servizio idrico sanitario.",
       "roomGroup": "Centrale Idrica (Piano -1)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9382,8 +9076,8 @@ window.IMPIANTO_DATA = {
       "shortFunc": "Pompe sommerse nei pozzi (P.10 e P.11) e filtri autopulenti che forniscono acqua di falda alle Pompe di Calore.",
       "emergencyNote": "Modulati da 0 a 100% dal BMS in base a quante pompe di calore sono accese; protetti da sonde di livello pozzo.",
       "roomGroup": "Locale Pompe & Antincendio (P.-2)",
-      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1)",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q5)",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9420,7 +9114,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Ciascuna macchina ha protezione differenziale Tipo B indipendente: un guasto su una non ferma le altre due.",
       "roomGroup": "Centrale Tecnologica (Piano -2)",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9457,7 +9151,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Linee forza motrice e luce cabina ascensore separate per mantenere illuminata la cabina in caso di blocco motore.",
       "roomGroup": "Copertura Edifici (+48 m)",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9494,7 +9188,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Lampade di emergenza autonome da 1h lungo tutta la scala e i corridoi cantine.",
       "roomGroup": "Vani Scala & Cantine Torri",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9531,7 +9225,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Linee forza motrice e luce cabina separate come prescritto per gli impianti elevatori.",
       "roomGroup": "Copertura Edifici (+48 m)",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9568,7 +9262,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Lampade di emergenza autonome da 1h lungo tutta la scala e i corridoi cantine.",
       "roomGroup": "Vani Scala & Cantine Torri",
       "safetyZone": "3 · Sotto Comando Sgancio VVF Scala / Centrale",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9605,7 +9299,7 @@ window.IMPIANTO_DATA = {
       "emergencyNote": "Alimentata con cavo ignifugo FTG18OM16: progettata per funzionare ad oltranza anche sotto incendio.",
       "roomGroup": "Locale Pompe & Antincendio (P.-2)",
       "safetyZone": "1 · Attivo Permanente (Linea Ignifuga VVF)",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9728,7 +9422,7 @@ window.IMPIANTO_DATA = {
       "nodeClass": "supply_pod",
       "roleType": "source",
       "roleLabel": "⚡ ORIGINE RETE ESTERNA",
-      "shortFunc": "Adduzione elettrica cittadina dalla rete stradale pubblica verso il Locale Contatori Principale al Piano Terra e le sale contatori di torre.",
+      "shortFunc": "Adduzione elettrica cittadina dalla rete pubblica BT verso il Locale Contatori al Piano Terra e le 2 sale contatori al Piano -1.",
       "emergencyNote": "Corrente di cortocircuito presunta CEI 0-21 ai punti di consegna >33 kW: 15 kA trifase / 6 kA fase-neutro.",
       "tier": 1,
       "floor": "F_TERRA",
@@ -9736,7 +9430,7 @@ window.IMPIANTO_DATA = {
       "specs": {
         "Tensione": "400/230V 50Hz",
         "Sistema Neutro": "TT",
-        "Accesso": "Cavidotti interrati da pozzetti stradali 'E' (Tavola PL.12.1)"
+        "Accesso": "Cavidotti interrati da pozzetti stradali 'E' sul confine esterno (Tavola PL.12.1)"
       },
       "desc": "Punto di origine della fornitura elettrica pubblica in bassa tensione per l'intero insediamento.",
       "sld": null,
@@ -9752,21 +9446,21 @@ window.IMPIANTO_DATA = {
           "scope": "Forniture BT e correnti di cortocircuito"
         }
       ],
-      "roomGroup": "Suolo Pubblico Rete Stradale Esterna",
+      "roomGroup": "Rete Stradale Esterna (Pozzetti 'E')",
       "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
       "internalGraph": null
     },
     {
       "id": "CONTATORI-ALLOGGI-A",
       "code": "CONTATORI ALLOGGI A",
-      "label": "Batteria Contatori Privati Appartamenti — Torre A (Piano -1)",
+      "label": "Sala Contatori Privati Appartamenti — Torre A (Piano -1)",
       "plant": "IMP-INGRESSI",
       "nodeClass": "field_subsystem",
       "roleType": "load",
-      "roleLabel": "🏠 CONTATORI PRIVATI TORRE A",
-      "shortFunc": "Gruppi di misura individuali degli appartamenti Torre A nel Locale Contatori A al Piano -1 (PL.02/PL.04).",
-      "emergencyNote": "PERCHÉ NON COMPAIONO NEGLI SCHEMI UNIFILARI: questo progetto copre le sole Parti Comuni; nel quadro QESC-A (linea Q20) sono cablate solo luci, emergenza e prese di servizio di questa stanza.",
+      "roleLabel": "🏠 CONTATORI ALLOGGI A (PIANO -1)",
+      "shortFunc": "Locale Contatori A al Piano -1 (zona filtro cantine, Tav. PL.02/PL.04): contiene i contatori dei singoli appartamenti Torre A (NON alimenta i box).",
+      "emergencyNote": "IMPORTANTE: questi contatori alimentano solo gli appartamenti della Torre A; i 152 box auto sono invece sotto il Contatore Supercondominiale da 80 kW al Piano Terra per consentire lo sgancio VVF centralizzato.",
       "tier": 1,
       "floor": "F_M1",
       "colHint": 0.5,
@@ -9787,21 +9481,21 @@ window.IMPIANTO_DATA = {
           "scope": "Ubicazione Locale Contatori A al Piano -1"
         }
       ],
-      "roomGroup": "Locale Contatori Scala A (P.-1)",
+      "roomGroup": "Locale Contatori Scala A — Piano -1 (PL.02)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
       "id": "CONTATORI-ALLOGGI-B",
       "code": "CONTATORI ALLOGGI B",
-      "label": "Batteria Contatori Privati Appartamenti — Torre B (Piano -1)",
+      "label": "Sala Contatori Privati Appartamenti — Torre B (Piano -1)",
       "plant": "IMP-INGRESSI",
       "nodeClass": "field_subsystem",
       "roleType": "load",
-      "roleLabel": "🏠 CONTATORI PRIVATI TORRE B",
-      "shortFunc": "Gruppi di misura individuali degli appartamenti Torre B nel Locale Contatori B al Piano -1 (PL.02/PL.04).",
-      "emergencyNote": "Esclusi dagli schemi parti comuni; luce, emergenza e prese della stanza sono alimentate da QESC-B (linea Q20).",
+      "roleLabel": "🏠 CONTATORI ALLOGGI B (PIANO -1)",
+      "shortFunc": "Locale Contatori B al Piano -1 (zona filtro cantine, Tav. PL.02/PL.04): contiene i contatori dei singoli appartamenti Torre B (NON alimenta i box).",
+      "emergencyNote": "IMPORTANTE: questi contatori alimentano solo gli appartamenti della Torre B; i 152 box auto sono invece sotto il Contatore Supercondominiale da 80 kW al Piano Terra.",
       "tier": 1,
       "floor": "F_M1",
       "colHint": 4.5,
@@ -9822,9 +9516,9 @@ window.IMPIANTO_DATA = {
           "scope": "Ubicazione Locale Contatori B al Piano -1"
         }
       ],
-      "roomGroup": "Locale Contatori Scala B (P.-1)",
+      "roomGroup": "Locale Contatori Scala B — Piano -1 (PL.02)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9858,9 +9552,9 @@ window.IMPIANTO_DATA = {
           "scope": "Portoni tagliafuoco e UPS 1000VA"
         }
       ],
-      "roomGroup": "Autorimessa Box (Piani -1 e -2)",
+      "roomGroup": "Autorimessa 152 Box (Piani -1 e -2, PL.01–02)",
       "safetyZone": "2 · Sezionato in Uscita (Q7) per Chiusura Portoni EI",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9895,7 +9589,7 @@ window.IMPIANTO_DATA = {
       ],
       "roomGroup": "Centrale Tecnologica (Piano -2)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
       "internalGraph": null
     },
     {
@@ -9930,7 +9624,7 @@ window.IMPIANTO_DATA = {
       ],
       "roomGroup": "Centrale Tecnologica (Piano -2)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -9965,7 +9659,7 @@ window.IMPIANTO_DATA = {
       ],
       "roomGroup": "Copertura Edifici (+48 m)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
       "internalGraph": null
     },
     {
@@ -10000,7 +9694,7 @@ window.IMPIANTO_DATA = {
       ],
       "roomGroup": "Piani Residenziali 1°–14°",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "4 · Utilizzatori Finali & Scarico a Terra",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     },
     {
@@ -10036,7 +9730,7 @@ window.IMPIANTO_DATA = {
       ],
       "roomGroup": "Interno dei 4 Quadri Generali",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
-      "roleGroup": "1 · Sorgenti & Punti di Consegna",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
       "internalGraph": null
     },
     {
@@ -10073,6 +9767,536 @@ window.IMPIANTO_DATA = {
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": null
+    },
+    {
+      "id": "Q6-BOX-SEC",
+      "code": "QE.SSC · SEZ. Q6",
+      "label": "Sezione Generale Autorimessa & 152 Box (Interruttore Q6 + Ripartitore RP1)",
+      "plant": "IMP-SSC",
+      "nodeClass": "switchgear_node",
+      "roleType": "hub",
+      "roleLabel": "🚗 PROTEZIONE & SGANCIO 152 BOX",
+      "shortFunc": "Interruttore Q6 (4P 63A + bobina sgancio VVF 24Vac) dentro QE.SSC: alimenta tutti i 152 Box (-1/-2) e i corselli.",
+      "emergencyNote": "PERCHÉ I 152 BOX SONO SOTTO IL CONTATORE CONDOMINIALE 80 kW E NON SOTTO GLI APPARTAMENTI: nell'autorimessa soggetta a CPI (>300 m², Attività 75 D.P.R. 151/2011) i Vigili del Fuoco devono poter togliere tensione a tutti i 152 box con un solo pulsante. Aprendo Q6 tramite bobina a minima tensione 24Vac (K1), vengono sezionati istantaneamente tutti i circuiti interni box Q6.3–Q6.6.",
+      "tier": 1,
+      "floor": "F_TERRA",
+      "colHint": 1.2,
+      "specs": {
+        "Ubicazione": "Dentro Quadro QE.SSC — Locale Contatori Principale (Piano Terra)",
+        "Interruttore Generale Sezione": "Q6: ABB S204P-C63 4P (63A, 15 kA) + Bobina min. tensione 24Vac (ABB A428398)",
+        "Ripartitore Interno": "RP1: Ripartitore tetrapolare 4P 125A",
+        "Contatore a monte": "Contatore 1 · Servizi Supercondominiali (80 kW) — nessun contatore singolo sui box",
+        "Linee derivate": "4 dorsali Interno Box (Q6.3–Q6.6) + 2 Pompe Meteo (Q6.1–Q6.2) + Luci/Prese Corselli e Rampa (Q6.7–Q6.10)"
+      },
+      "desc": "Sotto-sezione dedicata dell'armadio QE.SSC che raggruppa e protegge l'intera distribuzione elettrica dei 152 box auto e delle corsie di manovra ai piani -1 e -2, garantendo il sezionamento centralizzato di emergenza VVF.",
+      "sld": {
+        "incomer": "Derivazione da sbarra principale 400A di QE.SSC in corda FS17 16 mm²",
+        "mainDevice": "Interruttore magnetotermico ABB S204P-C63 (4P 63A, Icu 15 kA) equipaggiato con bobina di minima tensione 24Vac (comandata da K1 / UPS 2)",
+        "busbar": "Ripartitore modulare tetrapolare RP1 In = 125A che alimenta Q6.1..Q6.12"
+      },
+      "circuits": [
+        {
+          "code": "Q6.3",
+          "desc": "Prese + Luce Interno Box — Piano -1 · Circuito 1 (Settore 1)",
+          "breaker": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.4",
+          "desc": "Prese + Luce Interno Box — Piano -1 · Circuito 2 (Settore 2)",
+          "breaker": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.5",
+          "desc": "Prese + Luce Interno Box — Piano -2 · Circuito 1 (Settore 1)",
+          "breaker": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.6",
+          "desc": "Prese + Luce Interno Box — Piano -2 · Circuito 2 (Settore 2)",
+          "breaker": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+          "cable": "FG16OM16 5G4 mm²"
+        },
+        {
+          "code": "Q6.1 / Q6.2",
+          "desc": "2× Elettropompe Acque Meteoriche PS1 e PS2",
+          "breaker": "2× ABB S204P-D20 4P + Diff. DDA204 Tipo A 300mA",
+          "cable": "2× FG16OM16 5G6 mm²"
+        },
+        {
+          "code": "Q6.7",
+          "desc": "Prese di Servizio Parti Comuni Corselli Autorimessa",
+          "breaker": "ABB DS201 C16A 30mA Tipo A (1P+N)",
+          "cable": "FG16OM16 3G6 mm²"
+        },
+        {
+          "code": "Q6.8 (.1/.2)",
+          "desc": "Illuminazione Rampa Autorimessa (Notturna, Biregime, Emergenza)",
+          "breaker": "ABB DS201 C16A 30mA + 2× SN201 C10 + Astro OR6.8",
+          "cable": "FG16OM16 3G2,5 / 3G1,5 mm²"
+        },
+        {
+          "code": "Q6.9 (.1/.2)",
+          "desc": "Illuminazione Corsello Box Piano -1 (Temporizzata IR, Notturna, Emergenza)",
+          "breaker": "ABB DS201 C16A 30mA + 2× SN201 C10 + Contattori EN20",
+          "cable": "FG16OM16 5G2,5 / 3G2,5 mm²"
+        },
+        {
+          "code": "Q6.10 (.1/.2)",
+          "desc": "Illuminazione Corsello Box Piano -2 (Temporizzata IR, Notturna, Emergenza)",
+          "breaker": "ABB DS201 C16A 30mA + 2× SN201 C10 + Contattori EN20",
+          "cable": "FG16OM16 5G2,5 / 3G2,5 mm²"
+        }
+      ],
+      "bom": [
+        {
+          "qty": "1",
+          "brand": "ABB",
+          "model": "S204P-C63 + A428398",
+          "desc": "Interruttore generale autorimessa 4P 63A 15kA + Bobina minima tensione 24Vac"
+        },
+        {
+          "qty": "4",
+          "brand": "ABB",
+          "model": "S204P-C16 + DDA204 A-25/0,03A",
+          "desc": "Interruttori magnetotermici differenziali 4P 16A 30mA Tipo A per dorsali interno box (Q6.3–Q6.6)"
+        },
+        {
+          "qty": "2",
+          "brand": "ABB",
+          "model": "S204P-D20 + DDA204 A-25/0,3A",
+          "desc": "Interruttori 4P D20A 300mA per pompe acque meteoriche PS1/PS2 (Q6.1–Q6.2)"
+        }
+      ],
+      "datasheetIds": [
+        "DS-ABB-S200",
+        "DS-CAVO-FG16"
+      ],
+      "docRefs": [
+        {
+          "suite": "Fascicolo Quadrista As-Built",
+          "ref": "QE.SSC Fogli 5–8 (pag. 190–193)",
+          "scope": "Schema esecutivo Q6 e circuiti box Q6.3–Q6.6"
+        },
+        {
+          "suite": "Planimetrie As-Built",
+          "ref": "Tavole PL.01 e PL.02",
+          "scope": "Distribuzione dorsali box ai piani -2 e -1"
+        }
+      ],
+      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q6)",
+      "roleGroup": "2 · Quadri di Protezione & Distribuzione",
+      "internalGraph": {
+        "nodes": [
+          {
+            "id": "Q6-BOX-SEC__IN",
+            "code": "ARRIVO LINEA",
+            "label": "Ingresso Alimentazione Quadro QE.SSC · SEZ. Q6",
+            "roleType": "source",
+            "roleLabel": "⚡ INGRESSO CAVO ALIMENTAZIONE",
+            "shortFunc": "Derivazione da sbarra principale 400A di QE.SSC in corda FS17 16 mm²",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Provenienza e Cavo": "Derivazione da sbarra principale 400A di QE.SSC in corda FS17 16 mm²"
+            }
+          },
+          {
+            "id": "Q6-BOX-SEC__MAIN",
+            "code": "GENERALE Q1",
+            "label": "Organo di Manovra / Protezione Generale",
+            "roleType": "hub",
+            "roleLabel": "🛡️ GENERALE DI QUADRO",
+            "shortFunc": "Interruttore magnetotermico ABB S204P-C63 (4P 63A, Icu 15 kA) equipaggiato con bobina di minima tensione 24Vac (comandata da K1 / UPS 2)",
+            "group": "1 · Sezione Ingresso & Generale",
+            "specs": {
+              "Apparecchiatura": "Interruttore magnetotermico ABB S204P-C63 (4P 63A, Icu 15 kA) equipaggiato con bobina di minima tensione 24Vac (comandata da K1 / UPS 2)"
+            }
+          },
+          {
+            "id": "Q6-BOX-SEC__BUS",
+            "code": "SBARRA RAME",
+            "label": "Sbarra / Ripartitore Principale QE.SSC · SEZ. Q6",
+            "roleType": "hub",
+            "roleLabel": "🔀 SBARRA DISTRIBUZIONE",
+            "shortFunc": "Ripartitore modulare tetrapolare RP1 In = 125A che alimenta Q6.1..Q6.12",
+            "group": "2 · Sbarra, Misura & Protezione Fulmini",
+            "specs": {
+              "Caratteristiche sbarra": "Ripartitore modulare tetrapolare RP1 In = 125A che alimenta Q6.1..Q6.12"
+            }
+          },
+          {
+            "id": "Q6-BOX-SEC__C_0",
+            "code": "Q6.3",
+            "label": "Prese + Luce Interno Box — Piano -1 · Circuito 1 (Settore 1)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.3",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_1",
+            "code": "Q6.4",
+            "label": "Prese + Luce Interno Box — Piano -1 · Circuito 2 (Settore 2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.4",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_2",
+            "code": "Q6.5",
+            "label": "Prese + Luce Interno Box — Piano -2 · Circuito 1 (Settore 1)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.5",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_3",
+            "code": "Q6.6",
+            "label": "Prese + Luce Interno Box — Piano -2 · Circuito 2 (Settore 2)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA  |  Cavo: FG16OM16 5G4 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.6",
+              "Apparecchio di Protezione": "ABB S204P-C16 4P + Diff. DDA204 Tipo A 30mA",
+              "Cavo in Uscita": "FG16OM16 5G4 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_4",
+            "code": "Q6.1 / Q6.2",
+            "label": "2× Elettropompe Acque Meteoriche PS1 e PS2",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: 2× ABB S204P-D20 4P + Diff. DDA204 Tipo A 300mA  |  Cavo: 2× FG16OM16 5G6 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.1 / Q6.2",
+              "Apparecchio di Protezione": "2× ABB S204P-D20 4P + Diff. DDA204 Tipo A 300mA",
+              "Cavo in Uscita": "2× FG16OM16 5G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_5",
+            "code": "Q6.7",
+            "label": "Prese di Servizio Parti Comuni Corselli Autorimessa",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA Tipo A (1P+N)  |  Cavo: FG16OM16 3G6 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.7",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA Tipo A (1P+N)",
+              "Cavo in Uscita": "FG16OM16 3G6 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_6",
+            "code": "Q6.8 (.1/.2)",
+            "label": "Illuminazione Rampa Autorimessa (Notturna, Biregime, Emergenza)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA + 2× SN201 C10 + Astro OR6.8  |  Cavo: FG16OM16 3G2,5 / 3G1,5 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.8 (.1/.2)",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA + 2× SN201 C10 + Astro OR6.8",
+              "Cavo in Uscita": "FG16OM16 3G2,5 / 3G1,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_7",
+            "code": "Q6.9 (.1/.2)",
+            "label": "Illuminazione Corsello Box Piano -1 (Temporizzata IR, Notturna, Emergenza)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA + 2× SN201 C10 + Contattori EN20  |  Cavo: FG16OM16 5G2,5 / 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.9 (.1/.2)",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA + 2× SN201 C10 + Contattori EN20",
+              "Cavo in Uscita": "FG16OM16 5G2,5 / 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          },
+          {
+            "id": "Q6-BOX-SEC__C_8",
+            "code": "Q6.10 (.1/.2)",
+            "label": "Illuminazione Corsello Box Piano -2 (Temporizzata IR, Notturna, Emergenza)",
+            "roleType": "load",
+            "roleLabel": "🔌 INTERRUTTORE & LINEA USCITA",
+            "shortFunc": "Protezione: ABB DS201 C16A 30mA + 2× SN201 C10 + Contattori EN20  |  Cavo: FG16OM16 5G2,5 / 3G2,5 mm²",
+            "group": "3 · Interruttori di Partenza Principali",
+            "specs": {
+              "Sigla Linea": "Q6.10 (.1/.2)",
+              "Apparecchio di Protezione": "ABB DS201 C16A 30mA + 2× SN201 C10 + Contattori EN20",
+              "Cavo in Uscita": "FG16OM16 5G2,5 / 3G2,5 mm²"
+            },
+            "datasheetIds": [
+              "DS-ABB-S200",
+              "DS-CAVO-FG16"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "Q6-BOX-SEC__e_in",
+            "source": "Q6-BOX-SEC__IN",
+            "target": "Q6-BOX-SEC__MAIN",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Ingresso",
+            "label": "Morsetti arrivo"
+          },
+          {
+            "id": "Q6-BOX-SEC__e_bus",
+            "source": "Q6-BOX-SEC__MAIN",
+            "target": "Q6-BOX-SEC__BUS",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Potenza",
+            "label": "Alimenta sbarra"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_0",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_0",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.3"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_1",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_1",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.4"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_2",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_2",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.5"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_3",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_3",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.6"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_4",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_4",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.1 / Q6.2"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_5",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_5",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.7"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_6",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_6",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.8 (.1/.2)"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_7",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_7",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.9 (.1/.2)"
+          },
+          {
+            "id": "Q6-BOX-SEC__ec_8",
+            "source": "Q6-BOX-SEC__BUS",
+            "target": "Q6-BOX-SEC__C_8",
+            "edgeType": "power_bt",
+            "flowCategory": "⚡ Alimenta",
+            "label": "Q6.10 (.1/.2)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "BOX-INTERNI-P1",
+      "code": "BOX PIANO -1 (Q6.3–Q6.4)",
+      "label": "Box Auto Privati — Piano Primo Interrato (-1) · Prese & Luce Interna",
+      "plant": "IMP-SSC",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🚗 LUCE + PRESA INTERNO BOX (-1)",
+      "shortFunc": "Alimenta 1 luce IP55 + 1 presa UNEL 10/16A dentro ciascun box del Piano -1 (senza contatori singoli, sotto POD 80 kW).",
+      "emergencyNote": "Ogni box riceve una derivazione monofase 2,5 mm² IP55 staccata dalle 2 dorsali trifase 5G4 mm² (Q6.3 e Q6.4, 4P 16A 30mA). Attenzione: portata complessiva ~22 kW divisa su tutti i box del piano — prese adatte a usi accessori/mantenitori, NON a Wallbox/ricarica auto elettriche senza linea dedicata.",
+      "tier": 1,
+      "floor": "F_M1",
+      "colHint": 0.8,
+      "specs": {
+        "Dotazione per ogni Box": "1 Punto luce IP55 + Interruttore bipolare 2P 16A + 1 Presa UNEL 2P+T 10/16A IP55",
+        "Linee di Alimentazione": "2 dorsali trifase FG16OM16 5G4 mm² in canale metallico sul corsello (Q6.3 Circ.1 + Q6.4 Circ.2)",
+        "Derivazione singolo Box": "Cassetta derivazione IP55 sul corsello → tubo PVC a vista → cavo 2,5 mm² (fasi L1/L2/L3 equilibrate)",
+        "Contatore / Misura": "NESSUN contatore individuale né defalco: consumo incluso nel Contatore Supercondominiale 80 kW (P.Terra)",
+        "Sgancio Emergenza VVF": "Sì — sezionato all'origine dall'apertura di Q6 (24Vac) in QE.SSC"
+      },
+      "desc": "Impianto interno ai singoli box auto del Piano Primo Interrato (-1), derivato dalle due dorsali trifase condominiali Q6.3 e Q6.4.",
+      "sld": null,
+      "circuits": [
+        {
+          "code": "Q6.3",
+          "desc": "Dorsale Trifase Prese/Luce Interno Box Piano -1 — Circuito 1",
+          "breaker": "ABB S204P-C16 + DDA204 30mA (4P 16A)",
+          "cable": "FG16OM16 5G4 mm² → stacchi 3G2,5 mm²"
+        },
+        {
+          "code": "Q6.4",
+          "desc": "Dorsale Trifase Prese/Luce Interno Box Piano -1 — Circuito 2",
+          "breaker": "ABB S204P-C16 + DDA204 30mA (4P 16A)",
+          "cable": "FG16OM16 5G4 mm² → stacchi 3G2,5 mm²"
+        }
+      ],
+      "bom": [],
+      "datasheetIds": [
+        "DS-ABB-S200",
+        "DS-CAVO-FG16"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "§ 4.6 Interno Box e § 6.6 Comandi 2P 16A",
+          "scope": "Dotazione IP55 interna a ciascun box"
+        },
+        {
+          "suite": "Planimetrie As-Built",
+          "ref": "Tavola PL.02",
+          "scope": "Pianta impianto elettrico autorimessa Piano -1"
+        }
+      ],
+      "roomGroup": "Autorimessa 152 Box (Piani -1 e -2, PL.01–02)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q6)",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
+      "internalGraph": null
+    },
+    {
+      "id": "BOX-INTERNI-P2",
+      "code": "BOX PIANO -2 (Q6.5–Q6.6)",
+      "label": "Box Auto Privati — Piano Secondo Interrato (-2) · Prese & Luce Interna",
+      "plant": "IMP-SSC",
+      "nodeClass": "field_subsystem",
+      "roleType": "load",
+      "roleLabel": "🚗 LUCE + PRESA INTERNO BOX (-2)",
+      "shortFunc": "Alimenta 1 luce IP55 + 1 presa UNEL 10/16A dentro ciascun box del Piano -2 (senza contatori singoli, sotto POD 80 kW).",
+      "emergencyNote": "Ogni box riceve una derivazione monofase 2,5 mm² IP55 staccata dalle 2 dorsali trifase 5G4 mm² (Q6.5 e Q6.6, 4P 16A 30mA). Sezionato al comando di sgancio VVF tramite Q6 in QE.SSC.",
+      "tier": 1,
+      "floor": "F_M2",
+      "colHint": 1.2,
+      "specs": {
+        "Dotazione per ogni Box": "1 Punto luce IP55 + Interruttore bipolare 2P 16A + 1 Presa UNEL 2P+T 10/16A IP55",
+        "Linee di Alimentazione": "2 dorsali trifase FG16OM16 5G4 mm² in canale metallico sul corsello (Q6.5 Circ.1 + Q6.6 Circ.2)",
+        "Derivazione singolo Box": "Cassetta derivazione IP55 sul corsello → tubo PVC a vista → cavo 2,5 mm² (fasi L1/L2/L3 equilibrate)",
+        "Contatore / Misura": "NESSUN contatore individuale né defalco: consumo incluso nel Contatore Supercondominiale 80 kW (P.Terra)",
+        "Sgancio Emergenza VVF": "Sì — sezionato all'origine dall'apertura di Q6 (24Vac) in QE.SSC"
+      },
+      "desc": "Impianto interno ai singoli box auto del Piano Secondo Interrato (-2), derivato dalle due dorsali trifase condominiali Q6.5 e Q6.6.",
+      "sld": null,
+      "circuits": [
+        {
+          "code": "Q6.5",
+          "desc": "Dorsale Trifase Prese/Luce Interno Box Piano -2 — Circuito 1",
+          "breaker": "ABB S204P-C16 + DDA204 30mA (4P 16A)",
+          "cable": "FG16OM16 5G4 mm² → stacchi 3G2,5 mm²"
+        },
+        {
+          "code": "Q6.6",
+          "desc": "Dorsale Trifase Prese/Luce Interno Box Piano -2 — Circuito 2",
+          "breaker": "ABB S204P-C16 + DDA204 30mA (4P 16A)",
+          "cable": "FG16OM16 5G4 mm² → stacchi 3G2,5 mm²"
+        }
+      ],
+      "bom": [],
+      "datasheetIds": [
+        "DS-ABB-S200",
+        "DS-CAVO-FG16"
+      ],
+      "docRefs": [
+        {
+          "suite": "Relazione Tecnica",
+          "ref": "§ 4.6 Interno Box e § 6.6 Comandi 2P 16A",
+          "scope": "Dotazione IP55 interna a ciascun box"
+        },
+        {
+          "suite": "Planimetrie As-Built",
+          "ref": "Tavola PL.01",
+          "scope": "Pianta impianto elettrico autorimessa Piano -2"
+        }
+      ],
+      "roomGroup": "Autorimessa 152 Box (Piani -1 e -2, PL.01–02)",
+      "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q6)",
+      "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
     }
   ],
@@ -10589,12 +10813,12 @@ window.IMPIANTO_DATA = {
     },
     {
       "id": "e52",
-      "source": "QESSC",
+      "source": "Q6-BOX-SEC",
       "target": "LD-BOX",
       "edgeType": "power_bt",
       "plant": "IMP-SSC",
-      "tier": 2,
-      "label": "Q6 (Box, Corselli, Rampa, PS1/2)",
+      "tier": 1,
+      "label": "Q6.1–Q6.2 Pompe Meteo + Q6.7–Q6.10 Luci Corselli/Rampa",
       "flowCategory": "⚡ Energia"
     },
     {
@@ -10825,7 +11049,7 @@ window.IMPIANTO_DATA = {
       "flowCategory": "⚡ Consegna BT",
       "plant": "IMP-INGRESSI",
       "tier": 1,
-      "label": "Contatore 1 · 80 kW"
+      "label": "Contatore 1 · 80 kW (anche 152 Box)"
     },
     {
       "id": "e_m2",
@@ -10865,7 +11089,7 @@ window.IMPIANTO_DATA = {
       "flowCategory": "🏠 Utenze Private",
       "plant": "IMP-INGRESSI",
       "tier": 1,
-      "label": "Forniture Alloggi Torre A (-1)"
+      "label": "Solo Appartamenti Torre A (P.-1)"
     },
     {
       "id": "e_m6",
@@ -10875,7 +11099,7 @@ window.IMPIANTO_DATA = {
       "flowCategory": "🏠 Utenze Private",
       "plant": "IMP-INGRESSI",
       "tier": 1,
-      "label": "Forniture Alloggi Torre B (-1)"
+      "label": "Solo Appartamenti Torre B (P.-1)"
     },
     {
       "id": "e_f1",
@@ -10956,6 +11180,46 @@ window.IMPIANTO_DATA = {
       "plant": "IMP-GND",
       "tier": 1,
       "label": "Corda Cu 50mm² → 14 Picchetti"
+    },
+    {
+      "id": "e_q6_in",
+      "source": "QESSC",
+      "target": "Q6-BOX-SEC",
+      "edgeType": "power_bt",
+      "plant": "IMP-SSC",
+      "tier": 1,
+      "label": "Q6 4P 63A [Sgancio VVF 24V] → RP1 125A",
+      "flowCategory": "🚗 Dorsale Box"
+    },
+    {
+      "id": "e_box_p1",
+      "source": "Q6-BOX-SEC",
+      "target": "BOX-INTERNI-P1",
+      "edgeType": "power_bt",
+      "plant": "IMP-SSC",
+      "tier": 1,
+      "label": "Q6.3 + Q6.4 (2× 4P C16A 30mA · 5G4 mm²)",
+      "flowCategory": "🚗 Luce+Presa Box -1"
+    },
+    {
+      "id": "e_box_p2",
+      "source": "Q6-BOX-SEC",
+      "target": "BOX-INTERNI-P2",
+      "edgeType": "power_bt",
+      "plant": "IMP-SSC",
+      "tier": 1,
+      "label": "Q6.5 + Q6.6 (2× 4P C16A 30mA · 5G4 mm²)",
+      "flowCategory": "🚗 Luce+Presa Box -2"
+    },
+    {
+      "id": "e_q6_vvf",
+      "source": "SGANCI-VVF",
+      "target": "Q6-BOX-SEC",
+      "edgeType": "emergency_trip",
+      "plant": "IMP-FIRE",
+      "tier": 1,
+      "label": "Sgancio VVF 24Vac K1 → apre Q6 (152 Box)",
+      "flowCategory": "🚨 Sgancio Box"
     }
   ],
   "datasheets": [
@@ -11396,7 +11660,10 @@ window.IMPIANTO_DATA = {
         "QESSC",
         "QELP",
         "UPS-1-EI",
-        "LD-BOX"
+        "LD-BOX",
+        "Q6-BOX-SEC",
+        "BOX-INTERNI-P1",
+        "BOX-INTERNI-P2"
       ],
       "finding": "Dalla sola lettura sintetica della Relazione sembrerebbe che il pulsante autorimessa sganci l'intera fornitura supercondominiale. Lo schema multifilare di QE.SSC (fogli 11 e 16) rivela invece una logica molto più raffinata: UPS 2 (2000VA) alimenta un trasformatore 230/24Vac (63VA) che mantiene eccitato il relè di sicurezza K1; l'apertura del pulsante sgancia per minima tensione (24VEM, fail-safe) esclusivamente Q5 (Locale Pompe -2), Q6 (Generale Autorimessa 63A) e Q7 (uscita UPS 1 Portoni Tagliafuoco, consentendone la chiusura).",
       "impact": "Comprendere questa logica evita errori diagnostici gravi: una mancanza di tensione o guasto a UPS 2 / fusibili F14-F3 fa intervenire le bobine di minima tensione aprendo Q5, Q6 e Q7 anche senza incendio, mentre mantiene attive Centrale Tecnologica (Q3) e Centrale Idrica (Q4)!",
@@ -11474,5 +11741,6 @@ window.IMPIANTO_DATA = {
       "impact": "Il progettista/quadrista ha intenzionalmente lasciato vacanti le sigle Q16–Q17 in QESC-B per mantenere l'identica numerazione funzionale (Q18–Q28) tra i quadri gemelli delle Torri A e B.",
       "verdict": "Coerenza sostanziale confermata dalle planimetrie architettoniche."
     }
-  ]
+  ],
+  "complexName": "Complesso Residenziale Plurifamiliare — Parti Comuni (Torri A & B)"
 };
