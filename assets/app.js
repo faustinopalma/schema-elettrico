@@ -946,15 +946,15 @@
 
     const CARD_W = 224;
     const CARD_H = 104;
-    const COL_GAP = 40;
+    const COL_GAP = 44;
     const COL_PITCH = CARD_W + COL_GAP;
     const PAD_LEFT = 204;
     const PAD_RIGHT = 32;
     const PAD_Y = 20;
-    const BAND_TOP = 30;
+    const BAND_TOP = 32;
     const BAND_BOT = 14;
     const BAND_H = BAND_TOP + CARD_H + BAND_BOT;
-    const CHANNEL_H = 70;
+    const CHANNEL_H = 88;
     const ROW_PITCH = BAND_H + CHANNEL_H;
 
     const spanCols = Math.max(2.2, (maxCol - minCol) + 1);
@@ -1000,6 +1000,17 @@
       return true;
     }
 
+    // Helper: check if two cards on the same row have unobstructed horizontal line-of-sight
+    function isRowSpanClear(rowIdx, xA, xB, ignoreIdA, ignoreIdB) {
+      const xMin = Math.min(xA, xB) + 4;
+      const xMax = Math.max(xA, xB) - 4;
+      for (const [nid, bx] of boxes.entries()) {
+        if (nid === ignoreIdA || nid === ignoreIdB || bx.row !== rowIdx) continue;
+        if (bx.right > xMin && bx.left < xMax) return false;
+      }
+      return true;
+    }
+
     // Find nearest clear vertical alley near targetX for multi-row bypasses
     const usedAlleys = [];
     function findClearAlley(prefX, yA, yB, idA, idB) {
@@ -1007,7 +1018,7 @@
       const maxColIdx = Math.ceil(spanCols) + 1;
       for (let k = 0; k <= maxColIdx; k++) {
         const ax = PAD_LEFT + k * COL_PITCH - COL_GAP / 2;
-        candidates.push(ax, ax - 9, ax + 9);
+        candidates.push(ax, ax - 10, ax + 10);
       }
       candidates.sort((a, b) => Math.abs(a - prefX) - Math.abs(b - prefX));
       for (const cx of candidates) {
@@ -1021,35 +1032,137 @@
       return prefX;
     }
 
-    // Group incoming top edges per target node to spread entry pins slightly when >=2 distinct parents converge
-    const inTopByTarget = new Map();
+    // STEP 1: Classify exit/entry faces for every edge & allocate SPACED terminal pins on all 4 faces of every block!
+    const faceAttachments = new Map(); // `${nodeId}::${face}` -> [{ edgeId, isSource, sortCoord }]
+    const edgeFaces = new Map();       // edgeId -> { exitFace, entryFace, directSide }
+
+    function addAttachment(nodeId, face, edgeId, isSource, sortCoord) {
+      const k = `${nodeId}::${face}`;
+      if (!faceAttachments.has(k)) faceAttachments.set(k, []);
+      faceAttachments.get(k).push({ edgeId, isSource, sortCoord });
+    }
+
     edges.forEach((e) => {
       const b1 = boxes.get(e.source);
       const b2 = boxes.get(e.target);
       if (!b1 || !b2) return;
-      if (b2.row > b1.row || (b2.row === b1.row && Math.abs(b2.cx - b1.cx) > COL_PITCH * 1.35)) {
-        if (!inTopByTarget.has(e.target)) inTopByTarget.set(e.target, []);
-        inTopByTarget.get(e.target).push(e);
+
+      let exitFace = "bot";
+      let entryFace = "top";
+      let directSide = false;
+
+      if (b2.row === b1.row) {
+        if (isRowSpanClear(b1.row, b1.cx, b2.cx, e.source, e.target)) {
+          const goRight = b2.cx >= b1.cx;
+          exitFace = goRight ? "right" : "left";
+          entryFace = goRight ? "left" : "right";
+          directSide = true;
+        } else {
+          // Blocked by an intermediate card on the same row -> route cleanly underneath (never across top!)
+          exitFace = "bot";
+          entryFace = "bot";
+        }
+      } else if (b2.row > b1.row) {
+        exitFace = "bot";
+        entryFace = "top";
+      } else {
+        exitFace = "top";
+        entryFace = "bot";
+      }
+
+      edgeFaces.set(e.id, { exitFace, entryFace, directSide });
+      addAttachment(e.source, exitFace, e.id, true, (exitFace === "left" || exitFace === "right") ? b2.cy : b2.cx);
+      addAttachment(e.target, entryFace, e.id, false, (entryFace === "left" || entryFace === "right") ? b1.cy : b1.cx);
+    });
+
+    const edgePins = new Map(); // `${edgeId}::src` or `${edgeId}::tgt` -> { x, y }
+    faceAttachments.forEach((list, key) => {
+      const [nid, face] = key.split("::");
+      const bx = boxes.get(nid);
+      if (!bx) return;
+      list.sort((a, b) => (a.sortCoord - b.sortCoord) || (a.isSource === b.isSource ? a.edgeId.localeCompare(b.edgeId) : (a.isSource ? 1 : -1)));
+      const cnt = list.length;
+
+      if (face === "top" || face === "bot") {
+        const step = Math.min(20, Math.floor((CARD_W - 44) / Math.max(1, cnt)));
+        const y = face === "top" ? bx.top : bx.bottom;
+        list.forEach((item, idx) => {
+          const x = bx.cx + (idx - (cnt - 1) / 2) * step;
+          edgePins.set(`${item.edgeId}::${item.isSource ? "src" : "tgt"}`, { x, y });
+        });
+      } else {
+        const step = Math.min(16, Math.floor((CARD_H - 32) / Math.max(1, cnt)));
+        const x = face === "left" ? bx.left : bx.right;
+        list.forEach((item, idx) => {
+          const y = bx.cy + (idx - (cnt - 1) / 2) * step;
+          edgePins.set(`${item.edgeId}::${item.isSource ? "src" : "tgt"}`, { x, y });
+        });
       }
     });
-    inTopByTarget.forEach((arr) => {
-      arr.sort((ea, eb) => (boxes.get(ea.source)?.cx || 0) - (boxes.get(eb.source)?.cx || 0));
+
+    // STEP 2: Pre-sort horizontal jogs per inter-band channel by widest span first (river-routing -> zero fan-out crossings!)
+    const channelRequests = new Map(); // channelIdx -> [{ reqKey, span }]
+    function registerChannelReq(chIdx, reqKey, xA, xB) {
+      if (!channelRequests.has(chIdx)) channelRequests.set(chIdx, []);
+      channelRequests.get(chIdx).push({ reqKey, span: Math.abs(xB - xA), minX: Math.min(xA, xB), maxX: Math.max(xA, xB) });
+    }
+
+    edges.forEach((e) => {
+      const b1 = boxes.get(e.source);
+      const b2 = boxes.get(e.target);
+      const fc = edgeFaces.get(e.id);
+      const pS = edgePins.get(`${e.id}::src`);
+      const pT = edgePins.get(`${e.id}::tgt`);
+      if (!b1 || !b2 || !fc || !pS || !pT) return;
+
+      if (fc.directSide) return;
+      if (b2.row === b1.row) {
+        registerChannelReq(b1.row, `same::${e.id}`, pS.x, pT.x);
+      } else if (b2.row > b1.row) {
+        if (Math.abs(pT.x - pS.x) >= 4 || !isShaftClear(pT.x, pS.y + 20, pT.y, e.source, e.target)) {
+          registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x);
+        }
+        if (b2.row > b1.row + 1 && !isShaftClear(pT.x, PAD_Y + b1.row * ROW_PITCH + BAND_H + 20, pT.y, e.source, e.target)) {
+          registerChannelReq(b2.row - 1, `dn2::${e.id}`, pS.x, pT.x);
+        }
+      } else {
+        registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, pT.x);
+        if (!isShaftClear(pT.x, pT.y, PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20, e.source, e.target)) {
+          registerChannelReq(b2.row, `up2::${e.id}`, pS.x, pT.x);
+        }
+      }
     });
 
-    // Allocate horizontal busbar tracks per inter-band channel (shared by same source+edgeType!)
-    const channelBusMap = new Map(); // key `${channelIdx}::${sourceId}::${edgeType}` -> yTrack
-    const channelCounters = new Map(); // channelIdx -> count
+    const resolvedTrackY = new Map(); // `${chIdx}::${reqKey}` -> yTrack
+    channelRequests.forEach((reqs, chIdx) => {
+      // Sort widest horizontal span first (shallowest yTrack) so inner narrower branches drop cleanly past outer bends without crossing!
+      reqs.sort((a, b) => (b.span - a.span) || (a.minX - b.minX));
+      const bandBot = PAD_Y + chIdx * ROW_PITCH + BAND_H;
+      const tracks = []; // [{ y, intervals: [[x1, x2]] }]
+      reqs.forEach((rq) => {
+        let placedY = null;
+        for (let t = 0; t < tracks.length; t++) {
+          const overlaps = tracks[t].intervals.some(([i1, i2]) => rq.minX <= i2 + 10 && rq.maxX >= i1 - 10);
+          if (!overlaps) {
+            // Only reuse an earlier track if no wider segment on a deeper track would cross — safest: assign greedy non-overlapping track >= current max or non-conflicting
+            // Keeping strict monotonic track index for overlapping x ranges guarantees river-routing planarity!
+            placedY = tracks[t].y;
+            tracks[t].intervals.push([rq.minX, rq.maxX]);
+            break;
+          }
+        }
+        if (placedY === null) {
+          const tIdx = tracks.length;
+          const stepY = Math.min(12, Math.max(7, Math.floor((CHANNEL_H - 22) / Math.max(1, reqs.length))));
+          placedY = bandBot + 12 + tIdx * stepY;
+          tracks.push({ y: placedY, intervals: [[rq.minX, rq.maxX]] });
+        }
+        resolvedTrackY.set(`${chIdx}::${rq.reqKey}`, placedY);
+      });
+    });
 
-    function getBusTrackY(channelIdx, groupKey) {
-      const fullKey = `${channelIdx}::${groupKey}`;
-      if (channelBusMap.has(fullKey)) return channelBusMap.get(fullKey);
-      const idx = channelCounters.get(channelIdx) || 0;
-      channelCounters.set(channelIdx, idx + 1);
-      const bandBot = PAD_Y + channelIdx * ROW_PITCH + BAND_H;
-      const offsets = [22, 38, 54, 12, 64];
-      const yT = bandBot + offsets[idx % offsets.length];
-      channelBusMap.set(fullKey, yT);
-      return yT;
+    function getTrackY(chIdx, reqKey) {
+      return resolvedTrackY.get(`${chIdx}::${reqKey}`) || (PAD_Y + chIdx * ROW_PITCH + BAND_H + 26);
     }
 
     // Build Bands HTML
@@ -1063,182 +1176,178 @@
       `;
     }
 
-    // Build Orthogonal-Curved SVG Wires, T-Junction Dots & Micro-Labels
-    let svgWiresHtml = "";
-    const junctionDots = new Map(); // `${x.toFixed(0)},${y.toFixed(0)}` -> color
-    const busTapTracker = new Map(); // `${channelIdx}::${source}::${edgeType}` -> xs[]
-    const placedBadgeRects = [];
-    const wireSpecs = [];
+    // STEP 3: Compute all wire polylines first so badges can avoid EVERY wire segment!
+    const routedEdges = [];
+    const allWireSegs = []; // { edgeId, x1, y1, x2, y2 }
 
     edges.forEach((e) => {
       const b1 = boxes.get(e.source);
       const b2 = boxes.get(e.target);
-      if (!b1 || !b2) return;
+      const fc = edgeFaces.get(e.id);
+      const pStart = edgePins.get(`${e.id}::src`);
+      const pEnd = edgePins.get(`${e.id}::tgt`);
+      if (!b1 || !b2 || !fc || !pStart || !pEnd) return;
 
+      let pts = [];
+      let arrowAngleDeg = 90;
+      let badgeCandidates = [];
+
+      if (fc.directSide) {
+        const goRight = pEnd.x >= pStart.x;
+        pts = [pStart, pEnd];
+        arrowAngleDeg = goRight ? 0 : 180;
+        const midX = (pStart.x + pEnd.x) / 2;
+        const gapW = Math.abs(pEnd.x - pStart.x);
+        badgeCandidates = gapW >= 135
+          ? [{ x: midX, y: pStart.y - 13 }, { x: midX, y: Math.min(b1.top, b2.top) - 13 }]
+          : [{ x: midX, y: Math.min(b1.top, b2.top) - 13 }];
+      } else if (b2.row === b1.row) {
+        const yUnder = getTrackY(b1.row, `same::${e.id}`);
+        pts = [
+          pStart,
+          { x: pStart.x, y: yUnder },
+          { x: pEnd.x, y: yUnder },
+          pEnd
+        ];
+        arrowAngleDeg = -90;
+        badgeCandidates = [{ x: (pStart.x + pEnd.x) / 2, y: yUnder + 12 }];
+      } else if (b2.row > b1.row) {
+        const yBus = getTrackY(b1.row, `dn1::${e.id}`);
+        if (b2.row === b1.row + 1) {
+          if (Math.abs(pEnd.x - pStart.x) < 4) {
+            pts = [pStart, pEnd];
+          } else {
+            pts = [
+              pStart,
+              { x: pStart.x, y: yBus },
+              { x: pEnd.x, y: yBus },
+              pEnd
+            ];
+          }
+        } else if (isShaftClear(pEnd.x, yBus, pEnd.y, e.source, e.target)) {
+          if (Math.abs(pEnd.x - pStart.x) < 4) {
+            pts = [pStart, pEnd];
+          } else {
+            pts = [
+              pStart,
+              { x: pStart.x, y: yBus },
+              { x: pEnd.x, y: yBus },
+              pEnd
+            ];
+          }
+        } else {
+          const xAlley = findClearAlley(pEnd.x, yBus, pEnd.y, e.source, e.target);
+          const yBusBottom = getTrackY(b2.row - 1, `dn2::${e.id}`);
+          pts = [
+            pStart,
+            { x: pStart.x, y: yBus },
+            { x: xAlley, y: yBus },
+            { x: xAlley, y: yBusBottom },
+            { x: pEnd.x, y: yBusBottom },
+            pEnd
+          ];
+        }
+        arrowAngleDeg = 90;
+        badgeCandidates = [
+          { x: pEnd.x, y: pEnd.y - 14 },
+          { x: pEnd.x, y: pEnd.y - 28 }
+        ];
+      } else {
+        const yChStart = getTrackY(b1.row - 1, `up1::${e.id}`);
+        if (isShaftClear(pEnd.x, pEnd.y, yChStart, e.source, e.target)) {
+          pts = [
+            pStart,
+            { x: pStart.x, y: yChStart },
+            { x: pEnd.x, y: yChStart },
+            pEnd
+          ];
+        } else {
+          const xAlley = findClearAlley(pStart.x, pEnd.y, yChStart, e.source, e.target);
+          const yChTop = getTrackY(b2.row, `up2::${e.id}`);
+          pts = [
+            pStart,
+            { x: pStart.x, y: yChStart },
+            { x: xAlley, y: yChStart },
+            { x: xAlley, y: yChTop },
+            { x: pEnd.x, y: yChTop },
+            pEnd
+          ];
+        }
+        arrowAngleDeg = -90;
+        badgeCandidates = [{ x: pEnd.x, y: pEnd.y + 15 }];
+      }
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        allWireSegs.push({
+          edgeId: e.id,
+          x1: Math.min(pts[i].x, pts[i + 1].x),
+          y1: Math.min(pts[i].y, pts[i + 1].y),
+          x2: Math.max(pts[i].x, pts[i + 1].x),
+          y2: Math.max(pts[i].y, pts[i + 1].y)
+        });
+      }
+      routedEdges.push({ e, pts, pStart, pEnd, arrowAngleDeg, badgeCandidates });
+    });
+
+    // STEP 4: Render SVG Wires, Spaced Exit Port Dots, Arrowheads & Non-Colliding Badges
+    let svgWiresHtml = "";
+    let portDotsSvg = "";
+    const placedBadgeRects = [];
+    const wireSpecs = [];
+
+    routedEdges.forEach(({ e, pts, pStart, pEnd, arrowAngleDeg, badgeCandidates }) => {
       const interrupted = isEdgeInterruptedInEmergency(e);
       const cStyle = resolveCarrierStyle(e.edgeType, interrupted, pal);
       const color = cStyle.color;
       const dash = cStyle.svgDash;
       const strokeW = cStyle.width;
 
-      // Compute pin offset on target top if multiple parents converge
-      const topArr = inTopByTarget.get(e.target) || [];
-      const topIdx = topArr.indexOf(e);
-      const topPinShift = topArr.length > 1 && topIdx >= 0
-        ? (topIdx - (topArr.length - 1) / 2) * 22
-        : 0;
-
-      let pts = [];
-      let arrowAngleDeg = 90; // downward by default
-      let endPt = { x: b2.cx + topPinShift, y: b2.top };
-      let badgeAnchor = null;
-
-      if (b2.row === b1.row) {
-        const dx = b2.cx - b1.cx;
-        if (Math.abs(dx) <= COL_PITCH * 1.32) {
-          // Direct clean horizontal connection between adjacent cards
-          const goRight = dx >= 0;
-          const pStart = { x: goRight ? b1.right : b1.left, y: b1.cy };
-          const pEnd = { x: goRight ? b2.left : b2.right, y: b2.cy };
-          pts = [pStart, pEnd];
-          endPt = pEnd;
-          arrowAngleDeg = goRight ? 0 : 180;
-          badgeAnchor = { x: (pStart.x + pEnd.x) / 2, y: b1.top - 13 };
-        } else {
-          // Non-adjacent same-row: step cleanly into upper band channel
-          const yArc = b1.top - 15 - ((channelCounters.get(`top_${b1.row}`) || 0) * 12);
-          channelCounters.set(`top_${b1.row}`, (channelCounters.get(`top_${b1.row}`) || 0) + 1);
-          const xEnd = b2.cx + topPinShift;
-          pts = [
-            { x: b1.cx, y: b1.top },
-            { x: b1.cx, y: yArc },
-            { x: xEnd, y: yArc },
-            { x: xEnd, y: b2.top }
-          ];
-          endPt = { x: xEnd, y: b2.top };
-          arrowAngleDeg = 90;
-        }
-      } else if (b2.row > b1.row) {
-        const xStart = b1.cx;
-        const yStart = b1.bottom;
-        const xEnd = b2.cx + topPinShift;
-        const yEnd = b2.top;
-        const busKey = `${e.source}::${e.edgeType}`;
-        const yBus = getBusTrackY(b1.row, busKey);
-
-        // Track taps for busbar junction dots
-        const tapFullKey = `${b1.row}::${busKey}`;
-        if (!busTapTracker.has(tapFullKey)) busTapTracker.set(tapFullKey, { y: yBus, color, xs: [xStart] });
-
-        if (b2.row === b1.row + 1) {
-          if (Math.abs(xEnd - xStart) < 5) {
-            pts = [{ x: xStart, y: yStart }, { x: xEnd, y: yEnd }];
-          } else {
-            pts = [
-              { x: xStart, y: yStart },
-              { x: xStart, y: yBus },
-              { x: xEnd, y: yBus },
-              { x: xEnd, y: yEnd }
-            ];
-            busTapTracker.get(tapFullKey).xs.push(xEnd);
-          }
-          badgeAnchor = { x: xEnd, y: yEnd - 15 };
-        } else {
-          // Multi-row downward connection: drop directly down xEnd if shaft is clear, else use nearest clear alley!
-          if (isShaftClear(xEnd, yBus, yEnd, e.source, e.target)) {
-            if (Math.abs(xEnd - xStart) < 5) {
-              pts = [{ x: xStart, y: yStart }, { x: xEnd, y: yEnd }];
-            } else {
-              pts = [
-                { x: xStart, y: yStart },
-                { x: xStart, y: yBus },
-                { x: xEnd, y: yBus },
-                { x: xEnd, y: yEnd }
-              ];
-              busTapTracker.get(tapFullKey).xs.push(xEnd);
-            }
-          } else {
-            const xAlley = findClearAlley(xEnd, yBus, yEnd, e.source, e.target);
-            const yBusBottom = getBusTrackY(b2.row - 1, `in::${e.id}`);
-            pts = [
-              { x: xStart, y: yStart },
-              { x: xStart, y: yBus },
-              { x: xAlley, y: yBus },
-              { x: xAlley, y: yBusBottom },
-              { x: xEnd, y: yBusBottom },
-              { x: xEnd, y: yEnd }
-            ];
-            busTapTracker.get(tapFullKey).xs.push(xAlley);
-          }
-          badgeAnchor = { x: xEnd, y: yEnd - 15 };
-        }
-        endPt = { x: xEnd, y: yEnd };
-        arrowAngleDeg = 90;
-      } else {
-        // Upward feedback / trip line (b2.row < b1.row)
-        const xStart = b1.cx;
-        const yStart = b1.top;
-        const xEnd = b2.cx;
-        const yEnd = b2.bottom;
-        const yChannelStart = getBusTrackY(b1.row - 1, `up::${e.id}`);
-        if (isShaftClear(xEnd, yEnd, yChannelStart, e.source, e.target)) {
-          pts = [
-            { x: xStart, y: yStart },
-            { x: xStart, y: yChannelStart },
-            { x: xEnd, y: yChannelStart },
-            { x: xEnd, y: yEnd }
-          ];
-        } else {
-          const xAlley = findClearAlley(xStart, yEnd, yChannelStart, e.source, e.target);
-          const yChannelTop = getBusTrackY(b2.row, `uptop::${e.id}`);
-          pts = [
-            { x: xStart, y: yStart },
-            { x: xStart, y: yChannelStart },
-            { x: xAlley, y: yChannelStart },
-            { x: xAlley, y: yChannelTop },
-            { x: xEnd, y: yChannelTop },
-            { x: xEnd, y: yEnd }
-          ];
-        }
-        endPt = { x: xEnd, y: yEnd };
-        arrowAngleDeg = -90;
-      }
-
-      const dPath = buildRoundedOrthoPath(pts, 13);
+      const dPath = buildRoundedOrthoPath(pts, 11);
       if (!dPath) return;
+
+      // Distinct outgoing terminal connector pin dot on source block border
+      portDotsSvg += `<circle cx="${pStart.x.toFixed(1)}" cy="${pStart.y.toFixed(1)}" r="2.9" fill="${pal.surface}" stroke="${color}" stroke-width="1.8" />`;
 
       // Arrowhead / Tee at target port
       let headSvg = "";
       if (e.edgeType === "emergency_trip") {
-        headSvg = `<g transform="translate(${endPt.x.toFixed(1)},${endPt.y.toFixed(1)}) rotate(${arrowAngleDeg})"><line x1="-2" y1="-6" x2="-2" y2="6" stroke="${color}" stroke-width="2.8" stroke-linecap="round"/></g>`;
+        headSvg = `<g transform="translate(${pEnd.x.toFixed(1)},${pEnd.y.toFixed(1)}) rotate(${arrowAngleDeg})"><line x1="-2" y1="-6" x2="-2" y2="6" stroke="${color}" stroke-width="2.8" stroke-linecap="round"/></g>`;
       } else {
-        headSvg = `<g transform="translate(${endPt.x.toFixed(1)},${endPt.y.toFixed(1)}) rotate(${arrowAngleDeg})"><polygon points="0,0 -8,-4.6 -8,4.6" fill="${color}"/></g>`;
+        headSvg = `<g transform="translate(${pEnd.x.toFixed(1)},${pEnd.y.toFixed(1)}) rotate(${arrowAngleDeg})"><polygon points="0,0 -8,-4.5 -8,4.5" fill="${color}"/></g>`;
       }
 
-      // Compact non-overlapping horizontal micro-badge for wire rating
+      // Compact horizontal micro-badge checked against BOTH other badges AND other wires!
       let badgeSvg = "";
       const shortLbl = interrupted
         ? (e.edgeType === "power_fv" ? "⛔ STOP CEI 0-21" : "⛔ SEZIONATO")
         : (e.label || "").replace(/\s*·\s*.*/, "").slice(0, 22);
 
-      if (badgeAnchor && shortLbl) {
-        const bw = Math.max(48, shortLbl.length * 5.7 + 12);
-        const bh = 16;
-        const bx1 = badgeAnchor.x - bw / 2;
-        const by1 = badgeAnchor.y - bh / 2;
-        const collides = placedBadgeRects.some((r) =>
-          bx1 < r.x2 + 4 && bx1 + bw > r.x1 - 4 && by1 < r.y2 + 2 && by1 + bh > r.y1 - 2
-        );
-        if (!collides) {
-          placedBadgeRects.push({ x1: bx1, y1: by1, x2: bx1 + bw, y2: by1 + bh });
-          badgeSvg = `
-            <g>
-              <rect x="${bx1.toFixed(1)}" y="${by1.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="4"
-                fill="${pal.surface}" stroke="${interrupted ? pal.danger : pal.border}" stroke-width="1" opacity="0.94" />
-              <text x="${badgeAnchor.x.toFixed(1)}" y="${(badgeAnchor.y + 3.4).toFixed(1)}" text-anchor="middle"
-                font-family="Segoe UI, Aptos, sans-serif" font-size="9.5" font-weight="600" fill="${interrupted ? pal.danger : pal.textMuted}">${escXml(shortLbl)}</text>
-            </g>
-          `;
+      if (shortLbl && badgeCandidates.length) {
+        const bw = Math.max(46, shortLbl.length * 5.6 + 10);
+        const bh = 15;
+        for (const cand of badgeCandidates) {
+          const bx1 = cand.x - bw / 2;
+          const by1 = cand.y - bh / 2;
+          const bx2 = bx1 + bw;
+          const by2 = by1 + bh;
+          const hitsBadge = placedBadgeRects.some((r) =>
+            bx1 < r.x2 + 4 && bx2 > r.x1 - 4 && by1 < r.y2 + 2 && by2 > r.y1 - 2
+          );
+          const hitsOtherWire = allWireSegs.some((sg) =>
+            sg.edgeId !== e.id && sg.x2 > bx1 - 2 && sg.x1 < bx2 + 2 && sg.y2 > by1 - 2 && sg.y1 < by2 + 2
+          );
+          if (!hitsBadge && !hitsOtherWire) {
+            placedBadgeRects.push({ x1: bx1, y1: by1, x2: bx2, y2: by2 });
+            badgeSvg = `
+              <g>
+                <rect x="${bx1.toFixed(1)}" y="${by1.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="4"
+                  fill="${pal.surface}" stroke="${interrupted ? pal.danger : pal.border}" stroke-width="1" opacity="0.95" />
+                <text x="${cand.x.toFixed(1)}" y="${(cand.y + 3.3).toFixed(1)}" text-anchor="middle"
+                  font-family="Segoe UI, Aptos, sans-serif" font-size="9.3" font-weight="600" fill="${interrupted ? pal.danger : pal.textMuted}">${escXml(shortLbl)}</text>
+              </g>
+            `;
+            break;
+          }
         }
       }
 
@@ -1263,27 +1372,7 @@
       });
     });
 
-    // Add electrical T-junction dots where a horizontal busbar feeds multiple branches
-    busTapTracker.forEach((info) => {
-      const uniqXs = Array.from(new Set(info.xs.map((v) => Math.round(v))));
-      if (uniqXs.length >= 3) {
-        // Draw junction dot at parent stem & interior taps
-        uniqXs.sort((a, b) => a - b);
-        for (let i = 0; i < uniqXs.length; i++) {
-          if (i > 0 && i < uniqXs.length - 1) {
-            junctionDots.set(`${uniqXs[i]},${Math.round(info.y)}`, info.color);
-          } else if (Math.abs(uniqXs[i] - info.xs[0]) <= 2) {
-            junctionDots.set(`${uniqXs[i]},${Math.round(info.y)}`, info.color);
-          }
-        }
-      }
-    });
-
-    let dotsSvg = "";
-    junctionDots.forEach((col, key) => {
-      const [jx, jy] = key.split(",");
-      dotsSvg += `<circle cx="${jx}" cy="${jy}" r="4.2" fill="${col}" stroke="${pal.surface}" stroke-width="1.4" />`;
-    });
+    const dotsSvg = portDotsSvg;
 
     // Build Crisp HTML Technical Cards
     let cardsHtml = "";
@@ -2181,6 +2270,10 @@
   function startFlowAnimationLoop() {
     if (rafId) cancelAnimationFrame(rafId);
 
+    // STRICTLY UNIFORM LINEAR VELOCITY (56 px/second in diagram space) across ALL wires regardless of length or signal type!
+    const FLOW_SPEED_PX_PER_MS = 0.056;
+    const FLOW_SPACING_PX = 135;
+
     const drawFrame = (timestamp) => {
       const canvas = document.getElementById("flowCanvas");
       if (!canvas) return;
@@ -2205,32 +2298,21 @@
           }
 
           const L = ws.totalLen;
-          const renderedLen = L * sc;
-          if (renderedLen < 20) return;
+          if (L * sc < 18) return;
 
           let shapeKind = "triangle";
-          let speed = 0.00024;
-          if (eType === "fire_resistant") {
-            shapeKind = "hexagon";
-            speed = 0.00028;
-          } else if (eType === "bms_bus" || eType === "tlc_signal") {
-            shapeKind = "packets";
-            speed = 0.00035;
-          } else if (eType === "emergency_trip") {
-            shapeKind = "diamond";
-            speed = 0.00044;
-          } else if (eType === "earth_pe") {
-            shapeKind = "earth_wave";
-            speed = 0.00042;
-          }
+          if (eType === "fire_resistant") shapeKind = "hexagon";
+          else if (eType === "bms_bus" || eType === "tlc_signal") shapeKind = "packets";
+          else if (eType === "emergency_trip") shapeKind = "diamond";
+          else if (eType === "earth_pe") shapeKind = "earth_wave";
 
-          const count = Math.max(2, Math.min(4, Math.round(renderedLen / 150)));
+          const count = Math.max(1, Math.round(L / FLOW_SPACING_PX));
+          const stepLen = L / count;
           const size = 5.0 * Math.min(1.18, Math.max(0.75, sc));
-          const phaseShift = (idx * 0.21) % 1;
+          const phasePx = (idx * 37) % stepLen;
 
           for (let k = 0; k < count; k++) {
-            const t = ((timestamp * speed) + phaseShift + k / count) % 1;
-            const dNow = t * L;
+            const dNow = ((timestamp * FLOW_SPEED_PX_PER_MS) + phasePx + k * stepLen) % L;
             const pt = ws.pathEl.getPointAtLength(dNow);
             const ptAhead = ws.pathEl.getPointAtLength(Math.min(L, dNow + 3));
             const ptBehind = ws.pathEl.getPointAtLength(Math.max(0, dNow - 3));
@@ -2242,50 +2324,51 @@
         const pal = getPalette();
         const zoom = cyInstance.zoom();
         const pan = cyInstance.pan();
+        const screenSpeed = FLOW_SPEED_PX_PER_MS * zoom;
+        const screenSpacing = FLOW_SPACING_PX * zoom;
 
         cyInstance.edges(":visible").forEach((edge, idx) => {
           if (edge.hasClass("dimmed")) return;
-          if (edge.data("interrupted")) return; // Tripped branches have ZERO flow!
+          if (edge.data("interrupted")) return;
 
           const eType = edge.data("edgeType");
-
-          // PHYSICAL FIDELITY: In Normal Operation, Earth (PE) and Emergency Trip wires carry NO flowing current!
           if (state.opState === "normal" && (eType === "earth_pe" || eType === "emergency_trip")) {
             return;
           }
 
-          const s = edge.renderedSourceEndpoint();
-          const d = edge.renderedTargetEndpoint();
-          if (!s || !d) return;
-          const dist = Math.hypot(d.x - s.x, d.y - s.y);
-          if (dist < 22) return;
+          // Measure true rendered curve length using 4 chord segments so speed is identical on curved and straight wires!
+          const p0 = sampleEdgePoint(edge, 0, zoom, pan);
+          const p1 = sampleEdgePoint(edge, 0.25, zoom, pan);
+          const p2 = sampleEdgePoint(edge, 0.5, zoom, pan);
+          const p3 = sampleEdgePoint(edge, 0.75, zoom, pan);
+          const p4 = sampleEdgePoint(edge, 1, zoom, pan);
+          if (!p0 || !p1 || !p2 || !p3 || !p4) return;
+          const arcLen =
+            Math.hypot(p1.x - p0.x, p1.y - p0.y) +
+            Math.hypot(p2.x - p1.x, p2.y - p1.y) +
+            Math.hypot(p3.x - p2.x, p3.y - p2.y) +
+            Math.hypot(p4.x - p3.x, p4.y - p3.y);
+          if (arcLen < 20) return;
 
           let shapeKind = "triangle";
-          let speed = 0.00026;
-          if (eType === "fire_resistant") {
-            shapeKind = "hexagon";
-            speed = 0.00030;
-          } else if (eType === "bms_bus" || eType === "tlc_signal") {
-            shapeKind = "packets";
-            speed = 0.00038;
-          } else if (eType === "emergency_trip") {
-            shapeKind = "diamond";
-            speed = 0.00048;
-          } else if (eType === "earth_pe") {
-            shapeKind = "earth_wave";
-            speed = 0.00046;
-          }
+          if (eType === "fire_resistant") shapeKind = "hexagon";
+          else if (eType === "bms_bus" || eType === "tlc_signal") shapeKind = "packets";
+          else if (eType === "emergency_trip") shapeKind = "diamond";
+          else if (eType === "earth_pe") shapeKind = "earth_wave";
 
-          const count = Math.max(2, Math.min(4, Math.round(dist / 145)));
+          const count = Math.max(1, Math.round(arcLen / Math.max(40, screenSpacing)));
+          const stepPx = arcLen / count;
           const size = 5.4 * Math.min(1.22, Math.max(0.72, zoom));
           const col = edge.data("color");
-          const phaseShift = (idx * 0.23) % 1;
+          const phasePx = (idx * 37 * zoom) % stepPx;
 
           for (let k = 0; k < count; k++) {
-            const t = ((timestamp * speed) + phaseShift + k / count) % 1;
+            const distNow = ((timestamp * screenSpeed) + phasePx + k * stepPx) % arcLen;
+            const t = distNow / arcLen;
+            const dt = Math.min(0.03, 4 / arcLen);
             const pt = sampleEdgePoint(edge, t, zoom, pan);
-            const ptAhead = sampleEdgePoint(edge, Math.min(1, t + 0.02), zoom, pan);
-            const ptBehind = sampleEdgePoint(edge, Math.max(0, t - 0.02), zoom, pan);
+            const ptAhead = sampleEdgePoint(edge, Math.min(1, t + dt), zoom, pan);
+            const ptBehind = sampleEdgePoint(edge, Math.max(0, t - dt), zoom, pan);
             if (!pt || !ptAhead || !ptBehind) continue;
 
             const theta = Math.atan2(ptAhead.y - ptBehind.y, ptAhead.x - ptBehind.x);
