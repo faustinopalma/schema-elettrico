@@ -946,7 +946,7 @@
 
     const CARD_W = 224;
     const CARD_H = 104;
-    const COL_GAP = 44;
+    const COL_GAP = isInternal ? 56 : 44;
     const COL_PITCH = CARD_W + COL_GAP;
     const PAD_LEFT = 204;
     const PAD_RIGHT = 32;
@@ -954,7 +954,7 @@
     const BAND_TOP = 32;
     const BAND_BOT = 14;
     const BAND_H = BAND_TOP + CARD_H + BAND_BOT;
-    const CHANNEL_H = 88;
+    const CHANNEL_H = isInternal ? 124 : 90;
     const ROW_PITCH = BAND_H + CHANNEL_H;
 
     const spanCols = Math.max(2.2, (maxCol - minCol) + 1);
@@ -1011,19 +1011,25 @@
       return true;
     }
 
-    // Find nearest clear vertical alley near targetX for multi-row bypasses
+    // Find nearest clear vertical alley; tie-break closest to tieX (b2.cx) so shallower rows take inner sub-lanes and deeper rows pass untouched on outer sub-lanes!
     const usedAlleys = [];
-    function findClearAlley(prefX, yA, yB, idA, idB) {
+    function findClearAlley(prefX, tieX, yA, yB, idA, idB) {
       const candidates = [];
       const maxColIdx = Math.ceil(spanCols) + 1;
+      const laneStep = isInternal ? 12 : 10;
       for (let k = 0; k <= maxColIdx; k++) {
         const ax = PAD_LEFT + k * COL_PITCH - COL_GAP / 2;
-        candidates.push(ax, ax - 10, ax + 10);
+        candidates.push(ax - laneStep, ax, ax + laneStep);
       }
-      candidates.sort((a, b) => Math.abs(a - prefX) - Math.abs(b - prefX));
+      candidates.sort((a, b) => {
+        const da = Math.floor(Math.abs(a - prefX) / (COL_GAP * 0.7));
+        const db = Math.floor(Math.abs(b - prefX) / (COL_GAP * 0.7));
+        if (da !== db) return da - db;
+        return Math.abs(a - tieX) - Math.abs(b - tieX);
+      });
       for (const cx of candidates) {
         if (!isShaftClear(cx, yA, yB, idA, idB)) continue;
-        const clash = usedAlleys.some((u) => Math.abs(u.x - cx) < 7 && Math.min(yB, u.y2) > Math.max(yA, u.y1));
+        const clash = usedAlleys.some((u) => Math.abs(u.x - cx) < 8 && Math.min(yB, u.y2) > Math.max(yA, u.y1));
         if (!clash) {
           usedAlleys.push({ x: cx, y1: Math.min(yA, yB), y2: Math.max(yA, yB) });
           return cx;
@@ -1032,7 +1038,8 @@
       return prefX;
     }
 
-    // STEP 1: Classify exit/entry faces for every edge & allocate SPACED terminal pins on all 4 faces of every block!
+    // STEP 1: Classify exit/entry faces AND pre-compute multi-row bypass alleys FIRST
+    // so every block's pins are sorted monotonically by each wire's ACTUAL horizontal channel target (eliminating nested/inverted fan-out crossings!)
     const faceAttachments = new Map(); // `${nodeId}::${face}` -> [{ edgeId, isSource, sortCoord }]
     const edgeFaces = new Map();       // edgeId -> { exitFace, entryFace, directSide }
 
@@ -1043,6 +1050,7 @@
     }
 
     edges.forEach((e) => {
+      e._cachedAlley = undefined;
       const b1 = boxes.get(e.source);
       const b2 = boxes.get(e.target);
       if (!b1 || !b2) return;
@@ -1050,6 +1058,8 @@
       let exitFace = "bot";
       let entryFace = "top";
       let directSide = false;
+      let srcSort = b2.cx;
+      let tgtSort = b1.cx;
 
       if (b2.row === b1.row) {
         if (isRowSpanClear(b1.row, b1.cx, b2.cx, e.source, e.target)) {
@@ -1057,22 +1067,39 @@
           exitFace = goRight ? "right" : "left";
           entryFace = goRight ? "left" : "right";
           directSide = true;
+          srcSort = b2.cy;
+          tgtSort = b1.cy;
         } else {
-          // Blocked by an intermediate card on the same row -> route cleanly underneath (never across top!)
           exitFace = "bot";
           entryFace = "bot";
         }
       } else if (b2.row > b1.row) {
         exitFace = "bot";
         entryFace = "top";
+        const yFirstChannel = PAD_Y + b1.row * ROW_PITCH + BAND_H + 20;
+        if (b2.row > b1.row + 1 && !isShaftClear(b2.cx, yFirstChannel, b2.top, e.source, e.target)) {
+          // Prefer alley on outward side of b1.cx so left/right fan-out stays symmetric and uncrossed
+          const prefSideX = b2.cx < b1.cx ? (b2.left - COL_GAP / 2) : (b2.cx > b1.cx ? (b2.right + COL_GAP / 2) : (b2.left - COL_GAP / 2));
+          const xAlley = findClearAlley(prefSideX, b2.cx, yFirstChannel, b2.top, e.source, e.target);
+          e._cachedAlley = xAlley;
+          srcSort = xAlley;
+          tgtSort = xAlley;
+        }
       } else {
         exitFace = "top";
         entryFace = "bot";
+        const yUpChannel = PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20;
+        if (!isShaftClear(b2.cx, b2.bottom, yUpChannel, e.source, e.target)) {
+          const xAlley = findClearAlley(b1.cx, b2.cx, b2.bottom, yUpChannel, e.source, e.target);
+          e._cachedAlley = xAlley;
+          srcSort = xAlley;
+          tgtSort = xAlley;
+        }
       }
 
       edgeFaces.set(e.id, { exitFace, entryFace, directSide });
-      addAttachment(e.source, exitFace, e.id, true, (exitFace === "left" || exitFace === "right") ? b2.cy : b2.cx);
-      addAttachment(e.target, entryFace, e.id, false, (entryFace === "left" || entryFace === "right") ? b1.cy : b1.cx);
+      addAttachment(e.source, exitFace, e.id, true, srcSort);
+      addAttachment(e.target, entryFace, e.id, false, tgtSort);
     });
 
     const edgePins = new Map(); // `${edgeId}::src` or `${edgeId}::tgt` -> { x, y }
@@ -1227,28 +1254,20 @@
       if (b2.row === b1.row) {
         registerChannelReq(b1.row, `same::${e.id}`, pS.x, pT.x, true, false);
       } else if (b2.row > b1.row) {
-        if (b2.row === b1.row + 1) {
-          if (Math.abs(pT.x - pS.x) >= 4) {
-            registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x, true, true);
-          }
-        } else if (isShaftClear(pT.x, PAD_Y + b1.row * ROW_PITCH + BAND_H + 20, pT.y, e.source, e.target)) {
-          if (Math.abs(pT.x - pS.x) >= 4) {
-            registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x, true, true);
-          }
-        } else {
-          const xAlley = findClearAlley(pT.x, PAD_Y + b1.row * ROW_PITCH + BAND_H + 20, pT.y, e.source, e.target);
-          e._cachedAlley = xAlley;
+        if (e._cachedAlley !== undefined) {
+          const xAlley = e._cachedAlley;
           registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, xAlley, true, true);
           registerChannelReq(b2.row - 1, `dn2::${e.id}`, xAlley, pT.x, true, true);
+        } else if (Math.abs(pT.x - pS.x) >= 4) {
+          registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x, true, true);
         }
       } else {
-        if (isShaftClear(pT.x, pT.y, PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20, e.source, e.target)) {
-          registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, pT.x, true, true);
-        } else {
-          const xAlley = findClearAlley(pS.x, pT.y, PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20, e.source, e.target);
-          e._cachedAlley = xAlley;
+        if (e._cachedAlley !== undefined) {
+          const xAlley = e._cachedAlley;
           registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, xAlley, false, true);
           registerChannelReq(b2.row, `up2::${e.id}`, xAlley, pT.x, true, false);
+        } else {
+          registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, pT.x, true, true);
         }
       }
     });
@@ -1396,30 +1415,8 @@
         badgeCandidates = [{ x: (pStart.x + pEnd.x) / 2, y: yUnder + 12 }];
       } else if (b2.row > b1.row) {
         const yBus = getTrackY(b1.row, `dn1::${e.id}`);
-        if (b2.row === b1.row + 1) {
-          if (Math.abs(pEnd.x - pStart.x) < 4) {
-            pts = [pStart, pEnd];
-          } else {
-            pts = [
-              pStart,
-              { x: pStart.x, y: yBus },
-              { x: pEnd.x, y: yBus },
-              pEnd
-            ];
-          }
-        } else if (isShaftClear(pEnd.x, yBus, pEnd.y, e.source, e.target)) {
-          if (Math.abs(pEnd.x - pStart.x) < 4) {
-            pts = [pStart, pEnd];
-          } else {
-            pts = [
-              pStart,
-              { x: pStart.x, y: yBus },
-              { x: pEnd.x, y: yBus },
-              pEnd
-            ];
-          }
-        } else {
-          const xAlley = e._cachedAlley !== undefined ? e._cachedAlley : findClearAlley(pEnd.x, yBus, pEnd.y, e.source, e.target);
+        if (e._cachedAlley !== undefined) {
+          const xAlley = e._cachedAlley;
           const yBusBottom = getTrackY(b2.row - 1, `dn2::${e.id}`);
           pts = [
             pStart,
@@ -1427,6 +1424,15 @@
             { x: xAlley, y: yBus },
             { x: xAlley, y: yBusBottom },
             { x: pEnd.x, y: yBusBottom },
+            pEnd
+          ];
+        } else if (Math.abs(pEnd.x - pStart.x) < 4) {
+          pts = [pStart, pEnd];
+        } else {
+          pts = [
+            pStart,
+            { x: pStart.x, y: yBus },
+            { x: pEnd.x, y: yBus },
             pEnd
           ];
         }
@@ -1437,15 +1443,8 @@
         ];
       } else {
         const yChStart = getTrackY(b1.row - 1, `up1::${e.id}`);
-        if (isShaftClear(pEnd.x, pEnd.y, yChStart, e.source, e.target)) {
-          pts = [
-            pStart,
-            { x: pStart.x, y: yChStart },
-            { x: pEnd.x, y: yChStart },
-            pEnd
-          ];
-        } else {
-          const xAlley = e._cachedAlley !== undefined ? e._cachedAlley : findClearAlley(pStart.x, pEnd.y, yChStart, e.source, e.target);
+        if (e._cachedAlley !== undefined) {
+          const xAlley = e._cachedAlley;
           const yChTop = getTrackY(b2.row, `up2::${e.id}`);
           pts = [
             pStart,
@@ -1453,6 +1452,13 @@
             { x: xAlley, y: yChStart },
             { x: xAlley, y: yChTop },
             { x: pEnd.x, y: yChTop },
+            pEnd
+          ];
+        } else {
+          pts = [
+            pStart,
+            { x: pStart.x, y: yChStart },
+            { x: pEnd.x, y: yChStart },
             pEnd
           ];
         }
