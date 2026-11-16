@@ -27,7 +27,8 @@ window.IMPIANTO_DATA = {
         "in": "Rete pubblica BT 400/230V da cavidotti stradali (pozzetti 'E') + Pannelli Fotovoltaici in copertura",
         "process": "Al Piano Terra (ingresso carraio) i 4 Contatori Parti Comuni misurano 80+50+50+160 kW; al Piano -1 (zona cantine) due sale separate ospitano i contatori privati degli appartamenti",
         "out": "I 152 Box Auto (-1 e -2) NON dipendono dai contatori appartamenti: sono alimentati tutti dal Contatore 80 kW → QE.SSC → Sezione Q6 (4 circuiti Q6.3–Q6.6 per sgancio VVF unico)"
-      }
+      },
+      "tabLabel": "0 · Contatori & Box"
     },
     {
       "id": "IMP-SSC",
@@ -50,7 +51,8 @@ window.IMPIANTO_DATA = {
         "in": "Contatore Ente Distributore da 80 kW nel Locale Contatori Principale al Piano Terra (ingresso carraio)",
         "process": "Il Ripartitore da 250A separa a monte la linea antincendio; poi AVSSC e il quadro generale QE.SSC smistano le dorsali, inclusa la Sezione Autorimessa Q6 (63A con sgancio VVF 24Vac)",
         "out": "Alimenta i 152 Box privati (-1 e -2, senza contatori singoli), Corselli/Rampa, Portineria, Luci Esterne, 2 UPS e le 3 Centrali interrate"
-      }
+      },
+      "tabLabel": "1 · Supercondominio"
     },
     {
       "id": "IMP-SCA",
@@ -73,7 +75,8 @@ window.IMPIANTO_DATA = {
         "in": "Contatore dedicato da 50 kW al Piano Terra per la Torre A",
         "process": "L'avanquadro AVSC-A protegge il montante fino al quadro generale QESC-A al Piano -1 (dotato di sgancio VVF dedicato)",
         "out": "Alimenta i 2 Ascensori, UTA ed Estrattore cappe sul tetto, Palestra, Deposito Bici, Cantine e la colonna dei 16 Quadri di Piano (P.T → 14°)"
-      }
+      },
+      "tabLabel": "2 · Torre A"
     },
     {
       "id": "IMP-SCB",
@@ -96,7 +99,8 @@ window.IMPIANTO_DATA = {
         "in": "Contatore dedicato da 50 kW al Piano Terra per la Torre B",
         "process": "Architettura gemella alla Torre A: AVSC-B protegge il montante verso il quadro generale QESC-B al Piano -1",
         "out": "Alimenta i 2 Ascensori, UTA ed Estrattore cappe sul tetto, Sala Riunioni, Spazio Polifunzionale/Lavanderia, Cantine e 16 Quadri di Piano"
-      }
+      },
+      "tabLabel": "3 · Torre B"
     },
     {
       "id": "IMP-PDC",
@@ -119,7 +123,8 @@ window.IMPIANTO_DATA = {
         "in": "Doppia sorgente: Contatore di potenza da 160 kW a terra + Pannelli Fotovoltaici sul tetto",
         "process": "AVPC (630A) porta energia fino alla sbarra da 800A del quadro QE.PC al Piano -2, dove confluisce anche l'energia solare per l'autoconsumo",
         "out": "Alimenta le 3 grandi Pompe di Calore geotermiche ad acqua di falda (PC1 da 48 kW + PC2A da 91 kW + PC2B da 91 kW) per caldo, freddo e acqua calda"
-      }
+      },
+      "tabLabel": "4 · Pompe Calore & FV"
     },
     {
       "id": "IMP-FIRE",
@@ -142,7 +147,8 @@ window.IMPIANTO_DATA = {
         "in": "Derivazione privilegiata a monte dello sgancio generale (RIP-250A) + 2 batterie UPS online",
         "process": "Garantisce che la pompa antincendio resti sempre alimentata mentre i pulsanti VVF tolgono tensione selettivamente alle zone in emergenza",
         "out": "Alimenta la Motopompa VVF 15 kW (cavo resistente al fuoco), chiude i Portoni Tagliafuoco, sgancia Box/Scale e presidia gli allarmi IRA"
-      }
+      },
+      "tabLabel": "5 · Antincendio & UPS"
     },
     {
       "id": "IMP-BMS",
@@ -165,7 +171,8 @@ window.IMPIANTO_DATA = {
         "in": "19 sonde di temperatura, pressostati pozzi e contatti di stato/blocco da tutti i quadri delle centrali",
         "process": "Il PLC centrale ABB Cylon (QE-REG, connesso in 4G) elabora il fabbisogno termico e dialoga via cavo seriale BACnet/Modbus",
         "out": "Accende in cascata Pompe di Calore, Pozzi di falda (tramite modulo CBX1), 16 pompe di rilancio, 5 valvole miscelatrici e sistema cappe/contabilizzazione"
-      }
+      },
+      "tabLabel": "6 · Automazione BMS"
     },
     {
       "id": "IMP-TLC",
@@ -188,7 +195,8 @@ window.IMPIANTO_DATA = {
         "in": "Fibre ottiche degli operatori telefonici dai pozzetti esterni + Antenne TV terrestre/satellitare in copertura",
         "process": "Il Centro Servizi Ottico (CSOE/ROE) e il convertitore ottico TV (STOM) unificano i segnali su dorsali in fibra separate dai cavi elettrici",
         "out": "Porta fibra FTTH e TV nelle scatole STOA/QDSA di ogni appartamento, gestisce i 3 varchi Videocitofonici e gli allarmi tirante bagni disabili"
-      }
+      },
+      "tabLabel": "7 · Fibra & Citofoni"
     },
     {
       "id": "IMP-GND",
@@ -211,7 +219,8 @@ window.IMPIANTO_DATA = {
         "in": "Eventuali correnti di guasto verso massa delle apparecchiature o scariche atmosferiche/sovratensioni sulla rete",
         "process": "I 4 scaricatori Tipo 1+2 (DEHN) nei quadri principali e i conduttori giallo/verdi convogliano le correnti sui collettori di terra",
         "out": "Disperde in sicurezza nel terreno tramite la corda interrata in rame nudo da 50 mm² e i 14 pozzetti con picchetti verticali"
-      }
+      },
+      "tabLabel": "8 · Rete di Terra"
     }
   ],
   "floors": [
@@ -8742,7 +8751,7 @@ window.IMPIANTO_DATA = {
       }
     },
     {
-      "id": "MBUS-M-Bus",
+      "id": "MBUS-CONTAB",
       "code": "M-BUS & CAPPE",
       "label": "Rete Contabilizzazione M-Bus & Regolazione Cappe M-Bus",
       "plant": "IMP-BMS",
@@ -8773,7 +8782,7 @@ window.IMPIANTO_DATA = {
       "roleLabel": "📡 RETE CONTAB. & CAPPE",
       "shortFunc": "Rete dati lungo le due torri che legge i consumi di ogni alloggio e regola l'aspirazione cappe cucina (7°/10°).",
       "emergencyNote": "Sistema a bassissima tensione distribuito nei cavedi con amplificatori di segnale alla base delle scale.",
-      "roomGroup": "Locali Tecnici Comuni",
+      "roomGroup": "Piani Residenziali 1°–14°",
       "safetyZone": "5 · Servizi Ordinari / Passivi",
       "roleGroup": "3 · Continuità UPS & Controllo",
       "internalGraph": null
@@ -10684,7 +10693,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "e39",
       "source": "QEREG",
-      "target": "MBUS-M-Bus",
+      "target": "MBUS-CONTAB",
       "edgeType": "bms_bus",
       "plant": "IMP-BMS",
       "tier": 1,
@@ -10694,7 +10703,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "e40",
       "source": "QEP-TORRE-A",
-      "target": "MBUS-M-Bus",
+      "target": "MBUS-CONTAB",
       "edgeType": "bms_bus",
       "plant": "IMP-BMS",
       "tier": 1,
@@ -10704,7 +10713,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "e41",
       "source": "QEP-TORRE-B",
-      "target": "MBUS-M-Bus",
+      "target": "MBUS-CONTAB",
       "edgeType": "bms_bus",
       "plant": "IMP-BMS",
       "tier": 1,

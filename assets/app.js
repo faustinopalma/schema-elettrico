@@ -47,7 +47,7 @@
   const state = {
     activePlant: "IMP-INGRESSI", // Start on "0. Mappa Contatori, Ingressi & Alimentazione Box"
     drillBoardId: null,          // null = Plant Map | boardId = Level-2 Internal Switchboard Component Map!
-    layoutEngine: "elk",         // 'elk' | 'cola' | 'fcose' | 'dagre'
+    layoutEngine: "synoptic",    // 'synoptic' (ideal static map) | 'elk' | 'cola' | 'fcose' | 'dagre'
     flowDir: "TB",               // 'TB' | 'LR'
     groupBy: "room",             // Default to physical rooms so the 3 Meter Rooms & Garage Box jump out immediately!
     opState: "normal",           // 'normal' | 'emergency'
@@ -253,6 +253,13 @@
 
   // ==================== FLEXIBLE GROUPING RESOLVER (NOT LOCKED VERTICALLY!) ====================
   function resolveNodeGroup(node, isInternal) {
+    if (state.layoutEngine === "synoptic") {
+      if (isInternal) {
+        return { id: "IGRP_" + node.roleGroup, label: node.roleGroup };
+      }
+      const rm = node.roomGroup || "Locali Tecnici";
+      return { id: "GRP_RM_" + rm, label: `📍 ${rm}` };
+    }
     if (isInternal) {
       if (state.groupBy === "none") return null;
       return { id: "IGRP_" + node.roleGroup, label: node.roleGroup };
@@ -364,7 +371,7 @@
       : "";
 
     const drillHint = hasInternal && !node.isInternalComp
-      ? `<text x="${W - 13}" y="${H - 19}" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="9" font-weight="700" fill="${col.fg}">🔬 2×clic = interno</text>`
+      ? `<text x="${W - 13}" y="${H - 19}" text-anchor="end" font-family="Segoe UI, sans-serif" font-size="9" font-weight="700" fill="${col.fg}">🔬 Interno</text>`
       : "";
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -392,11 +399,396 @@
     };
   }
 
-  // ==================== DYNAMIC LAYOUT OPTIONS (WORKS WITH COMPOUND GROUPS!) ====================
-  function buildLayoutOptions(nodes, edges, animateTransition) {
+  // ==================== AUTHORED IDEAL STATIC SYNOPTIC MAPS (ZERO OVERLAPS, FIXED BLOCKS) ====================
+  const SYNOPTIC_POSITIONS = {
+    "IMP-INGRESSI": {
+      "RETE-DISTRIBUTORE":   { x: 380,  y: 0 },
+      // Locale Contatori Principale — Piano Terra (4 Contatori Parti Comuni + Quadri Generali)
+      "POD-SSC":             { x: -700, y: 255 },
+      "POD-SCA":             { x: 60,   y: 255 },
+      "POD-SCB":             { x: 560,  y: 255 },
+      "POD-PDC":             { x: 1060, y: 255 },
+      "RIP-250":             { x: -700, y: 475 },
+      "AVSCA":               { x: 60,   y: 475 },
+      "AVSCB":               { x: 560,  y: 475 },
+      "AVPC":                { x: 1060, y: 475 },
+      "AVSSC":               { x: -885, y: 695 },
+      "QEPA":                { x: -515, y: 695 },
+      "QESSC":               { x: -885, y: 915 },
+      "Q6-BOX-SEC":          { x: -515, y: 915 },
+      // Copertura Edifici (+48 m)
+      "GEN-FV-ROOF":         { x: 1530, y: 475 },
+      // Piani Interrati (-1 e -2): 4 zone fisiche completamente separate in orizzontale
+      "BOX-INTERNI-P1":      { x: -910, y: 1245 },
+      "BOX-INTERNI-P2":      { x: -535, y: 1245 },
+      "QESCA":               { x: -75,  y: 1245 },
+      "CONTATORI-ALLOGGI-A": { x: 285,  y: 1245 },
+      "QESCB":               { x: 685,  y: 1245 },
+      "CONTATORI-ALLOGGI-B": { x: 1045, y: 1245 },
+      "QEPC":                { x: 1445, y: 1245 }
+    },
+    "IMP-SSC": {
+      "RETE-DISTRIBUTORE":   { x: -375, y: -250 },
+      // Locale Contatori Principale — Piano Terra
+      "POD-SSC":             { x: -375, y: 0 },
+      "RIP-250":             { x: -375, y: 220 },
+      "AVSSC":               { x: -560, y: 440 },
+      "QEPA":                { x: -190, y: 440 },
+      "QESSC":               { x: -560, y: 660 },
+      "Q6-BOX-SEC":          { x: -190, y: 660 },
+      // Portineria & Ingressi (P. Terra)
+      "FTTH-CSOE":           { x: 265,  y: 220 },
+      "VIDEOCITOFONO":       { x: 630,  y: 220 },
+      "QEPOR":               { x: 265,  y: 440 },
+      "IRA-CENTRALI":        { x: 630,  y: 440 },
+      "SGANCI-VVF":          { x: 995,  y: 440 },
+      // Aree Esterne & Sottosuolo
+      "LD-ESTERNI":          { x: 265,  y: 690 },
+      "TERRA-RETE":          { x: 630,  y: 690 },
+      // Locale Contatori Scala A (-1) per ponti UPS
+      "UPS-1-EI":            { x: 1030, y: 690 },
+      "UPS-2-SGANCIO":       { x: 1395, y: 690 },
+      // Piani Interrati (-1 e -2): 4 blocchi di stanze distinti da sinistra a destra
+      "BOX-INTERNI-P1":      { x: -1020, y: 1010 },
+      "BOX-INTERNI-P2":      { x: -655,  y: 1010 },
+      "LD-BOX":              { x: -290,  y: 1010 },
+      "QECI":                { x: 135,   y: 1010 },
+      "LD-IDRICO":           { x: 135,   y: 1235 },
+      "QECT":                { x: 535,   y: 1010 },
+      "QEREG":               { x: 895,   y: 1010 },
+      "LD-POMPE-CT":         { x: 535,   y: 1235 },
+      "QELP":                { x: 1300,  y: 1010 },
+      "LD-FALDA":            { x: 1300,  y: 1235 },
+      "LD-POMPA-VVF":        { x: 1660,  y: 1235 }
+    },
+    "IMP-SCA": {
+      "RETE-DISTRIBUTORE":   { x: 0,    y: -250 },
+      "POD-SCA":             { x: 0,    y: 0 },
+      "AVSCA":               { x: 0,    y: 220 },
+      "QESCA":               { x: 0,    y: 485 },
+      // Portineria & Terra (ponti opzionali)
+      "VIDEOCITOFONO":       { x: -990, y: 220 },
+      "SGANCI-VVF":          { x: -625, y: 220 },
+      "FTTH-CSOE":           { x: -990, y: 445 },
+      "IRA-CENTRALI":        { x: -625, y: 445 },
+      "TERRA-RETE":          { x: 520,  y: 485 },
+      // Ventaglio 5 destinazioni Torre A
+      "QEPL":                { x: -750, y: 805 },
+      "QEDB":                { x: -385, y: 805 },
+      "LD-SCALA-CANT-A":     { x: 0,    y: 805 },
+      "QEP-TORRE-A":         { x: 385,  y: 805 },
+      "MBUS-CONTAB":         { x: 385,  y: 1030 },
+      "LD-ROOF-A":           { x: 770,  y: 805 }
+    },
+    "IMP-SCB": {
+      "RETE-DISTRIBUTORE":   { x: 0,    y: -250 },
+      "POD-SCB":             { x: 0,    y: 0 },
+      "AVSCB":               { x: 0,    y: 220 },
+      "QESCB":               { x: 0,    y: 485 },
+      // Portineria & Terra (ponti opzionali)
+      "VIDEOCITOFONO":       { x: -990, y: 220 },
+      "SGANCI-VVF":          { x: -625, y: 220 },
+      "FTTH-CSOE":           { x: -990, y: 445 },
+      "IRA-CENTRALI":        { x: -625, y: 445 },
+      "TERRA-RETE":          { x: 520,  y: 485 },
+      // Ventaglio 5 destinazioni Torre B
+      "QESR":                { x: -750, y: 805 },
+      "QESP":                { x: -385, y: 805 },
+      "LD-SCALA-CANT-B":     { x: 0,    y: 805 },
+      "QEP-TORRE-B":         { x: 385,  y: 805 },
+      "MBUS-CONTAB":         { x: 385,  y: 1030 },
+      "LD-ROOF-B":           { x: 770,  y: 805 }
+    },
+    "IMP-PDC": {
+      "RETE-DISTRIBUTORE":   { x: -245, y: -250 },
+      "POD-PDC":             { x: -245, y: 0 },
+      "AVPC":                { x: -245, y: 225 },
+      "SGANCI-VVF":          { x: -690, y: 225 },
+      "GEN-FV-ROOF":         { x: 265,  y: 225 },
+      "QEREG":               { x: -375, y: 540 },
+      "QEPC":                { x: 10,   y: 540 },
+      "LD-PDC-UNITS":        { x: 10,   y: 770 },
+      "TERRA-RETE":          { x: 500,  y: 540 }
+    },
+    "IMP-FIRE": {
+      // Locale Contatori Principale — Piano Terra
+      "RIP-250":             { x: -1080, y: 0 },
+      "QEPA":                { x: -715,  y: 0 },
+      "AVSSC":               { x: -1080, y: 220 },
+      "AVSCA":               { x: -350,  y: 220 },
+      "AVSCB":               { x: 15,    y: 220 },
+      "AVPC":                { x: 380,   y: 220 },
+      "QESSC":               { x: -1080, y: 440 },
+      "Q6-BOX-SEC":          { x: -715,  y: 440 },
+      // Portineria & Ingressi (P. Terra)
+      "QEPOR":               { x: 1180,  y: 0 },
+      "SGANCI-VVF":          { x: 815,   y: 220 },
+      "IRA-CENTRALI":        { x: 1180,  y: 220 },
+      // Piani Interrati (-1 e -2) — 4 stanze ben distanziate
+      "LD-POMPA-VVF":        { x: -1080, y: 810 },
+      "LD-BOX":              { x: -690,  y: 810 },
+      "FIRE-PORTONI-EI":     { x: -325,  y: 810 },
+      "UPS-1-EI":            { x: 100,   y: 780 },
+      "UPS-2-SGANCIO":       { x: 465,   y: 780 },
+      "QESCA":               { x: 100,   y: 1005 },
+      "QESCB":               { x: 900,   y: 810 }
+    },
+    "IMP-BMS": {
+      "QECI":                { x: -830, y: 240 },
+      "BMS-SONDE-CAMPO":     { x: 0,    y: 0 },
+      "QECT":                { x: -375, y: 240 },
+      "QEREG":               { x: 0,    y: 240 },
+      "QEPC":                { x: 375,  y: 240 },
+      "BMS-ATTUATORI-VALV":  { x: 0,    y: 480 },
+      "QELP":                { x: 830,  y: 240 },
+      "QEP-TORRE-A":         { x: -375, y: 780 },
+      "MBUS-CONTAB":         { x: 0,    y: 780 },
+      "QEP-TORRE-B":         { x: 375,  y: 780 }
+    },
+    "IMP-TLC": {
+      "QESCA":               { x: -960, y: 0 },
+      "QESCB":               { x: -960, y: 265 },
+      "TLC-ANTENNE-STOM":    { x: -200, y: 0 },
+      "QESSC":               { x: 480,  y: 0 },
+      "QEPOR":               { x: -530, y: 280 },
+      "FTTH-CSOE":           { x: -165, y: 280 },
+      "VIDEOCITOFONO":       { x: 200,  y: 280 },
+      "QEPL":                { x: 640,  y: 280 },
+      "QESR":                { x: 1005, y: 280 },
+      "TLC-ALLOGGI-STOA":    { x: 15,   y: 580 }
+    },
+    "IMP-GND": {
+      "GND-SPD-4X":          { x: 0,    y: 0 },
+      "QESCA":               { x: -820, y: 265 },
+      "QESSC":               { x: -375, y: 265 },
+      "GND-COLLETTORI-EQP":  { x: 0,    y: 265 },
+      "QESCB":               { x: 440,  y: 265 },
+      "QEPC":                { x: 880,  y: 265 },
+      "TERRA-RETE":          { x: 0,    y: 575 }
+    }
+  };
+
+  function computeInternalSynopticPositions(nodes) {
+    const pos = new Map();
+    const sec1 = nodes.filter((n) => (n.roleGroup || "").startsWith("1 ·"));
+    const sec2 = nodes.filter((n) => (n.roleGroup || "").startsWith("2 ·"));
+    const sec3 = nodes.filter((n) => (n.roleGroup || "").startsWith("3 ·"));
+    const sec4 = nodes.filter((n) => (n.roleGroup || "").startsWith("4 ·"));
+
+    // Section 1: Incomer & Main Breaker (+ optional Type B Relay)
+    const inNode = sec1.find((n) => n.id.endsWith("__IN"));
+    const mainNode = sec1.find((n) => n.id.endsWith("__MAIN"));
+    const derNode = sec1.find((n) => n.id.endsWith("__DER"));
+    if (inNode) pos.set(inNode.id, { x: 0, y: 0 });
+    if (mainNode) pos.set(mainNode.id, { x: 0, y: 195 });
+    if (derNode) pos.set(derNode.id, { x: -350, y: 195 });
+
+    // Section 2: Main Busbar, Multimeter, SPD -> PE Bar
+    const busNode = sec2.find((n) => n.id.endsWith("__BUS"));
+    const m1Node = sec2.find((n) => n.id.endsWith("__M1"));
+    const spdNode = sec2.find((n) => n.id.endsWith("__SPD"));
+    const peNode = sec2.find((n) => n.id.endsWith("__PE"));
+    if (m1Node) pos.set(m1Node.id, { x: -350, y: 455 });
+    if (busNode) pos.set(busNode.id, { x: 0, y: 455 });
+    if (spdNode) pos.set(spdNode.id, { x: 350, y: 455 });
+    if (peNode) pos.set(peNode.id, { x: 700, y: 455 });
+
+    // Section 3: Main Outgoing Feeders in symmetric rows of max 5 cards
+    let curY = 745;
+    const colsMax = 5;
+    const colGap = 315;
+    const rowGap = 185;
+    for (let i = 0; i < sec3.length; i++) {
+      const r = Math.floor(i / colsMax);
+      const rowCount = Math.min(colsMax, sec3.length - r * colsMax);
+      const c = i % colsMax;
+      const x = (c - (rowCount - 1) / 2) * colGap;
+      pos.set(sec3[i].id, { x, y: curY + r * rowGap });
+    }
+    if (sec3.length > 0) {
+      curY += Math.ceil(sec3.length / colsMax) * rowGap + 125;
+    }
+
+    // Section 4: Sub-section Q6 + RP1 & Garage/Box circuits (for QE.SSC)
+    if (sec4.length > 0) {
+      const q6Hub = sec4.find((n) => n.id.endsWith("__Q6_RP1"));
+      const q6Children = sec4.filter((n) => n !== q6Hub);
+      if (q6Hub) {
+        pos.set(q6Hub.id, { x: 0, y: curY });
+        curY += 215;
+      }
+      for (let i = 0; i < q6Children.length; i++) {
+        const r = Math.floor(i / colsMax);
+        const rowCount = Math.min(colsMax, q6Children.length - r * colsMax);
+        const c = i % colsMax;
+        const x = (c - (rowCount - 1) / 2) * colGap;
+        pos.set(q6Children[i].id, { x, y: curY + r * rowGap });
+      }
+    }
+
+    // Fallback for any unclassified internal node
+    nodes.forEach((n, idx) => {
+      if (!pos.has(n.id)) pos.set(n.id, { x: (idx % 4) * 320, y: curY + 220 });
+    });
+    return pos;
+  }
+
+  function resolveSynopticPositions(nodes, isInternal) {
+    if (isInternal) return computeInternalSynopticPositions(nodes);
+    const map = SYNOPTIC_POSITIONS[state.activePlant] || {};
+    const out = new Map();
+    nodes.forEach((n, idx) => {
+      const p = map[n.id];
+      out.set(n.id, p ? { x: p.x, y: p.y } : { x: (idx % 5) * 360, y: Math.floor(idx / 5) * 240 });
+    });
+    return out;
+  }
+
+  function computeSynopticEdgeCurve(e, posMap, pairCounts) {
+    if (e.id === "e56") {
+      return { curveStyle: "unbundled-bezier", cpDistances: [-95], cpWeights: [0.45] };
+    }
+    if (e.id === "e54") {
+      return { curveStyle: "unbundled-bezier", cpDistances: [80], cpWeights: [0.5] };
+    }
+    const pk = [e.source, e.target].sort().join("::");
+    if ((pairCounts.get(pk) || 0) > 1) {
+      return { curveStyle: "bezier", cpDistances: [46], cpWeights: [0.5] };
+    }
+    const p1 = posMap.get(e.source);
+    const p2 = posMap.get(e.target);
+    if (!p1 || !p2) {
+      return { curveStyle: "bezier", cpDistances: [42], cpWeights: [0.5] };
+    }
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const L = Math.hypot(dx, dy) || 1;
+
+    // Purely vertical alignment -> straight line
+    if (Math.abs(dx) < 22) {
+      return { curveStyle: "unbundled-bezier", cpDistances: [0], cpWeights: [0.5] };
+    }
+    // Same horizontal band -> straight if adjacent, gentle arch if spanning across columns
+    if (Math.abs(dy) < 80) {
+      const arch = Math.abs(dx) > 460 ? (dx > 0 ? -78 : 78) : 0;
+      return { curveStyle: "unbundled-bezier", cpDistances: [arch], cpWeights: [0.5] };
+    }
+    // Vertical/diagonal tier transition -> graceful vertical-first cubic S-curve!
+    const rawD = -(0.38 * dx * dy) / L;
+    const d = Math.max(-85, Math.min(85, rawD));
+    return {
+      curveStyle: "unbundled-bezier",
+      cpDistances: [d, -d],
+      cpWeights: [0.35, 0.65]
+    };
+  }
+
+  // Post-layout anti-overlap nudge for dynamic engines (ELK / Cola / fCoSE / Dagre)
+  function resolveDynamicOverlaps(cy) {
+    if (!cy || state.layoutEngine === "synoptic") return;
+    const leafNodes = cy.nodes("[!isGroup]");
+    const nLen = leafNodes.length;
+    if (nLen < 2) return;
+
+    const padX = 28;
+    const padY = 26;
+    let movedAny = false;
+
+    for (let iter = 0; iter < 12; iter++) {
+      let overlapFound = false;
+      for (let i = 0; i < nLen; i++) {
+        const a = leafNodes[i];
+        const pa = a.position();
+        const wa = (a.data("nodeW") || 268) + padX;
+        const ha = (a.data("nodeH") || 128) + padY;
+
+        for (let j = i + 1; j < nLen; j++) {
+          const b = leafNodes[j];
+          const pb = b.position();
+          const wb = (b.data("nodeW") || 268) + padX;
+          const hb = (b.data("nodeH") || 128) + padY;
+
+          const overlapX = (wa + wb) / 2 - Math.abs(pb.x - pa.x);
+          const overlapY = (ha + hb) / 2 - Math.abs(pb.y - pa.y);
+
+          if (overlapX > 0.5 && overlapY > 0.5) {
+            overlapFound = true;
+            movedAny = true;
+            if (overlapX < overlapY) {
+              const dir = pb.x >= pa.x ? 1 : -1;
+              const shift = overlapX / 2 + 2;
+              a.position({ x: pa.x - dir * shift, y: pa.y });
+              b.position({ x: pb.x + dir * shift, y: pb.y });
+            } else {
+              const dir = pb.y >= pa.y ? 1 : -1;
+              const shift = overlapY / 2 + 2;
+              a.position({ x: pa.x, y: pa.y - dir * shift });
+              b.position({ x: pb.x, y: pb.y + dir * shift });
+            }
+          }
+        }
+      }
+      if (!overlapFound) break;
+    }
+
+    // Also separate overlapping compound group containers cleanly
+    const groups = cy.nodes("[?isGroup]");
+    for (let gIter = 0; gIter < 10; gIter++) {
+      let grpOverlap = false;
+      for (let i = 0; i < groups.length; i++) {
+        const ga = groups[i];
+        const ba = ga.boundingBox({ includeLabels: false });
+        for (let j = i + 1; j < groups.length; j++) {
+          const gb = groups[j];
+          const bb = gb.boundingBox({ includeLabels: false });
+          const ox = Math.min(ba.x2, bb.x2) - Math.max(ba.x1, bb.x1) + 28;
+          const oy = Math.min(ba.y2, bb.y2) - Math.max(ba.y1, bb.y1) + 28;
+          if (ox > 1 && oy > 1) {
+            grpOverlap = true;
+            movedAny = true;
+            const cax = (ba.x1 + ba.x2) / 2;
+            const cbx = (bb.x1 + bb.x2) / 2;
+            const cay = (ba.y1 + ba.y2) / 2;
+            const cby = (bb.y1 + bb.y2) / 2;
+            if (ox < oy) {
+              const sgn = cbx >= cax ? 1 : -1;
+              const dx = ox / 2 + 2;
+              ga.descendants().forEach((ch) => ch.position("x", ch.position("x") - sgn * dx));
+              gb.descendants().forEach((ch) => ch.position("x", ch.position("x") + sgn * dx));
+            } else {
+              const sgn = cby >= cay ? 1 : -1;
+              const dy = oy / 2 + 2;
+              ga.descendants().forEach((ch) => ch.position("y", ch.position("y") - sgn * dy));
+              gb.descendants().forEach((ch) => ch.position("y", ch.position("y") + sgn * dy));
+            }
+          }
+        }
+      }
+      if (!grpOverlap) break;
+    }
+
+    if (movedAny) {
+      cy.fit(undefined, 46);
+    }
+  }
+
+  // ==================== LAYOUT OPTIONS (STATIC SYNOPTIC + 4 DYNAMIC ENGINES) ====================
+  function buildLayoutOptions(nodes, edges, animateTransition, synopticPosMap) {
     const anim = Boolean(animateTransition);
     const dir = state.flowDir;
     const hasGroups = state.groupBy !== "none";
+
+    if (state.layoutEngine === "synoptic") {
+      return {
+        name: "preset",
+        positions: synopticPosMap ? (node) => synopticPosMap.get(node.id()) : undefined,
+        fit: true,
+        padding: 46,
+        animate: anim,
+        animationDuration: anim ? 380 : 0,
+        animationEasing: "ease-out-cubic"
+      };
+    }
 
     if (state.layoutEngine === "elk") {
       return {
@@ -405,17 +797,18 @@
         animationDuration: anim ? 520 : 0,
         animationEasing: "ease-out-cubic",
         fit: true,
-        padding: 46,
+        padding: 48,
         nodeDimensionsIncludeLabels: false,
         elk: {
           "algorithm": "layered",
           "elk.direction": dir === "LR" ? "RIGHT" : "DOWN",
           "elk.hierarchyHandling": "INCLUDE_CHILDREN",
-          "elk.spacing.nodeNode": "52",
-          "elk.layered.spacing.nodeNodeBetweenLayers": "92",
+          "elk.spacing.nodeNode": "76",
+          "elk.spacing.edgeNode": "42",
+          "elk.layered.spacing.nodeNodeBetweenLayers": "128",
           "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
           "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
-          "elk.padding": "[top=42,left=24,bottom=24,right=24]"
+          "elk.padding": "[top=54,left=34,bottom=34,right=34]"
         }
       };
     }
@@ -428,14 +821,14 @@
         maxSimulationTime: 2600,
         ungrabifyWhileSimulating: false,
         fit: true,
-        padding: 48,
-        nodeSpacing: hasGroups ? 36 : 46,
-        edgeLength: 330,
+        padding: 50,
+        nodeSpacing: hasGroups ? 48 : 56,
+        edgeLength: 385,
         avoidOverlap: true,
         handleDisconnected: true,
         flow: {
           axis: dir === "LR" ? "x" : "y",
-          minSeparation: dir === "LR" ? 365 : 190
+          minSeparation: dir === "LR" ? 395 : 225
         }
       };
     }
@@ -450,8 +843,8 @@
           const k2 = `${e.target}->${e.source}`;
           if (seen.has(k1) || seen.has(k2)) return;
           seen.add(k1);
-          if (dir === "LR") constraints.push({ left: e.source, right: e.target, gap: 220 });
-          else constraints.push({ top: e.source, bottom: e.target, gap: 135 });
+          if (dir === "LR") constraints.push({ left: e.source, right: e.target, gap: 340 });
+          else constraints.push({ top: e.source, bottom: e.target, gap: 195 });
         });
       }
 
@@ -462,12 +855,14 @@
         animate: anim,
         animationDuration: anim ? 550 : 0,
         fit: true,
-        padding: 48,
-        nodeSeparation: 120,
-        idealEdgeLength: 210,
-        nodeRepulsion: 20000,
-        gravity: 0.24,
+        padding: 50,
+        nodeSeparation: 165,
+        idealEdgeLength: 315,
+        nodeRepulsion: 34000,
+        gravity: 0.20,
         nestingFactor: 0.85,
+        tilingPaddingVertical: 54,
+        tilingPaddingHorizontal: 54,
         relativePlacementConstraint: constraints.length ? constraints.slice(0, 24) : undefined
       };
     }
@@ -476,12 +871,12 @@
     return {
       name: "dagre",
       rankDir: dir,
-      nodeSep: 52,
-      rankSep: dir === "LR" ? 130 : 98,
+      nodeSep: 76,
+      rankSep: dir === "LR" ? 165 : 132,
       animate: anim,
       animationDuration: anim ? 480 : 0,
       fit: true,
-      padding: 48
+      padding: 50
     };
   }
 
@@ -522,6 +917,14 @@
       if (defN) state.selectedNodeId = defN.id;
     }
 
+    const isSynoptic = state.layoutEngine === "synoptic";
+    const synopticPosMap = isSynoptic ? resolveSynopticPositions(nodes, isInternal) : null;
+    const pairCounts = new Map();
+    edges.forEach((e) => {
+      const pk = [e.source, e.target].sort().join("::");
+      pairCounts.set(pk, (pairCounts.get(pk) || 0) + 1);
+    });
+
     const elements = [];
     const addedGroups = new Map();
 
@@ -549,7 +952,7 @@
     nodes.forEach((n) => {
       const grp = resolveNodeGroup(n, isInternal);
       const card = buildNodeCardDataUri(n, pal, n.id === state.selectedNodeId);
-      elements.push({
+      const elObj = {
         data: {
           id: n.id,
           parent: grp ? grp.id : undefined,
@@ -560,7 +963,11 @@
           hasInternal: Boolean(n.internalGraph),
           plantId: n.plant
         }
-      });
+      };
+      if (isSynoptic && synopticPosMap && synopticPosMap.has(n.id)) {
+        elObj.position = synopticPosMap.get(n.id);
+      }
+      elements.push(elObj);
     });
 
     edges.forEach((e) => {
@@ -601,6 +1008,10 @@
           : `⛔ SEZIONATO DA SGANCIO (${e.label})`;
       }
 
+      const curveCfg = isSynoptic
+        ? computeSynopticEdgeCurve(e, synopticPosMap, pairCounts)
+        : { curveStyle: "bezier", cpDistances: [46], cpWeights: [0.5] };
+
       elements.push({
         data: {
           id: e.id,
@@ -613,7 +1024,10 @@
           arrowShape,
           edgeType: e.edgeType,
           interrupted,
-          bidirectional: Boolean(e.bidirectional)
+          bidirectional: Boolean(e.bidirectional),
+          curveStyle: curveCfg.curveStyle,
+          cpDistances: curveCfg.cpDistances,
+          cpWeights: curveCfg.cpWeights
         }
       });
     });
@@ -629,8 +1043,9 @@
     cyInstance = cytoscape({
       container,
       elements,
+      autoungrabify: isSynoptic, // In Mappa Ideale (Fissa), blocks CANNOT be dragged!
       wheelSensitivity: 0.24,
-      minZoom: 0.18,
+      minZoom: 0.16,
       maxZoom: 2.4,
       style: [
         {
@@ -678,8 +1093,10 @@
         {
           selector: "edge",
           style: {
-            "curve-style": "bezier",
-            "control-point-step-size": 52,
+            "curve-style": "data(curveStyle)",
+            "control-point-step-size": 54,
+            "control-point-distances": "data(cpDistances)",
+            "control-point-weights": "data(cpWeights)",
             "width": "data(width)",
             "line-color": "data(color)",
             "line-style": "data(lineStyle)",
@@ -718,10 +1135,15 @@
           }
         }
       ],
-      layout: { name: "grid" }
+      layout: { name: "preset" }
     });
 
-    state.activeLayoutHandle = cyInstance.layout(buildLayoutOptions(nodes, edges, animateRelayout));
+    state.activeLayoutHandle = cyInstance.layout(buildLayoutOptions(nodes, edges, animateRelayout, synopticPosMap));
+    cyInstance.one("layoutstop", () => {
+      if (!isSynoptic) {
+        resolveDynamicOverlaps(cyInstance);
+      }
+    });
     state.activeLayoutHandle.run();
 
     // Hover ONLY changes cursor (NO distracting hover dimming!)
@@ -861,6 +1283,17 @@
     if (!s || !d || Number.isNaN(s.x) || Number.isNaN(d.x)) return null;
 
     const cps = edge.controlPoints();
+    if (cps && cps.length === 2) {
+      const c0x = cps[0].x * zoom + pan.x;
+      const c0y = cps[0].y * zoom + pan.y;
+      const c1x = cps[1].x * zoom + pan.x;
+      const c1y = cps[1].y * zoom + pan.y;
+      const mt = 1 - t;
+      return {
+        x: mt * mt * mt * s.x + 3 * mt * mt * t * c0x + 3 * mt * t * t * c1x + t * t * t * d.x,
+        y: mt * mt * mt * s.y + 3 * mt * mt * t * c0y + 3 * mt * t * t * c1y + t * t * t * d.y
+      };
+    }
     if (cps && cps.length >= 1) {
       const cx = cps[0].x * zoom + pan.x;
       const cy = cps[0].y * zoom + pan.y;
@@ -1069,10 +1502,10 @@
       const cVar = `var(--plant-${p.swatch})`;
       const bgVar = `var(--plant-${p.swatch}-bg)`;
       return `
-        <button class="plant-pill ${isAct ? "active" : ""}" data-plant="${p.id}"
+        <button class="plant-pill ${isAct ? "active" : ""}" data-plant="${p.id}" title="${p.name} — ${p.power}"
           style="${isAct ? `border-color:${cVar}; background:${bgVar};` : ""}">
-          <span style="color:${cVar}; display:inline-flex;">${getPlantIconSvg(p.icon, "currentColor")}</span>
-          <span>${p.name}</span>
+          <span style="color:${cVar}; display:inline-flex; flex-shrink:0;">${getPlantIconSvg(p.icon, "currentColor")}</span>
+          <span style="overflow:hidden; text-overflow:ellipsis;">${p.tabLabel || p.shortName}</span>
         </button>
       `;
     }).join("");
@@ -1547,7 +1980,16 @@
     });
   }
 
+  function syncToolbarMode() {
+    const isSyn = state.layoutEngine === "synoptic";
+    const badge = document.getElementById("staticModeBadge");
+    const dynWrap = document.getElementById("dynamicControlsWrap");
+    if (badge) badge.style.display = isSyn ? "inline-flex" : "none";
+    if (dynWrap) dynWrap.style.display = isSyn ? "none" : "inline-flex";
+  }
+
   function refreshAll() {
+    syncToolbarMode();
     renderPlantStripAndBanner();
     renderCytoscape(false);
     renderInspector();
@@ -1558,6 +2000,7 @@
       btn.addEventListener("click", () => {
         state.layoutEngine = btn.dataset.layout;
         document.querySelectorAll("[data-layout]").forEach((b) => b.classList.toggle("active", b === btn));
+        syncToolbarMode();
         renderCytoscape(true);
       });
     });

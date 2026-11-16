@@ -270,31 +270,40 @@ code, pre, .mono {
   background: var(--cp-accent-soft);
 }
 
-/* Plant Selector Strip */
+/* Plant Selector Strip — 9-tab single row without horizontal scroll */
 .plant-strip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 5px;
+  padding: 6px 14px;
   background: var(--cp-bg-elevated);
   border-bottom: 1px solid var(--cp-border);
-  overflow-x: auto;
+}
+
+@media (max-width: 1180px) {
+  .plant-strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 
 .plant-pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 6px;
   border-radius: 0.625rem;
   border: 1.5px solid var(--cp-border);
   background: var(--cp-surface);
   color: var(--cp-text);
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 11.8px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .plant-pill:hover {
@@ -811,7 +820,7 @@ details.acc-block[open] summary {
         <div class="brand-mark">⚡</div>
         <div class="brand-text">
           <h1>Come Funzionano gli Impianti — Complesso Residenziale (Parti Comuni)</h1>
-          <p>3 Locali Contatori · Alimentazione 152 Box · Forme accessibili per daltonici · Doppio clic su un quadro per aprirne l'interno</p>
+          <p>3 Locali Contatori · Alimentazione 152 Box · Schede tecniche e verifica di coerenza</p>
         </div>
       </div>
 
@@ -854,29 +863,34 @@ details.acc-block[open] summary {
           <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
             <select id="fsPlantSelect" class="select-compact fs-only"></select>
 
-            <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Motore:</span>
+            <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Vista:</span>
             <div class="seg-control" id="layoutSwitcher" role="group">
-              <button class="seg-btn active" data-layout="elk" title="Eclipse ELK Layered: ordina il flusso minimizzando gli incroci">ELK Schematico</button>
-              <button class="seg-btn" data-layout="cola" title="WebCola Fisica Viva: trascina i blocchi e il resto si adatta in tempo reale">Cola Fisica Viva</button>
-              <button class="seg-btn" data-layout="fcose" title="fCoSE Molle Elastiche: avvicina i gruppi fortemente connessi">fCoSE Elastico</button>
-              <button class="seg-btn" data-layout="dagre" title="Dagre Gerarchico: albero classico">Dagre Albero</button>
+              <button class="seg-btn active" data-layout="synoptic" title="Mappa sinottica statica progettata per la massima chiarezza (blocchi fissi, curve ordinate)">📌 Mappa Ideale (Fissa)</button>
+              <button class="seg-btn" data-layout="elk" title="Grafo automatico Eclipse ELK Layered">ELK</button>
+              <button class="seg-btn" data-layout="cola" title="Grafo dinamico WebCola a fisica viva">Cola</button>
+              <button class="seg-btn" data-layout="fcose" title="Grafo dinamico a molle elastiche fCoSE">fCoSE</button>
+              <button class="seg-btn" data-layout="dagre" title="Grafo gerarchico ad albero Dagre">Dagre</button>
             </div>
 
-            <div class="seg-control" id="dirSwitcher">
-              <button class="seg-btn active" data-dir="TB" title="Flusso dall'alto al basso">⬇ Vert</button>
-              <button class="seg-btn" data-dir="LR" title="Flusso da sinistra a destra">➡ Orizz</button>
+            <span id="staticModeBadge" class="pill" style="color:var(--cp-text-muted); border-color:var(--cp-border-strong); font-weight:600;" title="Nella Mappa Ideale i blocchi sono bloccati in posizione ottimale; usa rotella e trascinamento sfondo per zoom e panoramica">🔒 Mappa statica ottimizzata</span>
+
+            <div id="dynamicControlsWrap" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
+              <div class="seg-control" id="dirSwitcher">
+                <button class="seg-btn active" data-dir="TB" title="Flusso dall'alto al basso">⬇ Vert</button>
+                <button class="seg-btn" data-dir="LR" title="Flusso da sinistra a destra">➡ Orizz</button>
+              </div>
+
+              <label style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted); margin-left:2px;" for="groupSelect">Raggruppa:</label>
+              <select id="groupSelect" class="select-compact" title="Raggruppa i blocchi in contenitori dinamici">
+                <option value="none">Nessun contenitore</option>
+                <option value="floor">🏢 Per Piano Edificio</option>
+                <option value="room" selected>📍 Per Stanza / Locale Fisico</option>
+                <option value="role">⚙️ Per Ruolo Funzionale</option>
+                <option value="safety">🔥 Per Zona Sgancio VVF</option>
+              </select>
+
+              <button id="btnReLayout" class="btn" title="Ricalcola animatamente le posizioni">✨ Riordina</button>
             </div>
-
-            <label style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted); margin-left:2px;" for="groupSelect">Raggruppa:</label>
-            <select id="groupSelect" class="select-compact" title="Raggruppa i blocchi in contenitori dinamici senza fissare righe rigide">
-              <option value="none">Nessun contenitore</option>
-              <option value="floor">🏢 Per Piano Edificio (dinamico)</option>
-              <option value="room" selected>📍 Per Stanza / Locale Fisico</option>
-              <option value="role">⚙️ Per Ruolo Funzionale</option>
-              <option value="safety">🔥 Per Zona Sgancio VVF</option>
-            </select>
-
-            <button id="btnReLayout" class="btn" title="Ricalcola animatamente le posizioni">✨ Riordina</button>
           </div>
 
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -905,33 +919,30 @@ details.acc-block[open] summary {
           <canvas id="flowCanvas"></canvas>
         </div>
 
-        <!-- Colorblind-Safe Shape Legend -->
+        <!-- Clean Symbol Legend (no shape geometry words, no redundant hint) -->
         <div class="graph-legend">
           <div class="legend-group">
-            <strong style="color:var(--cp-text);">Forme sui Fili (distinguibili senza colori):</strong>
+            <strong style="color:var(--cp-text);">Flussi sui cavi:</strong>
             <span class="legend-shape" title="Potenza elettrica ordinaria o solare">
               <svg width="15" height="13" viewBox="0 0 15 13"><polygon points="1,2 14,6.5 1,11" fill="var(--cp-accent)"/></svg>
-              <strong>Triangolo ➤</strong> Energia Elettrica
+              <span>Energia elettrica</span>
             </span>
             <span class="legend-shape" title="Alimentazione vitale antincendio o sotto UPS">
               <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,4 13,10 7,13 1,10 1,4" fill="var(--cp-danger)"/><circle cx="7" cy="7" r="2.2" fill="var(--cp-surface)"/></svg>
-              <strong>Esagono ⬢</strong> Linea Sicurezza / UPS
+              <span>Linea sicurezza / UPS</span>
             </span>
             <span class="legend-shape" title="Comunicazione digitale BMS, fibra o allarmi">
               <svg width="16" height="12" viewBox="0 0 16 12"><rect x="1" y="3" width="5.5" height="6" rx="1" fill="var(--cp-link)"/><rect x="9" y="3" width="5.5" height="6" rx="1" fill="var(--cp-link)"/></svg>
-              <strong>Doppio Quadro ▪▪</strong> Dati / Segnali
+              <span>Dati e segnali</span>
             </span>
             <span class="legend-shape" title="Fermo in esercizio normale; si attiva simulando Sgancio/Scarica">
               <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1.5 12.5,7 7,12.5 1.5,7" fill="none" stroke="var(--cp-danger)" stroke-width="2.2"/></svg>
-              <strong>Losanga ◇</strong> Comando Sgancio (in emergenza)
+              <span>Comando sgancio VVF <em>(in emergenza)</em></span>
             </span>
             <span class="legend-shape" title="Fermo in esercizio normale; scarica VERSO terra solo in caso di guasto/fulmine">
               <svg width="16" height="13" viewBox="0 0 16 13"><path d="M2,2 L7,6.5 L2,11 M8,2 L13,6.5 L8,11" fill="none" stroke="var(--cp-border-strong)" stroke-width="2.2" stroke-linecap="round"/></svg>
-              <strong>Doppia Onda ⟫</strong> Scarico verso Terra (solo su guasto)
+              <span>Scarico verso Terra <em>(su guasto)</em></span>
             </span>
-          </div>
-          <div>
-            💡 <strong>Clic</strong> = evidenzia collegati · <strong>Doppio clic su un Quadro</strong> = entra nei componenti interni!
           </div>
         </div>
       </section>
