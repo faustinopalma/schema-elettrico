@@ -62,6 +62,16 @@
   let cyInstance = null;
   let rafId = null;
 
+  // Dedicated Non-Graph Synoptic Stage State (Pan, Zoom & Active SVG Flow Paths)
+  const synView = {
+    scale: 1,
+    panX: 0,
+    panY: 0,
+    boardW: 1200,
+    boardH: 800,
+    animatedPaths: []
+  };
+
   // ==================== DYNAMIC CSS PALETTE PROBE ====================
   const _probeCanvas = document.createElement("canvas");
   _probeCanvas.width = 1;
@@ -399,288 +409,938 @@
     };
   }
 
-  // ==================== AUTHORED IDEAL STATIC SYNOPTIC MAPS (ZERO OVERLAPS, FIXED BLOCKS) ====================
-  const SYNOPTIC_POSITIONS = {
+  // ==================== DEDICATED NON-GRAPH SYNOPTIC SCHEMATIC ENGINE (HTML SWIMLANES + SVG BUSBARS) ====================
+  const SYNOPTIC_SCHEMAS = {
     "IMP-INGRESSI": {
-      "RETE-DISTRIBUTORE":   { x: 380,  y: 0 },
-      // Locale Contatori Principale — Piano Terra (4 Contatori Parti Comuni + Quadri Generali)
-      "POD-SSC":             { x: -700, y: 255 },
-      "POD-SCA":             { x: 60,   y: 255 },
-      "POD-SCB":             { x: 560,  y: 255 },
-      "POD-PDC":             { x: 1060, y: 255 },
-      "RIP-250":             { x: -700, y: 475 },
-      "AVSCA":               { x: 60,   y: 475 },
-      "AVSCB":               { x: 560,  y: 475 },
-      "AVPC":                { x: 1060, y: 475 },
-      "AVSSC":               { x: -885, y: 695 },
-      "QEPA":                { x: -515, y: 695 },
-      "QESSC":               { x: -885, y: 915 },
-      "Q6-BOX-SEC":          { x: -515, y: 915 },
-      // Copertura Edifici (+48 m)
-      "GEN-FV-ROOF":         { x: 1530, y: 475 },
-      // Piani Interrati (-1 e -2): 4 zone fisiche completamente separate in orizzontale
-      "BOX-INTERNI-P1":      { x: -910, y: 1245 },
-      "BOX-INTERNI-P2":      { x: -535, y: 1245 },
-      "QESCA":               { x: -75,  y: 1245 },
-      "CONTATORI-ALLOGGI-A": { x: 285,  y: 1245 },
-      "QESCB":               { x: 685,  y: 1245 },
-      "CONTATORI-ALLOGGI-B": { x: 1045, y: 1245 },
-      "QEPC":                { x: 1445, y: 1245 }
+      bands: [
+        "1 · Rete Stradale Esterna & Copertura Solare",
+        "2 · Locale Contatori Principale (P. Terra) — I 4 Contatori Parti Comuni",
+        "3 · Locale Contatori Principale (P. Terra) — Ripartizione VVF & Avanquadri",
+        "4 · Locale Contatori Principale (P. Terra) — Quadro Supercondominiale & Sezione 152 Box",
+        "5 · Piani Interrati (-1 / -2) — 152 Box Auto, Sale Contatori Appartamenti & Quadri Generali"
+      ],
+      slots: {
+        "RETE-DISTRIBUTORE":   { col: 4,   row: 0 },
+        "GEN-FV-ROOF":         { col: 8,   row: 0 },
+        "POD-SSC":             { col: 0,   row: 1 },
+        "POD-SCA":             { col: 3,   row: 1 },
+        "POD-SCB":             { col: 5,   row: 1 },
+        "POD-PDC":             { col: 7,   row: 1 },
+        "RIP-250":             { col: 0,   row: 2 },
+        "QEPA":                { col: 1,   row: 2 },
+        "AVSCA":               { col: 3,   row: 2 },
+        "AVSCB":               { col: 5,   row: 2 },
+        "AVPC":                { col: 7,   row: 2 },
+        "AVSSC":               { col: 0,   row: 3 },
+        "QESSC":               { col: 1,   row: 3 },
+        "Q6-BOX-SEC":          { col: 2,   row: 3 },
+        "BOX-INTERNI-P1":      { col: 1,   row: 4 },
+        "BOX-INTERNI-P2":      { col: 2,   row: 4 },
+        "QESCA":               { col: 3,   row: 4 },
+        "CONTATORI-ALLOGGI-A": { col: 4,   row: 4 },
+        "QESCB":               { col: 5,   row: 4 },
+        "CONTATORI-ALLOGGI-B": { col: 6,   row: 4 },
+        "QEPC":                { col: 7.5, row: 4 }
+      }
     },
     "IMP-SSC": {
-      "RETE-DISTRIBUTORE":   { x: -375, y: -250 },
-      // Locale Contatori Principale — Piano Terra
-      "POD-SSC":             { x: -375, y: 0 },
-      "RIP-250":             { x: -375, y: 220 },
-      "AVSSC":               { x: -560, y: 440 },
-      "QEPA":                { x: -190, y: 440 },
-      "QESSC":               { x: -560, y: 660 },
-      "Q6-BOX-SEC":          { x: -190, y: 660 },
-      // Portineria & Ingressi (P. Terra)
-      "FTTH-CSOE":           { x: 265,  y: 220 },
-      "VIDEOCITOFONO":       { x: 630,  y: 220 },
-      "QEPOR":               { x: 265,  y: 440 },
-      "IRA-CENTRALI":        { x: 630,  y: 440 },
-      "SGANCI-VVF":          { x: 995,  y: 440 },
-      // Aree Esterne & Sottosuolo
-      "LD-ESTERNI":          { x: 265,  y: 690 },
-      "TERRA-RETE":          { x: 630,  y: 690 },
-      // Locale Contatori Scala A (-1) per ponti UPS
-      "UPS-1-EI":            { x: 1030, y: 690 },
-      "UPS-2-SGANCIO":       { x: 1395, y: 690 },
-      // Piani Interrati (-1 e -2): 4 blocchi di stanze distinti da sinistra a destra
-      "BOX-INTERNI-P1":      { x: -1020, y: 1010 },
-      "BOX-INTERNI-P2":      { x: -655,  y: 1010 },
-      "LD-BOX":              { x: -290,  y: 1010 },
-      "QECI":                { x: 135,   y: 1010 },
-      "LD-IDRICO":           { x: 135,   y: 1235 },
-      "QECT":                { x: 535,   y: 1010 },
-      "QEREG":               { x: 895,   y: 1010 },
-      "LD-POMPE-CT":         { x: 535,   y: 1235 },
-      "QELP":                { x: 1300,  y: 1010 },
-      "LD-FALDA":            { x: 1300,  y: 1235 },
-      "LD-POMPA-VVF":        { x: 1660,  y: 1235 }
+      bands: [
+        "1 · Punto di Consegna Energia (Locale Contatori P. Terra)",
+        "2 · Ripartizione Primaria, Avanquadro & Portineria (P. Terra)",
+        "3 · Quadro Generale QE.SSC, Sezione 152 Box (Q6) & Luci Esterne",
+        "4 · Piani Interrati (-1 / -2) — 152 Box Auto, Corselli & Sottoquadri Centrali",
+        "5 · Piani Interrati (-1 / -2) — Gruppi di Pompaggio Idrici, Clima & Falda"
+      ],
+      slots: {
+        "POD-SSC":        { col: 2,   row: 0 },
+        "RETE-DISTRIBUTORE": { col: 1, row: 0 },
+        "RIP-250":        { col: 2,   row: 1 },
+        "QEPA":           { col: 1,   row: 1 },
+        "AVSSC":          { col: 3,   row: 1 },
+        "QEPOR":          { col: 4.6, row: 1 },
+        "FTTH-CSOE":      { col: 5.7, row: 1 },
+        "IRA-CENTRALI":   { col: 6.7, row: 1 },
+        "Q6-BOX-SEC":     { col: 1.8, row: 2 },
+        "QESSC":          { col: 3,   row: 2 },
+        "LD-ESTERNI":     { col: 4.6, row: 2 },
+        "VIDEOCITOFONO":  { col: 5.7, row: 2 },
+        "TERRA-RETE":     { col: 6.7, row: 2 },
+        "SGANCI-VVF":     { col: 0,   row: 2 },
+        "BOX-INTERNI-P1": { col: 0,   row: 3 },
+        "BOX-INTERNI-P2": { col: 1,   row: 3 },
+        "LD-BOX":         { col: 2,   row: 3 },
+        "QECI":           { col: 3,   row: 3 },
+        "QECT":           { col: 4,   row: 3 },
+        "QELP":           { col: 5,   row: 3 },
+        "UPS-1-EI":       { col: 6,   row: 3 },
+        "UPS-2-SGANCIO":  { col: 7,   row: 3 },
+        "LD-IDRICO":      { col: 3,   row: 4 },
+        "LD-POMPE-CT":    { col: 4,   row: 4 },
+        "LD-FALDA":       { col: 5,   row: 4 },
+        "QEREG":          { col: 6,   row: 4 },
+        "LD-POMPA-VVF":   { col: 1,   row: 4 }
+      }
     },
     "IMP-SCA": {
-      "RETE-DISTRIBUTORE":   { x: 0,    y: -250 },
-      "POD-SCA":             { x: 0,    y: 0 },
-      "AVSCA":               { x: 0,    y: 220 },
-      "QESCA":               { x: 0,    y: 485 },
-      // Portineria & Terra (ponti opzionali)
-      "VIDEOCITOFONO":       { x: -990, y: 220 },
-      "SGANCI-VVF":          { x: -625, y: 220 },
-      "FTTH-CSOE":           { x: -990, y: 445 },
-      "IRA-CENTRALI":        { x: -625, y: 445 },
-      "TERRA-RETE":          { x: 520,  y: 485 },
-      // Ventaglio 5 destinazioni Torre A
-      "QEPL":                { x: -750, y: 805 },
-      "QEDB":                { x: -385, y: 805 },
-      "LD-SCALA-CANT-A":     { x: 0,    y: 805 },
-      "QEP-TORRE-A":         { x: 385,  y: 805 },
-      "MBUS-CONTAB":         { x: 385,  y: 1030 },
-      "LD-ROOF-A":           { x: 770,  y: 805 }
+      bands: [
+        "1 · Punto di Consegna (Locale Contatori P. Terra)",
+        "2 · Avanquadro & Sgancio VVF (P. Terra)",
+        "3 · Quadro Generale Edificio (Locale Contatori Scala A — Piano -1)",
+        "4 · Dorsali di Distribuzione Torre A (Locali Comuni, Scale, 14 Piani & Copertura)"
+      ],
+      slots: {
+        "POD-SCA":         { col: 2, row: 0 },
+        "RETE-DISTRIBUTORE": { col: 1, row: 0 },
+        "SGANCI-VVF":      { col: 1, row: 1 },
+        "AVSCA":           { col: 2, row: 1 },
+        "QESCA":           { col: 2, row: 2 },
+        "IRA-CENTRALI":    { col: 0, row: 2 },
+        "FTTH-CSOE":       { col: 1, row: 2 },
+        "TERRA-RETE":      { col: 4, row: 2 },
+        "QEPL":            { col: 0, row: 3 },
+        "QEDB":            { col: 1, row: 3 },
+        "LD-SCALA-CANT-A": { col: 2, row: 3 },
+        "QEP-TORRE-A":     { col: 3, row: 3 },
+        "LD-ROOF-A":       { col: 4, row: 3 },
+        "VIDEOCITOFONO":   { col: 0, row: 1 },
+        "MBUS-CONTAB":     { col: 3, row: 2 }
+      }
     },
     "IMP-SCB": {
-      "RETE-DISTRIBUTORE":   { x: 0,    y: -250 },
-      "POD-SCB":             { x: 0,    y: 0 },
-      "AVSCB":               { x: 0,    y: 220 },
-      "QESCB":               { x: 0,    y: 485 },
-      // Portineria & Terra (ponti opzionali)
-      "VIDEOCITOFONO":       { x: -990, y: 220 },
-      "SGANCI-VVF":          { x: -625, y: 220 },
-      "FTTH-CSOE":           { x: -990, y: 445 },
-      "IRA-CENTRALI":        { x: -625, y: 445 },
-      "TERRA-RETE":          { x: 520,  y: 485 },
-      // Ventaglio 5 destinazioni Torre B
-      "QESR":                { x: -750, y: 805 },
-      "QESP":                { x: -385, y: 805 },
-      "LD-SCALA-CANT-B":     { x: 0,    y: 805 },
-      "QEP-TORRE-B":         { x: 385,  y: 805 },
-      "MBUS-CONTAB":         { x: 385,  y: 1030 },
-      "LD-ROOF-B":           { x: 770,  y: 805 }
+      bands: [
+        "1 · Punto di Consegna (Locale Contatori P. Terra)",
+        "2 · Avanquadro & Sgancio VVF (P. Terra)",
+        "3 · Quadro Generale Edificio (Locale Contatori Scala B — Piano -1)",
+        "4 · Dorsali di Distribuzione Torre B (Locali Comuni, Scale, 14 Piani & Copertura)"
+      ],
+      slots: {
+        "POD-SCB":         { col: 2, row: 0 },
+        "RETE-DISTRIBUTORE": { col: 1, row: 0 },
+        "SGANCI-VVF":      { col: 1, row: 1 },
+        "AVSCB":           { col: 2, row: 1 },
+        "QESCB":           { col: 2, row: 2 },
+        "IRA-CENTRALI":    { col: 0, row: 2 },
+        "FTTH-CSOE":       { col: 1, row: 2 },
+        "TERRA-RETE":      { col: 4, row: 2 },
+        "QESR":            { col: 0, row: 3 },
+        "QESP":            { col: 1, row: 3 },
+        "LD-SCALA-CANT-B": { col: 2, row: 3 },
+        "QEP-TORRE-B":     { col: 3, row: 3 },
+        "LD-ROOF-B":       { col: 4, row: 3 },
+        "VIDEOCITOFONO":   { col: 0, row: 1 },
+        "MBUS-CONTAB":     { col: 3, row: 2 }
+      }
     },
     "IMP-PDC": {
-      "RETE-DISTRIBUTORE":   { x: -245, y: -250 },
-      "POD-PDC":             { x: -245, y: 0 },
-      "AVPC":                { x: -245, y: 225 },
-      "SGANCI-VVF":          { x: -690, y: 225 },
-      "GEN-FV-ROOF":         { x: 265,  y: 225 },
-      "QEREG":               { x: -375, y: 540 },
-      "QEPC":                { x: 10,   y: 540 },
-      "LD-PDC-UNITS":        { x: 10,   y: 770 },
-      "TERRA-RETE":          { x: 500,  y: 540 }
+      bands: [
+        "1 · Punto di Consegna Dedicato 160 kW (Locale Contatori P. Terra)",
+        "2 · Avanquadro Linea Rete (P. Terra) & Generatore Fotovoltaico (+48 m)",
+        "3 · Quadro Parallelo Rete + Fotovoltaico (Centrale Tecnologica Piano -2)",
+        "4 · Gruppi Frigo / Pompe di Calore Geotermiche (Centrale Piano -2)"
+      ],
+      slots: {
+        "RETE-DISTRIBUTORE": { col: 0,   row: 0 },
+        "POD-PDC":           { col: 1,   row: 0 },
+        "SGANCI-VVF":        { col: 0,   row: 1 },
+        "AVPC":              { col: 1,   row: 1 },
+        "GEN-FV-ROOF":       { col: 3,   row: 1 },
+        "QEREG":             { col: 0.8, row: 2 },
+        "QEPC":              { col: 2,   row: 2 },
+        "TERRA-RETE":        { col: 3.2, row: 2 },
+        "LD-PDC-UNITS":      { col: 2,   row: 3 }
+      }
     },
     "IMP-FIRE": {
-      // Locale Contatori Principale — Piano Terra
-      "RIP-250":             { x: -1080, y: 0 },
-      "QEPA":                { x: -715,  y: 0 },
-      "AVSSC":               { x: -1080, y: 220 },
-      "AVSCA":               { x: -350,  y: 220 },
-      "AVSCB":               { x: 15,    y: 220 },
-      "AVPC":                { x: 380,   y: 220 },
-      "QESSC":               { x: -1080, y: 440 },
-      "Q6-BOX-SEC":          { x: -715,  y: 440 },
-      // Portineria & Ingressi (P. Terra)
-      "QEPOR":               { x: 1180,  y: 0 },
-      "SGANCI-VVF":          { x: 815,   y: 220 },
-      "IRA-CENTRALI":        { x: 1180,  y: 220 },
-      // Piani Interrati (-1 e -2) — 4 stanze ben distanziate
-      "LD-POMPA-VVF":        { x: -1080, y: 810 },
-      "LD-BOX":              { x: -690,  y: 810 },
-      "FIRE-PORTONI-EI":     { x: -325,  y: 810 },
-      "UPS-1-EI":            { x: 100,   y: 780 },
-      "UPS-2-SGANCIO":       { x: 465,   y: 780 },
-      "QESCA":               { x: 100,   y: 1005 },
-      "QESCB":               { x: 900,   y: 810 }
+      bands: [
+        "1 · Alimentazioni di Sicurezza, Quadro VVF & Gruppi UPS Tampone",
+        "2 · Presidi di Comando Sgancio Emergenza & Rivelazione Fumi",
+        "3 · Utenze Antincendio Vitali & Compartimentazione Autorimessa"
+      ],
+      slots: {
+        "RIP-250":         { col: 0, row: 0 },
+        "QEPA":            { col: 1, row: 0 },
+        "UPS-2-SGANCIO":   { col: 2, row: 0 },
+        "UPS-1-EI":        { col: 3, row: 0 },
+        "IRA-CENTRALI":    { col: 1.5, row: 1 },
+        "SGANCI-VVF":      { col: 2.5, row: 1 },
+        "LD-POMPA-VVF":    { col: 1, row: 2 },
+        "FIRE-PORTONI-EI": { col: 3, row: 2 },
+        "LD-BOX":          { col: 4, row: 2 },
+        "AVSSC":           { col: 0, row: 1 },
+        "QESSC":           { col: 0, row: 2 },
+        "Q6-BOX-SEC":      { col: 2, row: 2 },
+        "QEPOR":           { col: 4, row: 0 },
+        "AVSCA":           { col: 4, row: 1 },
+        "AVSCB":           { col: 5, row: 1 },
+        "AVPC":            { col: 6, row: 1 },
+        "QESCA":           { col: 5, row: 2 },
+        "QESCB":           { col: 6, row: 2 }
+      }
     },
     "IMP-BMS": {
-      "QECI":                { x: -830, y: 240 },
-      "BMS-SONDE-CAMPO":     { x: 0,    y: 0 },
-      "QECT":                { x: -375, y: 240 },
-      "QEREG":               { x: 0,    y: 240 },
-      "QEPC":                { x: 375,  y: 240 },
-      "BMS-ATTUATORI-VALV":  { x: 0,    y: 480 },
-      "QELP":                { x: 830,  y: 240 },
-      "QEP-TORRE-A":         { x: -375, y: 780 },
-      "MBUS-CONTAB":         { x: 0,    y: 780 },
-      "QEP-TORRE-B":         { x: 375,  y: 780 }
+      bands: [
+        "1 · Sensoristica di Campo (19 Sonde Temperatura & Livelli Pozzi)",
+        "2 · Supervisione Centrale PLC ABB Cylon & Telegestione 4G (Piano -2)",
+        "3 · Regolazione Valvole/Inverter & Rete Contabilizzazione M-Bus Piani"
+      ],
+      slots: {
+        "BMS-SONDE-CAMPO":    { col: 2, row: 0 },
+        "QECI":               { col: 0, row: 1 },
+        "QECT":               { col: 1, row: 1 },
+        "QEREG":              { col: 2, row: 1 },
+        "QEPC":               { col: 3, row: 1 },
+        "QELP":               { col: 4, row: 1 },
+        "BMS-ATTUATORI-VALV": { col: 1.3, row: 2 },
+        "MBUS-CONTAB":        { col: 2.7, row: 2 },
+        "QEP-TORRE-A":        { col: 3.8, row: 2 },
+        "QEP-TORRE-B":        { col: 4.8, row: 2 }
+      }
     },
     "IMP-TLC": {
-      "QESCA":               { x: -960, y: 0 },
-      "QESCB":               { x: -960, y: 265 },
-      "TLC-ANTENNE-STOM":    { x: -200, y: 0 },
-      "QESSC":               { x: 480,  y: 0 },
-      "QEPOR":               { x: -530, y: 280 },
-      "FTTH-CSOE":           { x: -165, y: 280 },
-      "VIDEOCITOFONO":       { x: 200,  y: 280 },
-      "QEPL":                { x: 640,  y: 280 },
-      "QESR":                { x: 1005, y: 280 },
-      "TLC-ALLOGGI-STOA":    { x: 15,   y: 580 }
+      bands: [
+        "1 · Captazione Radiotelevisiva in Copertura (+48 m)",
+        "2 · Infrastruttura Ottica FTTH (CSOE) & Centrale Videocitofonica (P. Terra)",
+        "3 · Distribuzione Multiservizio negli Appartamenti (STOA / QDSA)"
+      ],
+      slots: {
+        "TLC-ANTENNE-STOM": { col: 1, row: 0 },
+        "QEPOR":            { col: 0, row: 0 },
+        "QESSC":            { col: 2, row: 0 },
+        "QESCA":            { col: 0, row: 1 },
+        "FTTH-CSOE":        { col: 1, row: 1 },
+        "VIDEOCITOFONO":    { col: 2, row: 1 },
+        "QEPL":             { col: 3, row: 1 },
+        "QESR":             { col: 4, row: 1 },
+        "QESCB":            { col: 0, row: 2 },
+        "TLC-ALLOGGI-STOA": { col: 1.5, row: 2 }
+      }
     },
     "IMP-GND": {
-      "GND-SPD-4X":          { x: 0,    y: 0 },
-      "QESCA":               { x: -820, y: 265 },
-      "QESSC":               { x: -375, y: 265 },
-      "GND-COLLETTORI-EQP":  { x: 0,    y: 265 },
-      "QESCB":               { x: 440,  y: 265 },
-      "QEPC":                { x: 880,  y: 265 },
-      "TERRA-RETE":          { x: 0,    y: 575 }
+      bands: [
+        "1 · Protezione Sovratensioni & Fulmini nei 4 Quadri Generali (SPD Tipo 1+2)",
+        "2 · Raccolta Equipotenziale & Collettori Principali di Terra",
+        "3 · Dispersione nel Suolo (Anello Rame Nudo 50 mm² + 14 Picchetti)"
+      ],
+      slots: {
+        "GND-SPD-4X":         { col: 2, row: 0 },
+        "QESSC":              { col: 0, row: 1 },
+        "QESCA":              { col: 1, row: 1 },
+        "GND-COLLETTORI-EQP": { col: 2, row: 1 },
+        "QESCB":              { col: 3, row: 1 },
+        "QEPC":               { col: 4, row: 1 },
+        "TERRA-RETE":         { col: 2, row: 2 }
+      }
     }
   };
 
-  function computeInternalSynopticPositions(nodes) {
-    const pos = new Map();
+  function buildInternalSynopticSchema(nodes) {
+    const bands = [
+      "1 · Linea di Ingresso",
+      "2 · Organo di Manovra & Protezione Generale",
+      "3 · Sbarra Principale in Rame, Misura Vemer & Scaricatore SPD"
+    ];
+    const slots = {};
+
     const sec1 = nodes.filter((n) => (n.roleGroup || "").startsWith("1 ·"));
     const sec2 = nodes.filter((n) => (n.roleGroup || "").startsWith("2 ·"));
     const sec3 = nodes.filter((n) => (n.roleGroup || "").startsWith("3 ·"));
     const sec4 = nodes.filter((n) => (n.roleGroup || "").startsWith("4 ·"));
 
-    // Section 1: Incomer & Main Breaker (+ optional Type B Relay)
+    const pvNodes = sec3.filter((n) => n.roleType === "source");
+    const outMain = sec3.filter((n) => n.roleType !== "source");
+
+    const centerCol = 2;
     const inNode = sec1.find((n) => n.id.endsWith("__IN"));
     const mainNode = sec1.find((n) => n.id.endsWith("__MAIN"));
     const derNode = sec1.find((n) => n.id.endsWith("__DER"));
-    if (inNode) pos.set(inNode.id, { x: 0, y: 0 });
-    if (mainNode) pos.set(mainNode.id, { x: 0, y: 195 });
-    if (derNode) pos.set(derNode.id, { x: -350, y: 195 });
+    if (inNode) slots[inNode.id] = { col: centerCol, row: 0 };
+    pvNodes.forEach((pvn, idx) => { slots[pvn.id] = { col: centerCol + 1.4 + idx, row: 1 }; });
+    if (derNode) slots[derNode.id] = { col: centerCol - 1.2, row: 1 };
+    if (mainNode) slots[mainNode.id] = { col: centerCol, row: 1 };
 
-    // Section 2: Main Busbar, Multimeter, SPD -> PE Bar
-    const busNode = sec2.find((n) => n.id.endsWith("__BUS"));
     const m1Node = sec2.find((n) => n.id.endsWith("__M1"));
+    const busNode = sec2.find((n) => n.id.endsWith("__BUS"));
     const spdNode = sec2.find((n) => n.id.endsWith("__SPD"));
     const peNode = sec2.find((n) => n.id.endsWith("__PE"));
-    if (m1Node) pos.set(m1Node.id, { x: -350, y: 455 });
-    if (busNode) pos.set(busNode.id, { x: 0, y: 455 });
-    if (spdNode) pos.set(spdNode.id, { x: 350, y: 455 });
-    if (peNode) pos.set(peNode.id, { x: 700, y: 455 });
+    if (m1Node) slots[m1Node.id] = { col: centerCol - 1.2, row: 2 };
+    if (busNode) slots[busNode.id] = { col: centerCol, row: 2 };
+    if (spdNode) slots[spdNode.id] = { col: centerCol + 1.2, row: 2 };
+    if (peNode) slots[peNode.id] = { col: centerCol + 2.4, row: 2 };
 
-    // Section 3: Main Outgoing Feeders in symmetric rows of max 5 cards
-    let curY = 745;
-    const colsMax = 5;
-    const colGap = 315;
-    const rowGap = 185;
-    for (let i = 0; i < sec3.length; i++) {
-      const r = Math.floor(i / colsMax);
-      const rowCount = Math.min(colsMax, sec3.length - r * colsMax);
-      const c = i % colsMax;
-      const x = (c - (rowCount - 1) / 2) * colGap;
-      pos.set(sec3[i].id, { x, y: curY + r * rowGap });
-    }
-    if (sec3.length > 0) {
-      curY += Math.ceil(sec3.length / colsMax) * rowGap + 125;
+    let nextRow = 3;
+    const colsPerRack = 5;
+    if (outMain.length > 0) {
+      const rackRows = Math.ceil(outMain.length / colsPerRack);
+      for (let r = 0; r < rackRows; r++) {
+        bands.push(rackRows === 1
+          ? "4 · Interruttori di Partenza & Linee Uscita"
+          : `4.${r + 1} · Interruttori di Partenza (Fila ${r + 1})`
+        );
+        const slice = outMain.slice(r * colsPerRack, (r + 1) * colsPerRack);
+        const offset = centerCol - (slice.length - 1) / 2;
+        slice.forEach((nd, i) => {
+          slots[nd.id] = { col: offset + i, row: nextRow };
+        });
+        nextRow += 1;
+      }
     }
 
-    // Section 4: Sub-section Q6 + RP1 & Garage/Box circuits (for QE.SSC)
     if (sec4.length > 0) {
       const q6Hub = sec4.find((n) => n.id.endsWith("__Q6_RP1"));
-      const q6Children = sec4.filter((n) => n !== q6Hub);
+      const q6Kids = sec4.filter((n) => n !== q6Hub);
       if (q6Hub) {
-        pos.set(q6Hub.id, { x: 0, y: curY });
-        curY += 215;
+        bands.push("5 · Sotto-Sezione Autorimessa Q6 (4P 63A + Sgancio VVF) & Ripartitore RP1");
+        slots[q6Hub.id] = { col: centerCol, row: nextRow };
+        nextRow += 1;
       }
-      for (let i = 0; i < q6Children.length; i++) {
-        const r = Math.floor(i / colsMax);
-        const rowCount = Math.min(colsMax, q6Children.length - r * colsMax);
-        const c = i % colsMax;
-        const x = (c - (rowCount - 1) / 2) * colGap;
-        pos.set(q6Children[i].id, { x, y: curY + r * rowGap });
+      const q6Rows = Math.ceil(q6Kids.length / colsPerRack);
+      for (let r = 0; r < q6Rows; r++) {
+        bands.push(`6.${r + 1} · Circuiti Derivati Autorimessa & 152 Box (Q6.1 – Q6.10 · Fila ${r + 1})`);
+        const slice = q6Kids.slice(r * colsPerRack, (r + 1) * colsPerRack);
+        const offset = centerCol - (slice.length - 1) / 2;
+        slice.forEach((nd, i) => {
+          slots[nd.id] = { col: offset + i, row: nextRow };
+        });
+        nextRow += 1;
       }
     }
 
-    // Fallback for any unclassified internal node
-    nodes.forEach((n, idx) => {
-      if (!pos.has(n.id)) pos.set(n.id, { x: (idx % 4) * 320, y: curY + 220 });
-    });
-    return pos;
+    return { bands, slots };
   }
 
-  function resolveSynopticPositions(nodes, isInternal) {
-    if (isInternal) return computeInternalSynopticPositions(nodes);
-    const map = SYNOPTIC_POSITIONS[state.activePlant] || {};
-    const out = new Map();
-    nodes.forEach((n, idx) => {
-      const p = map[n.id];
-      out.set(n.id, p ? { x: p.x, y: p.y } : { x: (idx % 5) * 360, y: Math.floor(idx / 5) * 240 });
-    });
-    return out;
+  // Convert an orthogonal polyline into an SVG path with smooth quadratic rounded corners
+  function buildRoundedOrthoPath(rawPts, radius = 12) {
+    const pts = [];
+    for (let i = 0; i < rawPts.length; i++) {
+      const p = rawPts[i];
+      if (!pts.length || Math.hypot(p.x - pts[pts.length - 1].x, p.y - pts[pts.length - 1].y) > 1.5) {
+        pts.push(p);
+      }
+    }
+    // Remove collinear middle points
+    const clean = [];
+    for (let i = 0; i < pts.length; i++) {
+      if (i > 0 && i < pts.length - 1) {
+        const a = clean[clean.length - 1];
+        const b = pts[i];
+        const c = pts[i + 1];
+        const cross = Math.abs((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x));
+        if (cross < 1.0) continue;
+      }
+      clean.push(pts[i]);
+    }
+    if (clean.length < 2) return "";
+    if (clean.length === 2) {
+      return `M ${clean[0].x.toFixed(1)} ${clean[0].y.toFixed(1)} L ${clean[1].x.toFixed(1)} ${clean[1].y.toFixed(1)}`;
+    }
+
+    let d = `M ${clean[0].x.toFixed(1)} ${clean[0].y.toFixed(1)}`;
+    for (let i = 1; i < clean.length - 1; i++) {
+      const prev = clean[i - 1];
+      const curr = clean[i];
+      const next = clean[i + 1];
+      const v1x = curr.x - prev.x;
+      const v1y = curr.y - prev.y;
+      const v2x = next.x - curr.x;
+      const v2y = next.y - curr.y;
+      const len1 = Math.hypot(v1x, v1y);
+      const len2 = Math.hypot(v2x, v2y);
+      const r = Math.min(radius, len1 * 0.45, len2 * 0.45);
+      if (r < 2) {
+        d += ` L ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
+      } else {
+        const pInX = curr.x - (v1x / len1) * r;
+        const pInY = curr.y - (v1y / len1) * r;
+        const pOutX = curr.x + (v2x / len2) * r;
+        const pOutY = curr.y + (v2y / len2) * r;
+        d += ` L ${pInX.toFixed(1)} ${pInY.toFixed(1)} Q ${curr.x.toFixed(1)} ${curr.y.toFixed(1)} ${pOutX.toFixed(1)} ${pOutY.toFixed(1)}`;
+      }
+    }
+    const last = clean[clean.length - 1];
+    d += ` L ${last.x.toFixed(1)} ${last.y.toFixed(1)}`;
+    return d;
   }
 
-  function computeSynopticEdgeCurve(e, posMap, pairCounts) {
-    if (e.id === "e56") {
-      return { curveStyle: "unbundled-bezier", cpDistances: [-95], cpWeights: [0.45] };
-    }
-    if (e.id === "e54") {
-      return { curveStyle: "unbundled-bezier", cpDistances: [80], cpWeights: [0.5] };
-    }
-    const pk = [e.source, e.target].sort().join("::");
-    if ((pairCounts.get(pk) || 0) > 1) {
-      return { curveStyle: "bezier", cpDistances: [46], cpWeights: [0.5] };
-    }
-    const p1 = posMap.get(e.source);
-    const p2 = posMap.get(e.target);
-    if (!p1 || !p2) {
-      return { curveStyle: "bezier", cpDistances: [42], cpWeights: [0.5] };
-    }
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const L = Math.hypot(dx, dy) || 1;
+  function applySynopticTransform() {
+    const board = document.getElementById("synopticBoard");
+    if (!board) return;
+    board.style.transform = `translate(${synView.panX.toFixed(1)}px, ${synView.panY.toFixed(1)}px) scale(${synView.scale.toFixed(4)})`;
+  }
 
-    // Purely vertical alignment -> straight line
-    if (Math.abs(dx) < 22) {
-      return { curveStyle: "unbundled-bezier", cpDistances: [0], cpWeights: [0.5] };
+  function fitSynopticBoard() {
+    const stage = document.getElementById("synopticStage");
+    if (!stage) return;
+    const vw = stage.clientWidth || 1000;
+    const vh = stage.clientHeight || 680;
+    const pad = 26;
+    const sx = (vw - pad * 2) / Math.max(1, synView.boardW);
+    const sy = (vh - pad * 2) / Math.max(1, synView.boardH);
+    const scale = Math.min(1.04, Math.max(0.28, Math.min(sx, sy)));
+    synView.scale = scale;
+    synView.panX = (vw - synView.boardW * scale) / 2;
+    synView.panY = Math.max(14, (vh - synView.boardH * scale) / 2);
+    applySynopticTransform();
+  }
+
+  function applySynopticFocus() {
+    const clearBtn = document.getElementById("btnClearFocus");
+    const board = document.getElementById("synopticBoard");
+    if (!board) return;
+    const cards = board.querySelectorAll(".syn-card");
+    const wires = board.querySelectorAll(".syn-wire-group");
+
+    cards.forEach((c) => c.classList.remove("dimmed"));
+    wires.forEach((w) => w.classList.remove("dimmed"));
+
+    if (!state.focusedNodeId) {
+      clearBtn.style.display = "none";
+      return;
     }
-    // Same horizontal band -> straight if adjacent, gentle arch if spanning across columns
-    if (Math.abs(dy) < 80) {
-      const arch = Math.abs(dx) > 460 ? (dx > 0 ? -78 : 78) : 0;
-      return { curveStyle: "unbundled-bezier", cpDistances: [arch], cpWeights: [0.5] };
+
+    clearBtn.style.display = "inline-flex";
+    const keepNodes = new Set([state.focusedNodeId]);
+    wires.forEach((w) => {
+      const s = w.dataset.source;
+      const t = w.dataset.target;
+      if (s === state.focusedNodeId || t === state.focusedNodeId) {
+        keepNodes.add(s);
+        keepNodes.add(t);
+      } else {
+        w.classList.add("dimmed");
+      }
+    });
+    cards.forEach((c) => {
+      if (!keepNodes.has(c.dataset.nodeId)) {
+        c.classList.add("dimmed");
+      }
+    });
+  }
+
+  function renderSynopticBoard() {
+    const stage = document.getElementById("synopticStage");
+    const board = document.getElementById("synopticBoard");
+    const cyEl = document.getElementById("cyCanvas");
+    if (!stage || !board) return;
+
+    stage.style.display = "block";
+    cyEl.style.display = "none";
+
+    const pal = getPalette();
+    const { nodes, edges, isInternal, parentBoard } = computeCurrentGraph();
+
+    const bc = document.getElementById("drillBreadcrumb");
+    if (isInternal && parentBoard) {
+      bc.classList.add("active");
+      document.getElementById("drillTitle").textContent = `🔬 Dentro il Quadro: ${parentBoard.code} — ${parentBoard.label}`;
+      document.getElementById("drillSubtitle").textContent = `Schema sinottico a sbarra dei componenti interni (${nodes.length} componenti · ${edges.length} collegamenti)`;
+      document.getElementById("lblBridges").style.display = "none";
+    } else {
+      bc.classList.remove("active");
+      document.getElementById("lblBridges").style.display = state.activePlant === "IMP-INGRESSI" ? "none" : "inline-flex";
     }
-    // Vertical/diagonal tier transition -> graceful vertical-first cubic S-curve!
-    const rawD = -(0.38 * dx * dy) / L;
-    const d = Math.max(-85, Math.min(85, rawD));
-    return {
-      curveStyle: "unbundled-bezier",
-      cpDistances: [d, -d],
-      cpWeights: [0.35, 0.65]
-    };
+
+    if (!nodes.some((n) => n.id === state.selectedNodeId)) {
+      const defN = nodes.find((n) => !n.isBridge && n.roleType === "source") || nodes[0];
+      if (defN) state.selectedNodeId = defN.id;
+    }
+
+    const schema = isInternal
+      ? buildInternalSynopticSchema(nodes)
+      : (SYNOPTIC_SCHEMAS[state.activePlant] || { bands: ["Schema Impianto"], slots: {} });
+
+    // Normalize columns so minCol starts cleanly at 0
+    const rawSlots = new Map();
+    let minCol = Infinity;
+    let maxCol = -Infinity;
+    let maxRow = 0;
+
+    nodes.forEach((n, idx) => {
+      const sl = schema.slots[n.id] || { col: idx % 5, row: Math.min(schema.bands.length - 1, Math.floor(idx / 5)) };
+      rawSlots.set(n.id, sl);
+      if (sl.col < minCol) minCol = sl.col;
+      if (sl.col > maxCol) maxCol = sl.col;
+      if (sl.row > maxRow) maxRow = sl.row;
+    });
+    if (!Number.isFinite(minCol)) minCol = 0;
+    if (!Number.isFinite(maxCol)) maxCol = 0;
+
+    // Compact used rows so empty bands (e.g. when optional bridges are OFF) collapse cleanly!
+    const usedRowsSorted = Array.from(new Set(Array.from(rawSlots.values()).map((s) => s.row))).sort((a, b) => a - b);
+    const rowRemap = new Map(usedRowsSorted.map((origRow, idx) => [origRow, idx]));
+    const activeBands = usedRowsSorted.map((origRow) => schema.bands[origRow] || `Livello ${origRow + 1}`);
+
+    const CARD_W = 224;
+    const CARD_H = 104;
+    const COL_GAP = 40;
+    const COL_PITCH = CARD_W + COL_GAP;
+    const PAD_LEFT = 204;
+    const PAD_RIGHT = 32;
+    const PAD_Y = 20;
+    const BAND_TOP = 30;
+    const BAND_BOT = 14;
+    const BAND_H = BAND_TOP + CARD_H + BAND_BOT;
+    const CHANNEL_H = 70;
+    const ROW_PITCH = BAND_H + CHANNEL_H;
+
+    const spanCols = Math.max(2.2, (maxCol - minCol) + 1);
+    const boardW = Math.max(760, Math.round(PAD_LEFT + PAD_RIGHT + spanCols * COL_PITCH - COL_GAP));
+    const numRows = Math.max(1, activeBands.length);
+    const boardH = PAD_Y * 2 + numRows * BAND_H + (numRows - 1) * CHANNEL_H;
+
+    synView.boardW = boardW;
+    synView.boardH = boardH;
+    board.style.width = `${boardW}px`;
+    board.style.height = `${boardH}px`;
+
+    // Compute exact card rectangles
+    const boxes = new Map();
+    nodes.forEach((n) => {
+      const sl = rawSlots.get(n.id);
+      const cNorm = sl.col - minCol;
+      const rNorm = rowRemap.get(sl.row) || 0;
+      const left = PAD_LEFT + cNorm * COL_PITCH;
+      const top = PAD_Y + rNorm * ROW_PITCH + BAND_TOP;
+      boxes.set(n.id, {
+        col: cNorm,
+        row: rNorm,
+        left,
+        right: left + CARD_W,
+        top,
+        bottom: top + CARD_H,
+        cx: left + CARD_W / 2,
+        cy: top + CARD_H / 2
+      });
+    });
+
+    // Helper: check if a vertical line at x intersects any card strictly between yA and yB
+    function isShaftClear(x, yA, yB, ignoreIdA, ignoreIdB) {
+      const yMin = Math.min(yA, yB) + 2;
+      const yMax = Math.max(yA, yB) - 2;
+      for (const [nid, bx] of boxes.entries()) {
+        if (nid === ignoreIdA || nid === ignoreIdB) continue;
+        if (yMax > bx.top - 6 && yMin < bx.bottom + 6) {
+          if (x > bx.left - 10 && x < bx.right + 10) return false;
+        }
+      }
+      return true;
+    }
+
+    // Find nearest clear vertical alley near targetX for multi-row bypasses
+    const usedAlleys = [];
+    function findClearAlley(prefX, yA, yB, idA, idB) {
+      const candidates = [];
+      const maxColIdx = Math.ceil(spanCols) + 1;
+      for (let k = 0; k <= maxColIdx; k++) {
+        const ax = PAD_LEFT + k * COL_PITCH - COL_GAP / 2;
+        candidates.push(ax, ax - 9, ax + 9);
+      }
+      candidates.sort((a, b) => Math.abs(a - prefX) - Math.abs(b - prefX));
+      for (const cx of candidates) {
+        if (!isShaftClear(cx, yA, yB, idA, idB)) continue;
+        const clash = usedAlleys.some((u) => Math.abs(u.x - cx) < 7 && Math.min(yB, u.y2) > Math.max(yA, u.y1));
+        if (!clash) {
+          usedAlleys.push({ x: cx, y1: Math.min(yA, yB), y2: Math.max(yA, yB) });
+          return cx;
+        }
+      }
+      return prefX;
+    }
+
+    // Group incoming top edges per target node to spread entry pins slightly when >=2 distinct parents converge
+    const inTopByTarget = new Map();
+    edges.forEach((e) => {
+      const b1 = boxes.get(e.source);
+      const b2 = boxes.get(e.target);
+      if (!b1 || !b2) return;
+      if (b2.row > b1.row || (b2.row === b1.row && Math.abs(b2.cx - b1.cx) > COL_PITCH * 1.35)) {
+        if (!inTopByTarget.has(e.target)) inTopByTarget.set(e.target, []);
+        inTopByTarget.get(e.target).push(e);
+      }
+    });
+    inTopByTarget.forEach((arr) => {
+      arr.sort((ea, eb) => (boxes.get(ea.source)?.cx || 0) - (boxes.get(eb.source)?.cx || 0));
+    });
+
+    // Allocate horizontal busbar tracks per inter-band channel (shared by same source+edgeType!)
+    const channelBusMap = new Map(); // key `${channelIdx}::${sourceId}::${edgeType}` -> yTrack
+    const channelCounters = new Map(); // channelIdx -> count
+
+    function getBusTrackY(channelIdx, groupKey) {
+      const fullKey = `${channelIdx}::${groupKey}`;
+      if (channelBusMap.has(fullKey)) return channelBusMap.get(fullKey);
+      const idx = channelCounters.get(channelIdx) || 0;
+      channelCounters.set(channelIdx, idx + 1);
+      const bandBot = PAD_Y + channelIdx * ROW_PITCH + BAND_H;
+      const offsets = [22, 38, 54, 12, 64];
+      const yT = bandBot + offsets[idx % offsets.length];
+      channelBusMap.set(fullKey, yT);
+      return yT;
+    }
+
+    // Build Bands HTML
+    let bandsHtml = "";
+    for (let r = 0; r < numRows; r++) {
+      const bTop = PAD_Y + r * ROW_PITCH;
+      bandsHtml += `
+        <div class="syn-band ${r % 2 === 0 ? "even" : "odd"}" style="top:${bTop}px; width:${boardW}px; height:${BAND_H}px;">
+          <div class="syn-band-hdr">${escXml(activeBands[r])}</div>
+        </div>
+      `;
+    }
+
+    // Build Orthogonal-Curved SVG Wires, T-Junction Dots & Micro-Labels
+    let svgWiresHtml = "";
+    const junctionDots = new Map(); // `${x.toFixed(0)},${y.toFixed(0)}` -> color
+    const busTapTracker = new Map(); // `${channelIdx}::${source}::${edgeType}` -> xs[]
+    const placedBadgeRects = [];
+    const wireSpecs = [];
+
+    edges.forEach((e) => {
+      const b1 = boxes.get(e.source);
+      const b2 = boxes.get(e.target);
+      if (!b1 || !b2) return;
+
+      const interrupted = isEdgeInterruptedInEmergency(e);
+      let color = plantColors(e.plant, pal).fg;
+      let dash = "";
+      let strokeW = 2.8;
+
+      if (e.edgeType === "fire_resistant") {
+        color = pal.danger;
+        strokeW = 3.3;
+      } else if (e.edgeType === "emergency_trip") {
+        color = pal.danger;
+        dash = "7 5";
+        strokeW = state.opState === "emergency" ? 3.2 : 2.1;
+      } else if (e.edgeType === "bms_bus" || e.edgeType === "tlc_signal") {
+        color = pal.link;
+        dash = "6 4";
+        strokeW = 2.3;
+      } else if (e.edgeType === "earth_pe") {
+        color = state.opState === "emergency" ? pal.warning : pal.borderStrong;
+        dash = "7 5";
+        strokeW = state.opState === "emergency" ? 3.2 : 2.0;
+      } else if (e.edgeType === "power_fv") {
+        color = pal.warning;
+        strokeW = 3.2;
+      }
+
+      if (interrupted) {
+        color = pal.borderStrong;
+        dash = "3 5";
+        strokeW = 2.0;
+      }
+
+      // Compute pin offset on target top if multiple parents converge
+      const topArr = inTopByTarget.get(e.target) || [];
+      const topIdx = topArr.indexOf(e);
+      const topPinShift = topArr.length > 1 && topIdx >= 0
+        ? (topIdx - (topArr.length - 1) / 2) * 22
+        : 0;
+
+      let pts = [];
+      let arrowAngleDeg = 90; // downward by default
+      let endPt = { x: b2.cx + topPinShift, y: b2.top };
+      let badgeAnchor = null;
+
+      if (b2.row === b1.row) {
+        const dx = b2.cx - b1.cx;
+        if (Math.abs(dx) <= COL_PITCH * 1.32) {
+          // Direct clean horizontal connection between adjacent cards
+          const goRight = dx >= 0;
+          const pStart = { x: goRight ? b1.right : b1.left, y: b1.cy };
+          const pEnd = { x: goRight ? b2.left : b2.right, y: b2.cy };
+          pts = [pStart, pEnd];
+          endPt = pEnd;
+          arrowAngleDeg = goRight ? 0 : 180;
+          badgeAnchor = { x: (pStart.x + pEnd.x) / 2, y: b1.top - 13 };
+        } else {
+          // Non-adjacent same-row: step cleanly into upper band channel
+          const yArc = b1.top - 15 - ((channelCounters.get(`top_${b1.row}`) || 0) * 12);
+          channelCounters.set(`top_${b1.row}`, (channelCounters.get(`top_${b1.row}`) || 0) + 1);
+          const xEnd = b2.cx + topPinShift;
+          pts = [
+            { x: b1.cx, y: b1.top },
+            { x: b1.cx, y: yArc },
+            { x: xEnd, y: yArc },
+            { x: xEnd, y: b2.top }
+          ];
+          endPt = { x: xEnd, y: b2.top };
+          arrowAngleDeg = 90;
+        }
+      } else if (b2.row > b1.row) {
+        const xStart = b1.cx;
+        const yStart = b1.bottom;
+        const xEnd = b2.cx + topPinShift;
+        const yEnd = b2.top;
+        const busKey = `${e.source}::${e.edgeType}`;
+        const yBus = getBusTrackY(b1.row, busKey);
+
+        // Track taps for busbar junction dots
+        const tapFullKey = `${b1.row}::${busKey}`;
+        if (!busTapTracker.has(tapFullKey)) busTapTracker.set(tapFullKey, { y: yBus, color, xs: [xStart] });
+
+        if (b2.row === b1.row + 1) {
+          if (Math.abs(xEnd - xStart) < 5) {
+            pts = [{ x: xStart, y: yStart }, { x: xEnd, y: yEnd }];
+          } else {
+            pts = [
+              { x: xStart, y: yStart },
+              { x: xStart, y: yBus },
+              { x: xEnd, y: yBus },
+              { x: xEnd, y: yEnd }
+            ];
+            busTapTracker.get(tapFullKey).xs.push(xEnd);
+          }
+          badgeAnchor = { x: xEnd, y: yEnd - 15 };
+        } else {
+          // Multi-row downward connection: drop directly down xEnd if shaft is clear, else use nearest clear alley!
+          if (isShaftClear(xEnd, yBus, yEnd, e.source, e.target)) {
+            if (Math.abs(xEnd - xStart) < 5) {
+              pts = [{ x: xStart, y: yStart }, { x: xEnd, y: yEnd }];
+            } else {
+              pts = [
+                { x: xStart, y: yStart },
+                { x: xStart, y: yBus },
+                { x: xEnd, y: yBus },
+                { x: xEnd, y: yEnd }
+              ];
+              busTapTracker.get(tapFullKey).xs.push(xEnd);
+            }
+          } else {
+            const xAlley = findClearAlley(xEnd, yBus, yEnd, e.source, e.target);
+            const yBusBottom = getBusTrackY(b2.row - 1, `in::${e.id}`);
+            pts = [
+              { x: xStart, y: yStart },
+              { x: xStart, y: yBus },
+              { x: xAlley, y: yBus },
+              { x: xAlley, y: yBusBottom },
+              { x: xEnd, y: yBusBottom },
+              { x: xEnd, y: yEnd }
+            ];
+            busTapTracker.get(tapFullKey).xs.push(xAlley);
+          }
+          badgeAnchor = { x: xEnd, y: yEnd - 15 };
+        }
+        endPt = { x: xEnd, y: yEnd };
+        arrowAngleDeg = 90;
+      } else {
+        // Upward feedback / trip line (b2.row < b1.row)
+        const xStart = b1.cx;
+        const yStart = b1.top;
+        const xEnd = b2.cx;
+        const yEnd = b2.bottom;
+        const yChannelStart = getBusTrackY(b1.row - 1, `up::${e.id}`);
+        if (isShaftClear(xEnd, yEnd, yChannelStart, e.source, e.target)) {
+          pts = [
+            { x: xStart, y: yStart },
+            { x: xStart, y: yChannelStart },
+            { x: xEnd, y: yChannelStart },
+            { x: xEnd, y: yEnd }
+          ];
+        } else {
+          const xAlley = findClearAlley(xStart, yEnd, yChannelStart, e.source, e.target);
+          const yChannelTop = getBusTrackY(b2.row, `uptop::${e.id}`);
+          pts = [
+            { x: xStart, y: yStart },
+            { x: xStart, y: yChannelStart },
+            { x: xAlley, y: yChannelStart },
+            { x: xAlley, y: yChannelTop },
+            { x: xEnd, y: yChannelTop },
+            { x: xEnd, y: yEnd }
+          ];
+        }
+        endPt = { x: xEnd, y: yEnd };
+        arrowAngleDeg = -90;
+      }
+
+      const dPath = buildRoundedOrthoPath(pts, 13);
+      if (!dPath) return;
+
+      // Arrowhead / Tee at target port
+      let headSvg = "";
+      if (e.edgeType === "emergency_trip") {
+        headSvg = `<g transform="translate(${endPt.x.toFixed(1)},${endPt.y.toFixed(1)}) rotate(${arrowAngleDeg})"><line x1="-2" y1="-6" x2="-2" y2="6" stroke="${color}" stroke-width="2.8" stroke-linecap="round"/></g>`;
+      } else {
+        headSvg = `<g transform="translate(${endPt.x.toFixed(1)},${endPt.y.toFixed(1)}) rotate(${arrowAngleDeg})"><polygon points="0,0 -8,-4.6 -8,4.6" fill="${color}"/></g>`;
+      }
+
+      // Compact non-overlapping horizontal micro-badge for wire rating
+      let badgeSvg = "";
+      const shortLbl = interrupted
+        ? (e.edgeType === "power_fv" ? "⛔ STOP CEI 0-21" : "⛔ SEZIONATO")
+        : (e.label || "").replace(/\s*·\s*.*/, "").slice(0, 22);
+
+      if (badgeAnchor && shortLbl) {
+        const bw = Math.max(48, shortLbl.length * 5.7 + 12);
+        const bh = 16;
+        const bx1 = badgeAnchor.x - bw / 2;
+        const by1 = badgeAnchor.y - bh / 2;
+        const collides = placedBadgeRects.some((r) =>
+          bx1 < r.x2 + 4 && bx1 + bw > r.x1 - 4 && by1 < r.y2 + 2 && by1 + bh > r.y1 - 2
+        );
+        if (!collides) {
+          placedBadgeRects.push({ x1: bx1, y1: by1, x2: bx1 + bw, y2: by1 + bh });
+          badgeSvg = `
+            <g>
+              <rect x="${bx1.toFixed(1)}" y="${by1.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="4"
+                fill="${pal.surface}" stroke="${interrupted ? pal.danger : pal.border}" stroke-width="1" opacity="0.94" />
+              <text x="${badgeAnchor.x.toFixed(1)}" y="${(badgeAnchor.y + 3.4).toFixed(1)}" text-anchor="middle"
+                font-family="Segoe UI, Aptos, sans-serif" font-size="9.5" font-weight="600" fill="${interrupted ? pal.danger : pal.textMuted}">${escXml(shortLbl)}</text>
+            </g>
+          `;
+        }
+      }
+
+      const pathDomId = `synpath_${e.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+      svgWiresHtml += `
+        <g class="syn-wire-group" data-edge-id="${e.id}" data-source="${e.source}" data-target="${e.target}">
+          <path id="${pathDomId}" d="${dPath}" fill="none" stroke="${color}" stroke-width="${strokeW}"
+            ${dash ? `stroke-dasharray="${dash}"` : ""} stroke-linecap="round" stroke-linejoin="round" />
+          ${headSvg}
+          ${badgeSvg}
+        </g>
+      `;
+
+      wireSpecs.push({
+        domId: pathDomId,
+        edgeId: e.id,
+        edgeType: e.edgeType,
+        color,
+        interrupted,
+        source: e.source,
+        target: e.target
+      });
+    });
+
+    // Add electrical T-junction dots where a horizontal busbar feeds multiple branches
+    busTapTracker.forEach((info) => {
+      const uniqXs = Array.from(new Set(info.xs.map((v) => Math.round(v))));
+      if (uniqXs.length >= 3) {
+        // Draw junction dot at parent stem & interior taps
+        uniqXs.sort((a, b) => a - b);
+        for (let i = 0; i < uniqXs.length; i++) {
+          if (i > 0 && i < uniqXs.length - 1) {
+            junctionDots.set(`${uniqXs[i]},${Math.round(info.y)}`, info.color);
+          } else if (Math.abs(uniqXs[i] - info.xs[0]) <= 2) {
+            junctionDots.set(`${uniqXs[i]},${Math.round(info.y)}`, info.color);
+          }
+        }
+      }
+    });
+
+    let dotsSvg = "";
+    junctionDots.forEach((col, key) => {
+      const [jx, jy] = key.split(",");
+      dotsSvg += `<circle cx="${jx}" cy="${jy}" r="4.2" fill="${col}" stroke="${pal.surface}" stroke-width="1.4" />`;
+    });
+
+    // Build Crisp HTML Technical Cards
+    let cardsHtml = "";
+    nodes.forEach((n) => {
+      const bx = boxes.get(n.id);
+      if (!bx) return;
+      const pCol = plantColors(n.plant, pal).fg;
+      let accent = pCol;
+      if (n.id === "TERRA-RETE" || n.id.endsWith("__PE")) accent = pal.borderStrong;
+      else if (n.roleType === "ups" || n.id === "QEPA" || n.id === "LD-POMPA-VVF") accent = pal.danger;
+      else if (n.roleType === "source") accent = pal.success;
+
+      const isSel = n.id === state.selectedNodeId;
+      const isTripped = state.opState === "emergency" && (
+        TRIPPED_SOURCES_IN_EMERGENCY.has(n.id) ||
+        (n.visIn > 0 && edges.filter((e) => e.target === n.id && e.edgeType !== "emergency_trip" && e.edgeType !== "earth_pe").every((e) => isEdgeInterruptedInEmergency(e)) &&
+          edges.some((e) => e.target === n.id && e.edgeType !== "emergency_trip" && e.edgeType !== "earth_pe"))
+      );
+      const incs = INC_BY_NODE.get(n.id) || [];
+      const shortRoom = (n.roomGroup || "").replace(/\s*\(.*?\)/g, "").replace(/Principale\s*—\s*/, "");
+      const hasDrill = Boolean(n.internalGraph) && !n.isInternalComp;
+
+      cardsHtml += `
+        <div class="syn-card ${n.isBridge ? "is-bridge" : ""} ${isSel ? "is-selected" : ""} ${isTripped ? "is-tripped" : ""}"
+          data-node-id="${n.id}"
+          style="left:${bx.left.toFixed(1)}px; top:${bx.top.toFixed(1)}px; width:${CARD_W}px; height:${CARD_H}px; --card-accent:${accent};">
+          <div class="syn-card-top">
+            <span class="syn-code" title="${escXml(n.code)}">${escXml(n.code)}</span>
+            ${incs.length > 0
+              ? `<span style="background:var(--cp-warning); color:var(--cp-text); font-weight:700; padding:0 5px; border-radius:4px; font-size:9.5px;">⚠ ${incs.length}</span>`
+              : `<span class="syn-room-chip" title="${escXml(n.roomGroup || "")}">${escXml(shortRoom)}</span>`
+            }
+          </div>
+          <div class="syn-title" title="${escXml(n.label)}">${escXml(n.label)}</div>
+          <div class="syn-func" title="${escXml(n.shortFunc || n.desc || "")}">${escXml(n.shortFunc || n.desc || "")}</div>
+          ${hasDrill ? `
+            <div class="syn-card-foot">
+              <span style="font-size:9.2px; color:var(--cp-text-muted);">${(n.internalGraph.nodes || []).length} componenti</span>
+              <button class="syn-drill-btn" data-drill-btn="${n.id}" title="Apri lo schema interno di questo quadro">🔬 Interno ▸</button>
+            </div>
+          ` : ""}
+        </div>
+      `;
+    });
+
+    board.innerHTML = `
+      ${bandsHtml}
+      <svg class="syn-svg-layer" width="${boardW}" height="${boardH}" viewBox="0 0 ${boardW} ${boardH}">
+        ${svgWiresHtml}
+        ${dotsSvg}
+      </svg>
+      ${cardsHtml}
+    `;
+
+    // Cache SVGPathElements + totalLengths for 60 FPS animated flow shapes
+    synView.animatedPaths = [];
+    wireSpecs.forEach((ws) => {
+      const pathEl = document.getElementById(ws.domId);
+      const wireGrp = pathEl ? pathEl.parentElement : null;
+      if (pathEl) {
+        try {
+          const totalLen = pathEl.getTotalLength();
+          if (totalLen > 16) {
+            synView.animatedPaths.push({ ...ws, pathEl, wireGrp, totalLen });
+          }
+        } catch (_) { /* ignore */ }
+      }
+    });
+
+    // Bind Card Click (focus + select) & Double-Click / Button (enter internal board)
+    board.querySelectorAll("[data-drill-btn]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        enterBoardInternalMap(btn.dataset.drillBtn);
+      });
+    });
+
+    board.querySelectorAll(".syn-card").forEach((cardEl) => {
+      cardEl.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const nid = cardEl.dataset.nodeId;
+        state.focusedNodeId = state.focusedNodeId === nid ? null : nid;
+        selectNode(nid, false);
+        if (state.isFullscreen) {
+          document.getElementById("inspector").classList.remove("closed-in-fs");
+        }
+      });
+
+      cardEl.addEventListener("dblclick", (ev) => {
+        ev.stopPropagation();
+        const nid = cardEl.dataset.nodeId;
+        const nd = findNodeAny(nid);
+        if (nd && nd.internalGraph && !state.drillBoardId) {
+          enterBoardInternalMap(nid);
+        } else if (nd && (nd.isBridge || (state.activePlant === "IMP-INGRESSI" && nd.plant !== "IMP-INGRESSI"))) {
+          state.activePlant = nd.plant;
+          state.drillBoardId = null;
+          state.focusedNodeId = null;
+          state.selectedNodeId = nid;
+          refreshAll();
+        }
+      });
+    });
+
+    fitSynopticBoard();
+    applySynopticFocus();
+    resizeFlowCanvas();
   }
 
   // Post-layout anti-overlap nudge for dynamic engines (ELK / Cola / fCoSE / Dagre)
@@ -894,9 +1554,26 @@
     return false;
   }
 
-  // ==================== RENDER CYTOSCAPE ====================
+  // ==================== RENDER DIAGRAM (SYNOPTIC BOARD OR CYTOSCAPE GRAPH) ====================
   function renderCytoscape(animateRelayout = false) {
+    if (state.layoutEngine === "synoptic") {
+      if (state.activeLayoutHandle && typeof state.activeLayoutHandle.stop === "function") {
+        try { state.activeLayoutHandle.stop(); } catch (_) { /* ignore */ }
+      }
+      if (cyInstance) {
+        cyInstance.destroy();
+        cyInstance = null;
+      }
+      renderSynopticBoard();
+      return;
+    }
+
+    const synStage = document.getElementById("synopticStage");
+    if (synStage) synStage.style.display = "none";
+    synView.animatedPaths = [];
+
     const container = document.getElementById("cyCanvas");
+    container.style.display = "block";
     const pal = getPalette();
     const { nodes, edges, isInternal, parentBoard } = computeCurrentGraph();
 
@@ -917,8 +1594,8 @@
       if (defN) state.selectedNodeId = defN.id;
     }
 
-    const isSynoptic = state.layoutEngine === "synoptic";
-    const synopticPosMap = isSynoptic ? resolveSynopticPositions(nodes, isInternal) : null;
+    const isSynoptic = false;
+    const synopticPosMap = null;
     const pairCounts = new Map();
     edges.forEach((e) => {
       const pk = [e.source, e.target].sort().join("::");
@@ -1008,9 +1685,7 @@
           : `⛔ SEZIONATO DA SGANCIO (${e.label})`;
       }
 
-      const curveCfg = isSynoptic
-        ? computeSynopticEdgeCurve(e, synopticPosMap, pairCounts)
-        : { curveStyle: "bezier", cpDistances: [46], cpWeights: [0.5] };
+      const curveCfg = { curveStyle: "bezier", cpDistances: [46], cpWeights: [0.5] };
 
       elements.push({
         data: {
@@ -1209,6 +1884,10 @@
   }
 
   function applyClickFocus() {
+    if (state.layoutEngine === "synoptic") {
+      applySynopticFocus();
+      return;
+    }
     const clearBtn = document.getElementById("btnClearFocus");
     if (!cyInstance) return;
     cyInstance.elements().removeClass("dimmed flow-highlight");
@@ -1232,6 +1911,15 @@
   }
 
   function refreshSelectedCardGraphics() {
+    if (state.layoutEngine === "synoptic") {
+      const board = document.getElementById("synopticBoard");
+      if (board) {
+        board.querySelectorAll(".syn-card").forEach((c) => {
+          c.classList.toggle("is-selected", c.dataset.nodeId === state.selectedNodeId);
+        });
+      }
+      return;
+    }
     if (!cyInstance) return;
     const pal = getPalette();
     const { nodes } = computeCurrentGraph();
@@ -1430,7 +2118,55 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-      if (state.animateFlows && cyInstance) {
+      if (state.animateFlows && state.layoutEngine === "synoptic" && synView.animatedPaths.length) {
+        const pal = getPalette();
+        const sc = synView.scale;
+        const px = synView.panX;
+        const py = synView.panY;
+
+        synView.animatedPaths.forEach((ws, idx) => {
+          if (ws.interrupted) return;
+          if (ws.wireGrp && ws.wireGrp.classList.contains("dimmed")) return;
+          const eType = ws.edgeType;
+          if (state.opState === "normal" && (eType === "earth_pe" || eType === "emergency_trip")) {
+            return;
+          }
+
+          const L = ws.totalLen;
+          const renderedLen = L * sc;
+          if (renderedLen < 20) return;
+
+          let shapeKind = "triangle";
+          let speed = 0.00024;
+          if (eType === "fire_resistant") {
+            shapeKind = "hexagon";
+            speed = 0.00028;
+          } else if (eType === "bms_bus" || eType === "tlc_signal") {
+            shapeKind = "packets";
+            speed = 0.00035;
+          } else if (eType === "emergency_trip") {
+            shapeKind = "diamond";
+            speed = 0.00044;
+          } else if (eType === "earth_pe") {
+            shapeKind = "earth_wave";
+            speed = 0.00042;
+          }
+
+          const count = Math.max(2, Math.min(4, Math.round(renderedLen / 150)));
+          const size = 5.0 * Math.min(1.18, Math.max(0.75, sc));
+          const phaseShift = (idx * 0.21) % 1;
+
+          for (let k = 0; k < count; k++) {
+            const t = ((timestamp * speed) + phaseShift + k / count) % 1;
+            const dNow = t * L;
+            const pt = ws.pathEl.getPointAtLength(dNow);
+            const ptAhead = ws.pathEl.getPointAtLength(Math.min(L, dNow + 3));
+            const ptBehind = ws.pathEl.getPointAtLength(Math.max(0, dNow - 3));
+            const theta = Math.atan2(ptAhead.y - ptBehind.y, ptAhead.x - ptBehind.x);
+            drawAccessibleFlowShape(ctx, shapeKind, pt.x * sc + px, pt.y * sc + py, theta, size, ws.color, pal.surface);
+          }
+        });
+      } else if (state.animateFlows && cyInstance) {
         const pal = getPalette();
         const zoom = cyInstance.zoom();
         const pan = cyInstance.pan();
@@ -1789,9 +2525,21 @@
     refreshSelectedCardGraphics();
     applyClickFocus();
     renderInspector();
-    if (centerInGraph && cyInstance) {
-      const el = cyInstance.getElementById(nodeId);
-      if (el && el.length) cyInstance.animate({ center: { eles: el }, duration: 280 });
+    if (centerInGraph) {
+      if (state.layoutEngine === "synoptic") {
+        const cardEl = document.querySelector(`.syn-card[data-node-id="${CSS.escape(nodeId)}"]`);
+        const stage = document.getElementById("synopticStage");
+        if (cardEl && stage) {
+          const cx = parseFloat(cardEl.style.left) + parseFloat(cardEl.style.width) / 2;
+          const cy = parseFloat(cardEl.style.top) + parseFloat(cardEl.style.height) / 2;
+          synView.panX = stage.clientWidth / 2 - cx * synView.scale;
+          synView.panY = stage.clientHeight / 2 - cy * synView.scale;
+          applySynopticTransform();
+        }
+      } else if (cyInstance) {
+        const el = cyInstance.getElementById(nodeId);
+        if (el && el.length) cyInstance.animate({ center: { eles: el }, duration: 280 });
+      }
     }
   }
 
@@ -1808,7 +2556,9 @@
     }
     setTimeout(() => {
       resizeFlowCanvas();
-      if (cyInstance) {
+      if (state.layoutEngine === "synoptic") {
+        fitSynopticBoard();
+      } else if (cyInstance) {
         cyInstance.resize();
         cyInstance.fit(undefined, 48);
       }
@@ -2048,7 +2798,11 @@
     document.getElementById("btnExitBoardDrill").addEventListener("click", exitBoardInternalMap);
 
     document.getElementById("btnFit").addEventListener("click", () => {
-      if (cyInstance) cyInstance.fit(undefined, 48);
+      if (state.layoutEngine === "synoptic") {
+        fitSynopticBoard();
+      } else if (cyInstance) {
+        cyInstance.fit(undefined, 48);
+      }
     });
 
     document.getElementById("btnTogglePanel").addEventListener("click", () => {
@@ -2056,9 +2810,68 @@
         document.getElementById("inspector").classList.toggle("closed-in-fs");
       } else {
         document.getElementById("mainSplit").classList.toggle("panel-hidden");
-        setTimeout(() => { resizeFlowCanvas(); if (cyInstance) cyInstance.resize(); }, 60);
+        setTimeout(() => {
+          resizeFlowCanvas();
+          if (state.layoutEngine === "synoptic") fitSynopticBoard();
+          else if (cyInstance) cyInstance.resize();
+        }, 60);
       }
     });
+
+    // Pan, Wheel-Zoom & Background Click on Synoptic Stage
+    const synStage = document.getElementById("synopticStage");
+    let isPanningSyn = false;
+    let panStartX = 0;
+    let panStartY = 0;
+    let panMoved = false;
+
+    synStage.addEventListener("mousedown", (e) => {
+      if (e.button !== 0 || e.target.closest(".syn-card")) return;
+      isPanningSyn = true;
+      panMoved = false;
+      panStartX = e.clientX - synView.panX;
+      panStartY = e.clientY - synView.panY;
+      synStage.classList.add("panning");
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isPanningSyn) return;
+      const nx = e.clientX - panStartX;
+      const ny = e.clientY - panStartY;
+      if (Math.hypot(nx - synView.panX, ny - synView.panY) > 3) panMoved = true;
+      synView.panX = nx;
+      synView.panY = ny;
+      applySynopticTransform();
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (isPanningSyn) {
+        isPanningSyn = false;
+        synStage.classList.remove("panning");
+      }
+    });
+
+    synStage.addEventListener("click", (e) => {
+      if (panMoved || e.target.closest(".syn-card")) return;
+      state.focusedNodeId = null;
+      applySynopticFocus();
+      if (state.isFullscreen) {
+        document.getElementById("inspector").classList.add("closed-in-fs");
+      }
+    });
+
+    synStage.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = synStage.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.11 : 0.90;
+      const nextScale = Math.min(2.1, Math.max(0.24, synView.scale * factor));
+      synView.panX = mx - ((mx - synView.panX) / synView.scale) * nextScale;
+      synView.panY = my - ((my - synView.panY) / synView.scale) * nextScale;
+      synView.scale = nextScale;
+      applySynopticTransform();
+    }, { passive: false });
 
     document.getElementById("btnFullscreen").addEventListener("click", () => setFullscreenState(true));
     document.getElementById("btnExitFullscreen").addEventListener("click", () => setFullscreenState(false));
@@ -2110,7 +2923,8 @@
 
     window.addEventListener("resize", () => {
       resizeFlowCanvas();
-      if (cyInstance) cyInstance.resize();
+      if (state.layoutEngine === "synoptic") fitSynopticBoard();
+      else if (cyInstance) cyInstance.resize();
     });
 
     setupSearch();

@@ -495,7 +495,197 @@ code, pre, .mono {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 5;
+  z-index: 8;
+}
+
+/* Dedicated Non-Graph Synoptic Schematic Stage (HTML Swimlanes + SVG Busbar Routing) */
+.synoptic-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cp-bg);
+  cursor: grab;
+  user-select: none;
+  z-index: 6;
+}
+
+.synoptic-stage.panning {
+  cursor: grabbing;
+}
+
+.synoptic-board {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.syn-band {
+  position: absolute;
+  left: 0;
+  border-radius: 12px;
+  border: 1px solid var(--cp-border);
+  pointer-events: none;
+}
+
+.syn-band.even {
+  background: var(--cp-surface);
+}
+
+.syn-band.odd {
+  background: var(--cp-bg-elevated);
+}
+
+.syn-band-hdr {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  width: 174px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.32;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cp-text-muted);
+  background: var(--cp-surface-soft);
+  border: 1px solid var(--cp-border);
+  border-left: 3px solid var(--cp-accent);
+  padding: 6px 9px;
+  border-radius: 6px;
+}
+
+.syn-svg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.syn-card {
+  position: absolute;
+  border-radius: 0.625rem;
+  background: var(--cp-surface);
+  border: 1.5px solid var(--cp-border-strong);
+  box-shadow: var(--card-subtle);
+  padding: 7px 10px 7px 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  z-index: 3;
+  transition: opacity 0.16s ease, border-color 0.14s ease, transform 0.12s ease;
+}
+
+.syn-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border-radius: 9px 0 0 9px;
+  background: var(--card-accent, var(--cp-accent));
+}
+
+.syn-card.is-bridge {
+  border-style: dashed;
+  background: var(--cp-bg-elevated);
+}
+
+.syn-card.is-selected {
+  border-width: 2.5px;
+  border-color: var(--card-accent, var(--cp-accent));
+  background: var(--cp-bg-elevated);
+}
+
+.syn-card.is-tripped {
+  border-style: dotted;
+  opacity: 0.62;
+}
+
+.syn-card.dimmed,
+.syn-wire-group.dimmed {
+  opacity: 0.18;
+}
+
+.syn-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 10px;
+}
+
+.syn-code {
+  font-family: Consolas, "Courier New", Courier, monospace;
+  font-weight: 700;
+  color: var(--card-accent, var(--cp-accent));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.syn-room-chip {
+  font-size: 9.5px;
+  color: var(--cp-text-muted);
+  background: var(--cp-surface-soft);
+  border: 1px solid var(--cp-border);
+  border-radius: 4px;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 118px;
+}
+
+.syn-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.22;
+  color: var(--cp-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 2px 0;
+}
+
+.syn-func {
+  font-size: 10.4px;
+  line-height: 1.24;
+  color: var(--cp-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.syn-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.syn-drill-btn {
+  border: 1px solid var(--card-accent, var(--cp-accent));
+  background: var(--cp-surface-soft);
+  color: var(--card-accent, var(--cp-accent));
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 9.8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.syn-drill-btn:hover {
+  background: var(--cp-accent-soft);
 }
 
 /* Colorblind-Accessible Shape Legend */
@@ -865,14 +1055,14 @@ details.acc-block[open] summary {
 
             <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Vista:</span>
             <div class="seg-control" id="layoutSwitcher" role="group">
-              <button class="seg-btn active" data-layout="synoptic" title="Mappa sinottica statica progettata per la massima chiarezza (blocchi fissi, curve ordinate)">📌 Mappa Ideale (Fissa)</button>
+              <button class="seg-btn active" data-layout="synoptic" title="Tavola sinottica statica a fasce orizzontali e sbarre ortogonali (blocchi fissi, massima leggibilità)">📐 Tavola Sinottica</button>
               <button class="seg-btn" data-layout="elk" title="Grafo automatico Eclipse ELK Layered">ELK</button>
               <button class="seg-btn" data-layout="cola" title="Grafo dinamico WebCola a fisica viva">Cola</button>
               <button class="seg-btn" data-layout="fcose" title="Grafo dinamico a molle elastiche fCoSE">fCoSE</button>
               <button class="seg-btn" data-layout="dagre" title="Grafo gerarchico ad albero Dagre">Dagre</button>
             </div>
 
-            <span id="staticModeBadge" class="pill" style="color:var(--cp-text-muted); border-color:var(--cp-border-strong); font-weight:600;" title="Nella Mappa Ideale i blocchi sono bloccati in posizione ottimale; usa rotella e trascinamento sfondo per zoom e panoramica">🔒 Mappa statica ottimizzata</span>
+            <span id="staticModeBadge" class="pill" style="color:var(--cp-text-muted); border-color:var(--cp-border-strong); font-weight:600;" title="Schema statico a fasce e sbarre ortogonali: usa rotella o trascinamento per zoom e panoramica">🔒 Schema fisso a fasce</span>
 
             <div id="dynamicControlsWrap" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
               <div class="seg-control" id="dirSwitcher">
@@ -913,8 +1103,11 @@ details.acc-block[open] summary {
           </div>
         </div>
 
-        <!-- Cytoscape + Accessible Shape Flow Overlay -->
+        <!-- Dedicated Synoptic Schematic Stage + Cytoscape Dynamic Graph Stage -->
         <div class="cy-stage-wrap">
+          <div id="synopticStage" class="synoptic-stage">
+            <div id="synopticBoard" class="synoptic-board"></div>
+          </div>
           <div id="cyCanvas"></div>
           <canvas id="flowCanvas"></canvas>
         </div>
