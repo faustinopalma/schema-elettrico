@@ -48,7 +48,7 @@
     drillBoardId: null,          // null = Plant Map | boardId = Level-2 Internal Switchboard Component Map!
     layoutEngine: "synoptic",    // 'synoptic' (ideal static map) | 'elk' | 'cola' | 'fcose' | 'dagre'
     flowDir: "TB",               // 'TB' | 'LR'
-    groupBy: "room",             // Default to physical rooms so the 3 Meter Rooms & Garage Box jump out immediately!
+    groupBy: "none",             // Advanced graph views start without container groupings by default!
     opState: "normal",           // 'normal' | 'emergency'
     animateFlows: true,
     showBridges: false,          // Strictly OFF by default! User can enable anytime.
