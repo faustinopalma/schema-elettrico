@@ -55,7 +55,9 @@
     selectedNodeId: "RETE-DISTRIBUTORE",
     focusedNodeId: null,         // Click-only neighborhood highlight (NO hover dimming!)
     isFullscreen: false,
-    activeLayoutHandle: null
+    livePhysics: true,           // Continuous elastic rebalancing while dragging blocks in graph modes!
+    activeLayoutHandle: null,
+    livePhysicsHandle: null
   };
 
   let cyInstance = null;
@@ -121,6 +123,7 @@
       warning: st.bg,
       success: ok.fg,
       link: ok.bg,
+      accent: acc.fg,
       accentFg: acc.bg,
       swatches
     };
@@ -129,6 +132,81 @@
   function plantColors(plantId, pal) {
     const p = PLANT_MAP.get(plantId) || DATA.plants[0];
     return pal.swatches[p.swatch] || pal.swatches.ssc;
+  }
+
+  // Canonical color & line styling strictly by type of energy / signal transferred (never by plant!)
+  function resolveCarrierStyle(edgeType, interrupted, pal) {
+    if (interrupted) {
+      return {
+        color: pal.borderStrong,
+        cyLineStyle: "dotted",
+        svgDash: "3 5",
+        width: 2.0,
+        arrowShape: "triangle"
+      };
+    }
+    if (edgeType === "fire_resistant") {
+      return {
+        color: pal.warning,
+        cyLineStyle: "solid",
+        svgDash: "",
+        width: 3.4,
+        arrowShape: "triangle"
+      };
+    }
+    if (edgeType === "emergency_trip") {
+      return {
+        color: pal.danger,
+        cyLineStyle: "dashed",
+        svgDash: "7 5",
+        width: state.opState === "emergency" ? 3.3 : 2.1,
+        arrowShape: "tee"
+      };
+    }
+    if (edgeType === "bms_bus" || edgeType === "tlc_signal") {
+      return {
+        color: pal.link,
+        cyLineStyle: "dashed",
+        svgDash: "6 4",
+        width: 2.4,
+        arrowShape: "triangle"
+      };
+    }
+    if (edgeType === "earth_pe") {
+      return {
+        color: state.opState === "emergency" ? pal.success : pal.borderStrong,
+        cyLineStyle: "dashed",
+        svgDash: "7 5",
+        width: state.opState === "emergency" ? 3.3 : 2.0,
+        arrowShape: "triangle"
+      };
+    }
+    // All ordinary & solar AC electrical power (power_bt, power_fv) shares ONE unified electrical energy color!
+    return {
+      color: pal.accent,
+      cyLineStyle: "solid",
+      svgDash: "",
+      width: 3.0,
+      arrowShape: "triangle"
+    };
+  }
+
+  // Semantic node accent color based on energy / signal role rather than building wing
+  function resolveNodeCarrierColors(node, pal) {
+    const nid = node.id || "";
+    if (nid === "TERRA-RETE" || nid.endsWith("__PE") || nid.endsWith("__SPD") || node.plant === "IMP-GND") {
+      return pal.swatches.gnd;
+    }
+    if (nid === "SGANCI-VVF" || nid === "IRA-CENTRALI" || nid.endsWith("__DER")) {
+      return { fg: pal.danger, bg: pal.swatches.fire.bg };
+    }
+    if (node.roleType === "ups" || nid === "QEPA" || nid === "LD-POMPA-VVF" || nid === "FIRE-PORTONI-EI") {
+      return pal.swatches.fire;
+    }
+    if (node.plant === "IMP-BMS" || node.plant === "IMP-TLC" || nid.endsWith("__M1")) {
+      return pal.swatches.bms;
+    }
+    return pal.swatches.ssc; // Unified --cp-accent for electrical power!
   }
 
   function getPlantIconSvg(iconKey, stroke) {
@@ -325,7 +403,7 @@
   function buildNodeCardDataUri(node, pal, isSelected) {
     const W = node.isInternalComp ? 266 : 304;
     const H = node.isInternalComp ? 102 : 124;
-    const col = plantColors(node.plant, pal);
+    const col = resolveNodeCarrierColors(node, pal);
     const pInfo = PLANT_MAP.get(node.plant);
     const isHorizontal = state.flowDir === "LR";
 
@@ -998,35 +1076,10 @@
       if (!b1 || !b2) return;
 
       const interrupted = isEdgeInterruptedInEmergency(e);
-      let color = plantColors(e.plant, pal).fg;
-      let dash = "";
-      let strokeW = 2.8;
-
-      if (e.edgeType === "fire_resistant") {
-        color = pal.danger;
-        strokeW = 3.3;
-      } else if (e.edgeType === "emergency_trip") {
-        color = pal.danger;
-        dash = "7 5";
-        strokeW = state.opState === "emergency" ? 3.2 : 2.1;
-      } else if (e.edgeType === "bms_bus" || e.edgeType === "tlc_signal") {
-        color = pal.link;
-        dash = "6 4";
-        strokeW = 2.3;
-      } else if (e.edgeType === "earth_pe") {
-        color = state.opState === "emergency" ? pal.warning : pal.borderStrong;
-        dash = "7 5";
-        strokeW = state.opState === "emergency" ? 3.2 : 2.0;
-      } else if (e.edgeType === "power_fv") {
-        color = pal.warning;
-        strokeW = 3.2;
-      }
-
-      if (interrupted) {
-        color = pal.borderStrong;
-        dash = "3 5";
-        strokeW = 2.0;
-      }
+      const cStyle = resolveCarrierStyle(e.edgeType, interrupted, pal);
+      const color = cStyle.color;
+      const dash = cStyle.svgDash;
+      const strokeW = cStyle.width;
 
       // Compute pin offset on target top if multiple parents converge
       const topArr = inTopByTarget.get(e.target) || [];
@@ -1237,11 +1290,7 @@
     nodes.forEach((n) => {
       const bx = boxes.get(n.id);
       if (!bx) return;
-      const pCol = plantColors(n.plant, pal).fg;
-      let accent = pCol;
-      if (n.id === "TERRA-RETE" || n.id.endsWith("__PE")) accent = pal.borderStrong;
-      else if (n.roleType === "ups" || n.id === "QEPA" || n.id === "LD-POMPA-VVF") accent = pal.danger;
-      else if (n.roleType === "source") accent = pal.success;
+      const accent = resolveNodeCarrierColors(n, pal).fg;
 
       const isSel = n.id === state.selectedNodeId;
       const isTripped = state.opState === "emergency" && (
@@ -1551,8 +1600,46 @@
     return false;
   }
 
+  // Continuous elastic physics loop (WebCola infinite mode from current coordinates without camera jump)
+  function stopLivePhysics() {
+    if (state.livePhysicsHandle && typeof state.livePhysicsHandle.stop === "function") {
+      try { state.livePhysicsHandle.stop(); } catch (_) { /* ignore */ }
+    }
+    state.livePhysicsHandle = null;
+  }
+
+  function startLivePhysics(initialGrabbedNode = null) {
+    if (!cyInstance || state.layoutEngine === "synoptic" || !state.livePhysics) return;
+    if (state.livePhysicsHandle) return; // already running!
+    state.livePhysicsHandle = cyInstance.layout({
+      name: "cola",
+      animate: true,
+      infinite: true,
+      fit: false,
+      centerGraph: false,
+      randomize: false,
+      unconstrIter: 0,
+      userConstIter: 0,
+      allConstIter: 0,
+      avoidOverlap: true,
+      handleDisconnected: false,
+      nodeSpacing: state.groupBy !== "none" ? 30 : 38,
+      edgeLength: 300,
+      convergenceThreshold: 0.001
+    });
+    state.livePhysicsHandle.run();
+
+    if (initialGrabbedNode && state.livePhysicsHandle.adaptor) {
+      const scr = initialGrabbedNode.scratch("cola");
+      if (scr) {
+        state.livePhysicsHandle.adaptor.dragstart(scr);
+      }
+    }
+  }
+
   // ==================== RENDER DIAGRAM (SYNOPTIC BOARD OR CYTOSCAPE GRAPH) ====================
   function renderCytoscape(animateRelayout = false) {
+    stopLivePhysics();
     if (state.layoutEngine === "synoptic") {
       if (state.activeLayoutHandle && typeof state.activeLayoutHandle.stop === "function") {
         try { state.activeLayoutHandle.stop(); } catch (_) { /* ignore */ }
@@ -1646,37 +1733,14 @@
 
     edges.forEach((e) => {
       const interrupted = isEdgeInterruptedInEmergency(e);
-      let color = plantColors(e.plant, pal).fg;
-      let lineStyle = "solid";
-      let width = 3.0;
-      let arrowShape = "triangle";
-
-      if (e.edgeType === "fire_resistant") {
-        color = pal.danger;
-        width = 3.5;
-      } else if (e.edgeType === "emergency_trip") {
-        color = pal.danger;
-        lineStyle = "dashed";
-        width = state.opState === "emergency" ? 3.5 : 2.2;
-        arrowShape = "tee";
-      } else if (e.edgeType === "bms_bus" || e.edgeType === "tlc_signal") {
-        color = pal.link;
-        lineStyle = "dashed";
-        width = 2.4;
-      } else if (e.edgeType === "earth_pe") {
-        color = state.opState === "emergency" ? pal.warning : pal.borderStrong;
-        lineStyle = "dashed";
-        width = state.opState === "emergency" ? 3.4 : 2.0;
-      } else if (e.edgeType === "power_fv") {
-        color = pal.warning;
-        width = 3.4;
-      }
+      const cStyle = resolveCarrierStyle(e.edgeType, interrupted, pal);
+      const color = cStyle.color;
+      const lineStyle = cStyle.cyLineStyle;
+      const width = cStyle.width;
+      const arrowShape = cStyle.arrowShape;
 
       let lbl = `${e.flowCategory}: ${e.label}`;
       if (interrupted) {
-        color = pal.borderStrong;
-        lineStyle = "dotted";
-        width = 2.0;
         lbl = e.edgeType === "power_fv"
           ? `⛔ STOP ANTI-ISOLA CEI 0-21 (${e.label})`
           : `⛔ SEZIONATO DA SGANCIO (${e.label})`;
@@ -1814,9 +1878,20 @@
     cyInstance.one("layoutstop", () => {
       if (!isSynoptic) {
         resolveDynamicOverlaps(cyInstance);
+        // In Cola mode start continuous physics right away; in ELK/fCoSE/Dagre preserve their crisp initial layout until the user grabs a node!
+        if (state.livePhysics && state.layoutEngine === "cola") {
+          startLivePhysics();
+        }
       }
     });
     state.activeLayoutHandle.run();
+
+    // Activate continuous physics rebalancing on first manual drag in any graph mode when toggle is ON!
+    cyInstance.on("grab", "node[!isGroup]", (evt) => {
+      if (state.livePhysics && !state.livePhysicsHandle) {
+        startLivePhysics(evt.target);
+      }
+    });
 
     // Hover ONLY changes cursor (NO distracting hover dimming!)
     cyInstance.on("mouseover", "node[!isGroup]", () => {
@@ -2768,6 +2843,23 @@
     document.getElementById("btnReLayout").addEventListener("click", () => {
       renderCytoscape(true);
     });
+
+    const chkLive = document.getElementById("chkLivePhysics");
+    const lblLive = document.getElementById("lblLivePhysics");
+    if (chkLive) {
+      chkLive.addEventListener("change", (e) => {
+        state.livePhysics = e.target.checked;
+        if (lblLive) {
+          lblLive.style.borderColor = state.livePhysics ? "var(--cp-accent)" : "var(--cp-border)";
+          lblLive.style.background = state.livePhysics ? "var(--cp-accent-soft)" : "var(--cp-surface)";
+        }
+        if (state.livePhysics) {
+          startLivePhysics();
+        } else {
+          stopLivePhysics();
+        }
+      });
+    }
 
     document.querySelectorAll("[data-opstate]").forEach((btn) => {
       btn.addEventListener("click", () => {

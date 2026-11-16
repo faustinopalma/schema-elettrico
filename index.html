@@ -68,20 +68,21 @@ html[data-theme="dark"] {
 }
 
 :root, html[data-theme="dark"] {
+  /* Semantic Carrier / Signal Colors — unified across all plants */
   --plant-ssc: var(--cp-accent);
   --plant-ssc-bg: color-mix(in srgb, var(--cp-accent) 11%, var(--cp-surface));
-  --plant-sca: var(--cp-link);
-  --plant-sca-bg: color-mix(in srgb, var(--cp-link) 11%, var(--cp-surface));
-  --plant-scb: var(--cp-success);
-  --plant-scb-bg: color-mix(in srgb, var(--cp-success) 11%, var(--cp-surface));
-  --plant-pdc: var(--cp-warning);
-  --plant-pdc-bg: color-mix(in srgb, var(--cp-warning) 14%, var(--cp-surface));
-  --plant-fire: var(--cp-danger);
-  --plant-fire-bg: color-mix(in srgb, var(--cp-danger) 12%, var(--cp-surface));
-  --plant-bms: color-mix(in srgb, var(--cp-link) 56%, var(--cp-accent));
-  --plant-bms-bg: color-mix(in srgb, var(--plant-bms) 12%, var(--cp-surface));
-  --plant-tlc: color-mix(in srgb, var(--cp-success) 52%, var(--cp-link));
-  --plant-tlc-bg: color-mix(in srgb, var(--plant-tlc) 12%, var(--cp-surface));
+  --plant-sca: var(--cp-accent);
+  --plant-sca-bg: color-mix(in srgb, var(--cp-accent) 11%, var(--cp-surface));
+  --plant-scb: var(--cp-accent);
+  --plant-scb-bg: color-mix(in srgb, var(--cp-accent) 11%, var(--cp-surface));
+  --plant-pdc: var(--cp-accent);
+  --plant-pdc-bg: color-mix(in srgb, var(--cp-accent) 11%, var(--cp-surface));
+  --plant-fire: var(--cp-warning);
+  --plant-fire-bg: color-mix(in srgb, var(--cp-warning) 14%, var(--cp-surface));
+  --plant-bms: var(--cp-link);
+  --plant-bms-bg: color-mix(in srgb, var(--cp-link) 11%, var(--cp-surface));
+  --plant-tlc: var(--cp-link);
+  --plant-tlc-bg: color-mix(in srgb, var(--cp-link) 11%, var(--cp-surface));
   --plant-gnd: var(--cp-border-strong);
   --plant-gnd-bg: color-mix(in srgb, var(--cp-border-strong) 14%, var(--cp-surface));
   --card-subtle: 0 1px 3px color-mix(in srgb, var(--cp-text) 10%, transparent);
@@ -1080,6 +1081,10 @@ details.acc-block[open] summary {
               </select>
 
               <button id="btnReLayout" class="btn" title="Ricalcola animatamente le posizioni">✨ Riordina</button>
+
+              <label class="btn" id="lblLivePhysics" style="cursor:pointer; border-color:var(--cp-accent); background:var(--cp-accent-soft);" title="Mantiene attivo il ribilanciamento elastico continuo mentre trascini manualmente i blocchi per districare la rete">
+                <input type="checkbox" id="chkLivePhysics" checked style="margin:0;" /> 🧲 Dinamica continua
+              </label>
             </div>
           </div>
 
@@ -1116,15 +1121,15 @@ details.acc-block[open] summary {
         <div class="graph-legend">
           <div class="legend-group">
             <strong style="color:var(--cp-text);">Flussi sui cavi:</strong>
-            <span class="legend-shape" title="Potenza elettrica ordinaria o solare">
+            <span class="legend-shape" title="Potenza elettrica 400/230V (rete o fotovoltaico)">
               <svg width="15" height="13" viewBox="0 0 15 13"><polygon points="1,2 14,6.5 1,11" fill="var(--cp-accent)"/></svg>
               <span>Energia elettrica</span>
             </span>
-            <span class="legend-shape" title="Alimentazione vitale antincendio o sotto UPS">
-              <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,4 13,10 7,13 1,10 1,4" fill="var(--cp-danger)"/><circle cx="7" cy="7" r="2.2" fill="var(--cp-surface)"/></svg>
+            <span class="legend-shape" title="Alimentazione vitale antincendio o sotto continuità UPS">
+              <svg width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,4 13,10 7,13 1,10 1,4" fill="var(--cp-warning)"/><circle cx="7" cy="7" r="2.2" fill="var(--cp-surface)"/></svg>
               <span>Linea sicurezza / UPS</span>
             </span>
-            <span class="legend-shape" title="Comunicazione digitale BMS, fibra o allarmi">
+            <span class="legend-shape" title="Comunicazione digitale BMS, M-Bus, fibra o videocitofonia">
               <svg width="16" height="12" viewBox="0 0 16 12"><rect x="1" y="3" width="5.5" height="6" rx="1" fill="var(--cp-link)"/><rect x="9" y="3" width="5.5" height="6" rx="1" fill="var(--cp-link)"/></svg>
               <span>Dati e segnali</span>
             </span>
@@ -1133,7 +1138,7 @@ details.acc-block[open] summary {
               <span>Comando sgancio VVF <em>(in emergenza)</em></span>
             </span>
             <span class="legend-shape" title="Fermo in esercizio normale; scarica VERSO terra solo in caso di guasto/fulmine">
-              <svg width="16" height="13" viewBox="0 0 16 13"><path d="M2,2 L7,6.5 L2,11 M8,2 L13,6.5 L8,11" fill="none" stroke="var(--cp-border-strong)" stroke-width="2.2" stroke-linecap="round"/></svg>
+              <svg width="16" height="13" viewBox="0 0 16 13"><path d="M2,2 L7,6.5 L2,11 M8,2 L13,6.5 L8,11" fill="none" stroke="var(--cp-success)" stroke-width="2.2" stroke-linecap="round"/></svg>
               <span>Scarico verso Terra <em>(su guasto)</em></span>
             </span>
           </div>
