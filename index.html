@@ -683,10 +683,15 @@ code, pre, .mono {
   font-size: 9.8px;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .syn-drill-btn:hover {
   background: var(--cp-accent-soft);
+  text-decoration: none;
 }
 
 /* Colorblind-Accessible Shape Legend */
@@ -1021,6 +1026,7 @@ details.acc-block[open] summary {
           <input id="globalSearch" class="search-input" type="search" placeholder="Cerca contatore, quadro, utenza, componente..." autocomplete="off" />
           <div id="searchDropdown" class="search-dropdown"></div>
         </div>
+        <a id="btnOpenPanelsAtlas" class="btn" href="./pannelli/index.html" style="text-decoration:none;" title="Apri l'Atlante dei 18 Pannelli Fisici (Fronte Quadro)">🗄️ Pannelli Fisici (18)</a>
         <button id="btnOpenDatasheets" class="btn">📚 Schede PDF (17)</button>
         <button id="btnOpenAudit" class="btn">⚠️ Rilievi (10)</button>
         <button id="btnThemeToggle" class="btn">🌓 Tema</button>
@@ -1046,7 +1052,10 @@ details.acc-block[open] summary {
               <div id="drillSubtitle" style="font-size:11.5px; color:var(--cp-text-muted);"></div>
             </div>
           </div>
-          <span class="pill" style="color:var(--cp-accent);">Livello 2 · Componenti Interni</span>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <a id="btnOpenPhysicalFromDrill" class="btn btn-primary" href="./pannelli/index.html" style="display:none; text-decoration:none;">🗄️ Apri Pannello Fisico (Fronte Quadro) →</a>
+            <span class="pill" style="color:var(--cp-accent);">Livello 2 · Componenti Interni</span>
+          </div>
         </div>
 
         <!-- Dynamic Layout, Flexible Grouping & Simulation Toolbar -->
@@ -1181,7 +1190,8 @@ details.acc-block[open] summary {
   <script src="./assets/vendor/cytoscape-elk.js"></script>
   <script src="./assets/vendor/cytoscape-cola.js"></script>
   <script src="./assets/vendor/cytoscape-fcose.js"></script>
-  <script src="./assets/data/impianto_data.js?v=20261116f"></script>
-  <script src="./assets/app.js?v=20261116f"></script>
+  <script src="./assets/data/impianto_data.js?v=20261116g"></script>
+  <script src="./assets/data/pannelli_fisici_data.js?v=20261116g"></script>
+  <script src="./assets/app.js?v=20261116g"></script>
 </body>
 </html>

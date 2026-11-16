@@ -10,10 +10,78 @@
   }
 
   const DATA = window.IMPIANTO_DATA;
+  const PF_DATA = window.PANNELLI_FISICI_DATA || { panels: [], nodeToPanel: {} };
+  const PF_PANEL_BY_SLUG = new Map((PF_DATA.panels || []).map((p) => [p.slug, p]));
   const PLANT_MAP = new Map(DATA.plants.map((p) => [p.id, p]));
   const FLOOR_MAP = new Map(DATA.floors.map((f) => [f.id, f]));
   const NODE_MAP = new Map(DATA.nodes.map((n) => [n.id, n]));
   const DS_MAP = new Map(DATA.datasheets.map((d) => [d.id, d]));
+
+  function buildPanelPageHref(slug, compId) {
+    if (!slug) return null;
+    const params = new URLSearchParams();
+    if (compId) params.set("comp", compId);
+    const curTheme = new URLSearchParams(window.location.search).get("scoutTheme");
+    if (curTheme) params.set("scoutTheme", curTheme);
+    const qs = params.toString();
+    return `./pannelli/${slug}.html${qs ? `?${qs}` : ""}`;
+  }
+
+  function resolvePhysicalPanelTarget(node, parentBoardId) {
+    if (!node) return null;
+    const direct = (PF_DATA.nodeToPanel || {})[node.id];
+    if (direct) {
+      return {
+        slug: direct.slug,
+        code: direct.code,
+        comp: direct.comp || null,
+        href: buildPanelPageHref(direct.slug, direct.comp)
+      };
+    }
+    if (parentBoardId && (PF_DATA.nodeToPanel || {})[parentBoardId]) {
+      const parentRef = PF_DATA.nodeToPanel[parentBoardId];
+      const pObj = PF_PANEL_BY_SLUG.get(parentRef.slug);
+      let matchedComp = parentRef.comp || null;
+      if (pObj && node.code) {
+        const compIds = new Set((pObj.components || []).map((c) => c.id));
+        if (node.id.endsWith("__MAIN") && compIds.has("Q1")) {
+          matchedComp = "Q1";
+        } else if (node.id.endsWith("__BUS") && compIds.has("RP1")) {
+          matchedComp = "RP1";
+        } else if (node.id.endsWith("__SPD") && compIds.has("SC1")) {
+          matchedComp = "SC1";
+        } else if (node.id.endsWith("__M1") && compIds.has("M1")) {
+          matchedComp = "M1";
+        } else if (node.id.endsWith("__DER")) {
+          matchedComp = compIds.has("DER1") ? "DER1" : (compIds.has("RD1") ? "RD1" : (compIds.has("RD2") ? "RD2" : (compIds.has("RD4") ? "RD4" : null)));
+        } else {
+          const tokens = String(node.code).split(/[\s+/·,()]+/).filter(Boolean);
+          const hit = tokens.find((tk) => compIds.has(tk));
+          if (hit) matchedComp = hit;
+        }
+      }
+      return {
+        slug: parentRef.slug,
+        code: parentRef.code,
+        comp: matchedComp,
+        href: buildPanelPageHref(parentRef.slug, matchedComp)
+      };
+    }
+    return null;
+  }
+
+  function syncDrillBreadcrumbPhysicalBtn(isInternal, parentBoard) {
+    const btn = document.getElementById("btnOpenPhysicalFromDrill");
+    if (!btn) return;
+    const pTarget = isInternal && parentBoard ? resolvePhysicalPanelTarget(parentBoard, null) : null;
+    if (pTarget) {
+      btn.href = pTarget.href;
+      btn.textContent = `🗄️ Apri Pannello Fisico ${pTarget.code} (Fronte Quadro) →`;
+      btn.style.display = "inline-flex";
+    } else {
+      btn.style.display = "none";
+    }
+  }
 
   const INC_BY_NODE = new Map();
   DATA.inconsistencies.forEach((inc) => {
@@ -913,6 +981,7 @@
       bc.classList.remove("active");
       document.getElementById("lblBridges").style.display = state.activePlant === "IMP-INGRESSI" ? "none" : "inline-flex";
     }
+    syncDrillBreadcrumbPhysicalBtn(isInternal, parentBoard);
 
     if (!nodes.some((n) => n.id === state.selectedNodeId)) {
       const defN = nodes.find((n) => !n.isBridge && n.roleType === "source") || nodes[0];
@@ -1579,6 +1648,7 @@
       const incs = INC_BY_NODE.get(n.id) || [];
       const shortRoom = (n.roomGroup || "").replace(/\s*\(.*?\)/g, "").replace(/Principale\s*—\s*/, "");
       const hasDrill = Boolean(n.internalGraph) && !n.isInternalComp;
+      const physTarget = !n.isInternalComp ? resolvePhysicalPanelTarget(n, null) : null;
 
       cardsHtml += `
         <div class="syn-card ${n.isBridge ? "is-bridge" : ""} ${isSel ? "is-selected" : ""} ${isTripped ? "is-tripped" : ""}"
@@ -1593,10 +1663,16 @@
           </div>
           <div class="syn-title" title="${escXml(n.label)}">${escXml(n.label)}</div>
           <div class="syn-func" title="${escXml(n.shortFunc || n.desc || "")}">${escXml(n.shortFunc || n.desc || "")}</div>
-          ${hasDrill ? `
+          ${(hasDrill || physTarget) ? `
             <div class="syn-card-foot">
-              <span style="font-size:9.2px; color:var(--cp-text-muted);">${(n.internalGraph.nodes || []).length} componenti</span>
-              <button class="syn-drill-btn" data-drill-btn="${n.id}" title="Apri lo schema interno di questo quadro">🔬 Interno ▸</button>
+              ${physTarget
+                ? `<a class="syn-drill-btn" href="${escXml(physTarget.href)}" data-panel-link="true" title="Apri la pagina dedicata al Pannello Fisico (Fronte Quadro)">🗄️ Pannello</a>`
+                : `<span style="font-size:9.2px; color:var(--cp-text-muted);">${(n.internalGraph.nodes || []).length} comp.</span>`
+              }
+              ${hasDrill
+                ? `<button class="syn-drill-btn" data-drill-btn="${n.id}" title="Apri lo schema elettrico interno di questo quadro">🔬 Schema ▸</button>`
+                : ""
+              }
             </div>
           ` : ""}
         </div>
@@ -1628,6 +1704,12 @@
     });
 
     // Bind Card Click (focus + select) & Double-Click / Button (enter internal board)
+    board.querySelectorAll("[data-panel-link]").forEach((lnk) => {
+      lnk.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+      });
+    });
+
     board.querySelectorAll("[data-drill-btn]").forEach((btn) => {
       btn.addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -1950,6 +2032,7 @@
       bc.classList.remove("active");
       document.getElementById("lblBridges").style.display = state.activePlant === "IMP-INGRESSI" ? "none" : "inline-flex";
     }
+    syncDrillBreadcrumbPhysicalBtn(isInternal, parentBoard);
 
     if (!nodes.some((n) => n.id === state.selectedNodeId)) {
       const defN = nodes.find((n) => !n.isBridge && n.roleType === "source") || nodes[0];
@@ -2637,6 +2720,7 @@
 
     const canDrillInternal = Boolean(node.internalGraph) && !state.drillBoardId;
     const canJumpPlant = !state.drillBoardId && node.plant !== state.activePlant && node.plant !== "IMP-INGRESSI";
+    const physTarget = resolvePhysicalPanelTarget(node, state.drillBoardId);
 
     document.getElementById("inspHeader").innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
@@ -2653,9 +2737,14 @@
       <div class="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · ${fl.name}</div>
 
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
+        ${physTarget ? `
+          <a class="btn btn-primary" href="${physTarget.href}" style="font-size:12px; text-decoration:none;">
+            🗄️ ${state.drillBoardId && physTarget.comp ? `Vedi ${physTarget.comp} nel Pannello Fisico ${physTarget.code}` : `Apri Pannello Fisico (${physTarget.code})`} →
+          </a>
+        ` : ""}
         ${canDrillInternal ? `
-          <button id="btnEnterInternal" class="btn btn-primary" style="font-size:12px;">
-            🔬 Esplora Componenti Interni del Quadro (${node.internalGraph.nodes.length})
+          <button id="btnEnterInternal" class="btn ${physTarget ? "" : "btn-primary"}" style="font-size:12px;">
+            🔬 Schema Elettrico Interno (${node.internalGraph.nodes.length})
           </button>
         ` : ""}
         ${state.drillBoardId ? `
@@ -3028,6 +3117,27 @@
       });
       const hits = [...nodeHits, ...circHits];
 
+      (PF_DATA.panels || []).forEach((pan) => {
+        if (`${pan.code} ${pan.title} ${pan.location.room}`.toLowerCase().includes(q)) {
+          hits.push({
+            kind: `🗄️ Pannello Fisico`,
+            title: `${pan.code} — ${pan.title}`,
+            sub: `📍 ${pan.location.room} (${pan.enclosure.dimensionsMm})`,
+            panelHref: buildPanelPageHref(pan.slug, null)
+          });
+        }
+        (pan.components || []).forEach((pc) => {
+          if (`${pc.id} ${pc.shortLabel} ${pc.ratingBadge} ${pc.whatItDoes}`.toLowerCase().includes(q)) {
+            hits.push({
+              kind: `🗄️ ${pan.code}`,
+              title: `${pc.id} · ${pc.shortLabel} (${pc.ratingBadge})`,
+              sub: pc.whatItDoes.slice(0, 110),
+              panelHref: buildPanelPageHref(pan.slug, pc.id)
+            });
+          }
+        });
+      });
+
       DATA.datasheets.forEach((d) => {
         if (`${d.brand} ${d.family} ${(d.models || []).join(" ")}`.toLowerCase().includes(q)) {
           hits.push({ kind: "Scheda PDF", title: `${d.brand} — ${d.family}`, sub: d.category, dsId: d.id });
@@ -3049,7 +3159,9 @@
         el.addEventListener("click", () => {
           const h = top[parseInt(el.dataset.idx, 10)];
           dd.classList.remove("open");
-          if (h.dsId) {
+          if (h.panelHref) {
+            window.location.href = h.panelHref;
+          } else if (h.dsId) {
             openSinglePdfModal(h.dsId);
           } else if (h.nodeId) {
             const target = NODE_MAP.get(h.nodeId);
@@ -3279,7 +3391,13 @@
     document.getElementById("btnThemeToggle").addEventListener("click", () => {
       const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
+      const u = new URL(window.location.href);
+      u.searchParams.set("scoutTheme", next);
+      window.history.replaceState({}, "", u.toString());
+      const atlasBtn = document.getElementById("btnOpenPanelsAtlas");
+      if (atlasBtn) atlasBtn.href = `./pannelli/index.html?scoutTheme=${encodeURIComponent(next)}`;
       renderCytoscape(false);
+      renderInspector();
     });
 
     window.addEventListener("resize", () => {
@@ -3287,6 +3405,31 @@
       if (state.layoutEngine === "synoptic") fitSynopticBoard();
       else if (cyInstance) cyInstance.resize();
     });
+
+    // Support incoming deep-link URL parameters (?plant=..., &board=..., &select=...) from dedicated Physical Panel pages!
+    const initParams = new URLSearchParams(window.location.search);
+    const qPlant = initParams.get("plant");
+    const qBoard = initParams.get("board");
+    const qSelect = initParams.get("select");
+    const qTheme = initParams.get("scoutTheme");
+    if (qTheme) {
+      const atlasBtn = document.getElementById("btnOpenPanelsAtlas");
+      if (atlasBtn) atlasBtn.href = `./pannelli/index.html?scoutTheme=${encodeURIComponent(qTheme)}`;
+    }
+    if (qPlant && PLANT_MAP.has(qPlant)) {
+      state.activePlant = qPlant;
+    }
+    if (qBoard && NODE_MAP.has(qBoard) && NODE_MAP.get(qBoard).internalGraph) {
+      const bNode = NODE_MAP.get(qBoard);
+      if (!qPlant && bNode.plant) state.activePlant = bNode.plant;
+      state.drillBoardId = qBoard;
+      state.selectedNodeId = `${qBoard}__MAIN`;
+    } else if (qSelect && NODE_MAP.has(qSelect)) {
+      const sNode = NODE_MAP.get(qSelect);
+      if (!qPlant && sNode.plant) state.activePlant = sNode.plant;
+      state.selectedNodeId = qSelect;
+      state.focusedNodeId = qSelect;
+    }
 
     setupSearch();
     refreshAll();
