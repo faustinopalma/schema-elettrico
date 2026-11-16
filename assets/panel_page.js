@@ -265,9 +265,24 @@
       terminals: panel.components.filter((c) => getFilterBucket(c.kind) === "terminals").length
     };
 
-    const mapUrl = withTheme(`../index.html?plant=${encodeURIComponent(panel.plantId)}&select=${encodeURIComponent(panel.nodeId)}`);
-    const internalUrl = withTheme(`../index.html?plant=${encodeURIComponent(panel.plantId)}&board=${encodeURIComponent(panel.nodeId)}`);
+    const navTop = window.SE_NAV ? window.SE_NAV.peek() : null;
+    let inheritedViewParam = "";
+    if (navTop && navTop.url) {
+      try {
+        const prevView = new URL(navTop.url, window.location.href).searchParams.get("view");
+        if (prevView && prevView !== "synoptic") {
+          inheritedViewParam = `&view=${encodeURIComponent(prevView)}`;
+        }
+      } catch (_) { /* ignore */ }
+    }
+
+    const mapUrl = withTheme(`../index.html?plant=${encodeURIComponent(panel.plantId)}&select=${encodeURIComponent(panel.nodeId)}${inheritedViewParam}`);
+    const internalUrl = withTheme(`../index.html?plant=${encodeURIComponent(panel.plantId)}&board=${encodeURIComponent(panel.nodeId)}${inheritedViewParam}`);
     const atlasUrl = withTheme("./index.html");
+    const backBtnLabel = navTop ? `← Torna a: ${navTop.label}` : `← Torna a: Mappa ${panel.plantLabel}`;
+    const backBtnTitle = navTop
+      ? `Torna indietro di uno step a: ${navTop.label}`
+      : `Torna alla mappa d'impianto (${panel.plantLabel})`;
 
     const isFlush = panel.enclosure.ipRating === "IP40";
     const isFire = Boolean(panel.enclosure.specialWarningPlate);
@@ -359,6 +374,7 @@
     root.innerHTML = `
       <header class="pp-topbar">
         <div class="pp-brand">
+          <button id="ppBackBtn" type="button" class="pp-btn pp-btn-primary pp-back-btn" title="${esc(backBtnTitle)}">${esc(backBtnLabel)}</button>
           <div class="pp-brand-mark">🗄️</div>
           <div class="pp-brand-text">
             <h1>Pannello Fisico ${esc(panel.code)} — ${esc(panel.title)}</h1>
@@ -378,7 +394,7 @@
           <a class="pp-btn" data-keep-theme href="${esc(withTheme(`./${nextP.slug}.html`))}" title="Pannello successivo: ${esc(nextP.code)}">${esc(nextP.code)} ▶</a>
           <a class="pp-btn" data-keep-theme href="${esc(atlasUrl)}">🗄️ Tutti i 18 Pannelli</a>
           <a class="pp-btn" data-keep-theme href="${esc(internalUrl)}">🔬 Schema Elettrico Interno</a>
-          <a class="pp-btn pp-btn-primary" data-keep-theme href="${esc(mapUrl)}">📐 Mappa Impianto</a>
+          <a class="pp-btn" data-keep-theme href="${esc(mapUrl)}">📐 Mappa Impianto</a>
           <button id="ppThemeBtn" class="pp-btn" type="button">🌓 Tema</button>
         </div>
       </header>
@@ -697,13 +713,51 @@
       }
     }
 
+    function currentPanelStepLabel() {
+      return state.selectedId ? `Pannello ${panel.code} (${state.selectedId})` : `Pannello ${panel.code}`;
+    }
+
+    // Ensure initial URL encodes selected component so returning 1 step restores exact selection
+    {
+      const uInit = new URL(window.location.href);
+      if (!uInit.searchParams.get("comp") && state.selectedId) {
+        uInit.searchParams.set("comp", state.selectedId);
+        window.history.replaceState({}, "", uInit.toString());
+      }
+    }
+
     // Wire events
+    document.getElementById("ppBackBtn").addEventListener("click", () => {
+      if (window.SE_NAV) {
+        window.SE_NAV.goBack(mapUrl);
+      } else {
+        window.location.href = mapUrl;
+      }
+    });
+
+    root.addEventListener("click", (e) => {
+      const a = e.target.closest("a[data-keep-theme]");
+      if (!a) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      const href = a.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      if (window.SE_NAV) {
+        e.preventDefault();
+        window.SE_NAV.navigateTo(href, currentPanelStepLabel());
+      }
+    });
+
     document.querySelectorAll(".din-mod[data-comp-id]").forEach((btn) => {
       btn.addEventListener("click", () => selectComponent(btn.dataset.compId, false));
     });
 
     document.getElementById("ppQuickJump").addEventListener("change", (e) => {
-      window.location.href = withTheme(`./${e.target.value}.html`);
+      const dest = withTheme(`./${e.target.value}.html`);
+      if (window.SE_NAV) {
+        window.SE_NAV.navigateTo(dest, currentPanelStepLabel());
+      } else {
+        window.location.href = dest;
+      }
     });
 
     document.getElementById("ppThemeBtn").addEventListener("click", toggleTheme);
@@ -803,9 +857,17 @@
       `;
     }
 
+    const navTop = window.SE_NAV ? window.SE_NAV.peek() : null;
+    const defaultMapsUrl = withTheme("../index.html");
+    const atlasBackLabel = navTop ? `← Torna a: ${navTop.label}` : "← Torna alle Mappe d'Impianto";
+    const atlasBackTitle = navTop
+      ? `Torna indietro di uno step a: ${navTop.label}`
+      : "Torna alla pagina principale dei diagrammi d'impianto";
+
     root.innerHTML = `
       <header class="pp-topbar">
         <div class="pp-brand">
+          <button id="atlasBackBtn" type="button" class="pp-btn pp-btn-primary pp-back-btn" title="${esc(atlasBackTitle)}">${esc(atlasBackLabel)}</button>
           <div class="pp-brand-mark">🗄️</div>
           <div class="pp-brand-text">
             <h1>Atlante dei 18 Pannelli Fisici (Fronte Quadro As-Built)</h1>
@@ -814,7 +876,7 @@
         </div>
         <div class="pp-actions">
           <input id="atlasSearch" class="pp-input" style="min-width:300px;" type="search" placeholder="🔎 Cerca qualsiasi interruttore, fusibile o utenza nei 18 quadri..." />
-          <a class="pp-btn pp-btn-primary" data-keep-theme href="${esc(withTheme("../index.html"))}">← Torna alle Mappe d'Impianto</a>
+          <a class="pp-btn" data-keep-theme href="${esc(defaultMapsUrl)}">📐 Mappe d'Impianto</a>
           <button id="atlasThemeBtn" class="pp-btn" type="button">🌓 Tema</button>
         </div>
       </header>
@@ -832,6 +894,26 @@
         `).join("")}
       </main>
     `;
+
+    document.getElementById("atlasBackBtn").addEventListener("click", () => {
+      if (window.SE_NAV) {
+        window.SE_NAV.goBack(defaultMapsUrl);
+      } else {
+        window.location.href = defaultMapsUrl;
+      }
+    });
+
+    root.addEventListener("click", (e) => {
+      const a = e.target.closest("a[data-keep-theme]");
+      if (!a) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      const href = a.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      if (window.SE_NAV) {
+        e.preventDefault();
+        window.SE_NAV.navigateTo(href, "Atlante 18 Pannelli Fisici");
+      }
+    });
 
     document.getElementById("atlasThemeBtn").addEventListener("click", toggleTheme);
 

@@ -122,6 +122,15 @@ a:hover {
   color: var(--cp-accent-fg);
 }
 
+.pp-back-btn {
+  max-width: 340px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+
 .pp-select, .pp-input {
   padding: 6px 10px;
   border-radius: 0.625rem;

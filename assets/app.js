@@ -83,6 +83,170 @@
     }
   }
 
+  const ENGINE_LABELS = {
+    synoptic: "Tavola Sinottica",
+    elk: "Grafo ELK",
+    cola: "Grafo Cola",
+    fcose: "Grafo fCoSE",
+    dagre: "Grafo Dagre"
+  };
+
+  function buildCurrentGraphLabel() {
+    const eng = ENGINE_LABELS[state.layoutEngine] || "Mappa";
+    if (state.drillBoardId && NODE_MAP.has(state.drillBoardId)) {
+      const b = NODE_MAP.get(state.drillBoardId);
+      return state.layoutEngine !== "synoptic"
+        ? `Schema Interno ${b.code} (${eng})`
+        : `Schema Interno ${b.code}`;
+    }
+    const pl = PLANT_MAP.get(state.activePlant);
+    const plName = pl ? (pl.tabLabel || pl.shortName) : "Impianto";
+    return state.layoutEngine !== "synoptic"
+      ? `${eng} · ${plName}`
+      : `Mappa ${plName}`;
+  }
+
+  function syncUrlWithState() {
+    const u = new URL(window.location.href);
+    const sp = u.searchParams;
+    sp.set("plant", state.activePlant);
+    if (state.drillBoardId) sp.set("board", state.drillBoardId);
+    else sp.delete("board");
+    if (state.selectedNodeId) sp.set("select", state.selectedNodeId);
+    else sp.delete("select");
+    if (state.focusedNodeId) sp.set("focus", state.focusedNodeId);
+    else sp.delete("focus");
+    if (state.layoutEngine && state.layoutEngine !== "synoptic") sp.set("view", state.layoutEngine);
+    else sp.delete("view");
+    if (state.flowDir && state.flowDir !== "TB") sp.set("dir", state.flowDir);
+    else sp.delete("dir");
+    if (state.groupBy && state.groupBy !== "none") sp.set("group", state.groupBy);
+    else sp.delete("group");
+    if (state.opState && state.opState !== "normal") sp.set("op", state.opState);
+    else sp.delete("op");
+    if (state.showBridges) sp.set("bridges", "1");
+    else sp.delete("bridges");
+    if (!state.livePhysics) sp.set("physics", "0");
+    else sp.delete("physics");
+    sp.delete("ret");
+    sp.delete("retLabel");
+    window.history.replaceState({}, "", u.toString());
+  }
+
+  function syncToolbarControlsFromState() {
+    const viewSel = document.getElementById("viewModeSelect");
+    if (viewSel) viewSel.value = state.layoutEngine;
+    document.querySelectorAll("[data-dir]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.dir === state.flowDir);
+    });
+    const grpSel = document.getElementById("groupSelect");
+    if (grpSel) grpSel.value = state.groupBy;
+    document.querySelectorAll("[data-opstate]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.opstate === state.opState);
+    });
+    const chkB = document.getElementById("chkBridges");
+    if (chkB) chkB.checked = Boolean(state.showBridges);
+    const chkL = document.getElementById("chkLivePhysics");
+    const lblL = document.getElementById("lblLivePhysics");
+    if (chkL) chkL.checked = Boolean(state.livePhysics);
+    if (lblL) {
+      lblL.style.borderColor = state.livePhysics ? "var(--cp-accent)" : "var(--cp-border)";
+      lblL.style.background = state.livePhysics ? "var(--cp-accent-soft)" : "var(--cp-surface)";
+    }
+    syncToolbarMode();
+  }
+
+  function applyStateFromUrlParams(sp) {
+    const validViews = new Set(["synoptic", "elk", "cola", "fcose", "dagre"]);
+    const validGroups = new Set(["none", "floor", "room", "role", "safety"]);
+
+    const qPlant = sp.get("plant");
+    const qBoard = sp.get("board");
+    const qSelect = sp.get("select");
+    const qFocus = sp.get("focus");
+    const qView = sp.get("view");
+    const qDir = sp.get("dir");
+    const qGroup = sp.get("group");
+    const qOp = sp.get("op");
+
+    state.layoutEngine = (qView && validViews.has(qView)) ? qView : "synoptic";
+    state.flowDir = qDir === "LR" ? "LR" : "TB";
+    state.groupBy = (qGroup && validGroups.has(qGroup)) ? qGroup : "none";
+    state.opState = qOp === "emergency" ? "emergency" : "normal";
+    state.showBridges = sp.get("bridges") === "1";
+    state.livePhysics = sp.get("physics") !== "0";
+
+    if (qPlant && PLANT_MAP.has(qPlant)) {
+      state.activePlant = qPlant;
+    } else {
+      state.activePlant = "IMP-INGRESSI";
+    }
+
+    if (qBoard && NODE_MAP.has(qBoard) && NODE_MAP.get(qBoard).internalGraph) {
+      const bNode = NODE_MAP.get(qBoard);
+      if (!qPlant && bNode.plant) state.activePlant = bNode.plant;
+      state.drillBoardId = qBoard;
+      state.selectedNodeId = qSelect || `${qBoard}__MAIN`;
+      state.focusedNodeId = qFocus || null;
+    } else {
+      state.drillBoardId = null;
+      if (qSelect && NODE_MAP.has(qSelect)) {
+        const sNode = NODE_MAP.get(qSelect);
+        if (!qPlant && sNode.plant) state.activePlant = sNode.plant;
+        state.selectedNodeId = qSelect;
+        state.focusedNodeId = qFocus !== null ? qFocus : null;
+      } else {
+        state.focusedNodeId = null;
+      }
+    }
+    syncToolbarControlsFromState();
+  }
+
+  function syncGlobalNavBackUi() {
+    const top = window.SE_NAV ? window.SE_NAV.peek() : null;
+    ["btnGlobalNavBack", "btnFsNavBack"].forEach((id) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (top) {
+        btn.textContent = `← Torna a: ${top.label}`;
+        btn.title = `Torna indietro di un singolo step a: ${top.label}`;
+        btn.style.display = "inline-flex";
+      } else {
+        btn.style.display = "none";
+      }
+    });
+  }
+
+  function pushIntraAppStep() {
+    syncUrlWithState();
+    if (window.SE_NAV) {
+      window.SE_NAV.pushCurrent(buildCurrentGraphLabel());
+    }
+  }
+
+  function navigateToExternalPage(href) {
+    if (!href) return;
+    syncUrlWithState();
+    if (window.SE_NAV) {
+      window.SE_NAV.navigateTo(href, buildCurrentGraphLabel());
+    } else {
+      window.location.href = href;
+    }
+  }
+
+  function handleGlobalStepBack() {
+    if (!window.SE_NAV) return;
+    window.SE_NAV.goBack(null, (u) => {
+      if (u.origin === window.location.origin && !u.pathname.includes("/pannelli/")) {
+        applyStateFromUrlParams(u.searchParams);
+        window.history.replaceState({}, "", u.toString());
+        refreshAll();
+        return true;
+      }
+      return false;
+    });
+  }
+
   const INC_BY_NODE = new Map();
   DATA.inconsistencies.forEach((inc) => {
     (inc.affectedNodes || []).forEach((nid) => {
@@ -1707,6 +1871,9 @@
     board.querySelectorAll("[data-panel-link]").forEach((lnk) => {
       lnk.addEventListener("click", (ev) => {
         ev.stopPropagation();
+        if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+        ev.preventDefault();
+        navigateToExternalPage(lnk.getAttribute("href"));
       });
     });
 
@@ -1735,6 +1902,7 @@
         if (nd && nd.internalGraph && !state.drillBoardId) {
           enterBoardInternalMap(nid);
         } else if (nd && (nd.isBridge || (state.activePlant === "IMP-INGRESSI" && nd.plant !== "IMP-INGRESSI"))) {
+          pushIntraAppStep();
           state.activePlant = nd.plant;
           state.drillBoardId = null;
           state.focusedNodeId = null;
@@ -2368,20 +2536,35 @@
   function enterBoardInternalMap(boardId) {
     const b = NODE_MAP.get(boardId);
     if (!b || !b.internalGraph) return;
+    pushIntraAppStep();
     state.drillBoardId = boardId;
     state.focusedNodeId = null;
     state.selectedNodeId = `${boardId}__MAIN`;
     renderCytoscape(true);
     renderInspector();
+    syncUrlWithState();
+    syncGlobalNavBackUi();
   }
 
   function exitBoardInternalMap() {
+    const top = window.SE_NAV ? window.SE_NAV.peek() : null;
+    if (top && top.url) {
+      try {
+        const u = new URL(top.url, window.location.href);
+        if (u.origin === window.location.origin && !u.pathname.includes("/pannelli/") && !u.searchParams.get("board")) {
+          handleGlobalStepBack();
+          return;
+        }
+      } catch (_) { /* fall through */ }
+    }
     const prevBoard = state.drillBoardId;
     state.drillBoardId = null;
     state.focusedNodeId = null;
     if (prevBoard) state.selectedNodeId = prevBoard;
     renderCytoscape(true);
     renderInspector();
+    syncUrlWithState();
+    syncGlobalNavBackUi();
   }
 
   // ==================== COLORBLIND-SAFE ORIENTED FLOW SHAPES (60 FPS) ====================
@@ -2738,7 +2921,7 @@
 
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
         ${physTarget ? `
-          <a class="btn btn-primary" href="${physTarget.href}" style="font-size:12px; text-decoration:none;">
+          <a id="btnOpenPhysFromInsp" class="btn btn-primary" href="${physTarget.href}" style="font-size:12px; text-decoration:none;">
             🗄️ ${state.drillBoardId && physTarget.comp ? `Vedi ${physTarget.comp} nel Pannello Fisico ${physTarget.code}` : `Apri Pannello Fisico (${physTarget.code})`} →
           </a>
         ` : ""}
@@ -2756,6 +2939,14 @@
       </div>
     `;
 
+    const bPhys = document.getElementById("btnOpenPhysFromInsp");
+    if (bPhys) {
+      bPhys.addEventListener("click", (e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        navigateToExternalPage(bPhys.getAttribute("href"));
+      });
+    }
     const bClose = document.getElementById("btnCloseInspFs");
     if (bClose) bClose.addEventListener("click", () => document.getElementById("inspector").classList.add("closed-in-fs"));
     const bInt = document.getElementById("btnEnterInternal");
@@ -2764,6 +2955,7 @@
     if (bBack) bBack.addEventListener("click", exitBoardInternalMap);
     const bJump = document.getElementById("btnJumpPlant");
     if (bJump) bJump.addEventListener("click", () => {
+      pushIntraAppStep();
       state.activePlant = node.plant;
       state.drillBoardId = null;
       state.focusedNodeId = null;
@@ -2937,6 +3129,7 @@
           state.focusedNodeId = tid;
           selectNode(tid, true);
         } else if (NODE_MAP.has(tid)) {
+          pushIntraAppStep();
           const target = NODE_MAP.get(tid);
           state.drillBoardId = null;
           state.activePlant = target.plant;
@@ -2958,6 +3151,7 @@
     refreshSelectedCardGraphics();
     applyClickFocus();
     renderInspector();
+    syncUrlWithState();
     if (centerInGraph) {
       if (state.layoutEngine === "synoptic") {
         const cardEl = document.querySelector(`.syn-card[data-node-id="${CSS.escape(nodeId)}"]`);
@@ -3076,6 +3270,9 @@
         if (inc && inc.affectedNodes && inc.affectedNodes.length) {
           const first = NODE_MAP.get(inc.affectedNodes[0]);
           if (first) {
+            if (first.plant !== state.activePlant || state.drillBoardId) {
+              pushIntraAppStep();
+            }
             state.drillBoardId = null;
             state.activePlant = first.plant;
             state.selectedNodeId = first.id;
@@ -3160,15 +3357,24 @@
           const h = top[parseInt(el.dataset.idx, 10)];
           dd.classList.remove("open");
           if (h.panelHref) {
-            window.location.href = h.panelHref;
+            navigateToExternalPage(h.panelHref);
           } else if (h.dsId) {
             openSinglePdfModal(h.dsId);
           } else if (h.nodeId) {
             const target = NODE_MAP.get(h.nodeId);
+            if (target.plant !== state.activePlant || state.drillBoardId) {
+              pushIntraAppStep();
+            }
             state.activePlant = target.plant;
             if (h.drill && target.internalGraph) {
               renderPlantStripAndBanner();
-              enterBoardInternalMap(target.id);
+              state.drillBoardId = target.id;
+              state.focusedNodeId = null;
+              state.selectedNodeId = `${target.id}__MAIN`;
+              renderCytoscape(true);
+              renderInspector();
+              syncUrlWithState();
+              syncGlobalNavBackUi();
             } else {
               state.drillBoardId = null;
               state.selectedNodeId = target.id;
@@ -3199,15 +3405,34 @@
     renderPlantStripAndBanner();
     renderCytoscape(false);
     renderInspector();
+    syncUrlWithState();
+    syncGlobalNavBackUi();
   }
 
   function init() {
+    ["btnGlobalNavBack", "btnFsNavBack"].forEach((id) => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener("click", handleGlobalStepBack);
+    });
+
+    ["btnOpenPanelsAtlas", "btnOpenPhysicalFromDrill"].forEach((id) => {
+      const a = document.getElementById(id);
+      if (a) {
+        a.addEventListener("click", (e) => {
+          if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          navigateToExternalPage(a.getAttribute("href"));
+        });
+      }
+    });
+
     const viewSel = document.getElementById("viewModeSelect");
     if (viewSel) {
       viewSel.addEventListener("change", (e) => {
         state.layoutEngine = e.target.value;
         syncToolbarMode();
         renderCytoscape(true);
+        syncUrlWithState();
       });
     }
 
@@ -3216,12 +3441,14 @@
         state.flowDir = btn.dataset.dir;
         document.querySelectorAll("[data-dir]").forEach((b) => b.classList.toggle("active", b === btn));
         renderCytoscape(true);
+        syncUrlWithState();
       });
     });
 
     document.getElementById("groupSelect").addEventListener("change", (e) => {
       state.groupBy = e.target.value;
       renderCytoscape(true);
+      syncUrlWithState();
     });
 
     document.getElementById("btnReLayout").addEventListener("click", () => {
@@ -3242,6 +3469,7 @@
         } else {
           stopLivePhysics();
         }
+        syncUrlWithState();
       });
     }
 
@@ -3250,6 +3478,7 @@
         state.opState = btn.dataset.opstate;
         document.querySelectorAll("[data-opstate]").forEach((b) => b.classList.toggle("active", b === btn));
         renderCytoscape(false);
+        syncUrlWithState();
       });
     });
 
@@ -3261,11 +3490,13 @@
     document.getElementById("chkBridges").addEventListener("change", (e) => {
       state.showBridges = e.target.checked;
       renderCytoscape(true);
+      syncUrlWithState();
     });
 
     document.getElementById("btnClearFocus").addEventListener("click", () => {
       state.focusedNodeId = null;
       applyClickFocus();
+      syncUrlWithState();
     });
 
     document.getElementById("btnExitBoardDrill").addEventListener("click", exitBoardInternalMap);
@@ -3406,29 +3637,15 @@
       else if (cyInstance) cyInstance.resize();
     });
 
-    // Support incoming deep-link URL parameters (?plant=..., &board=..., &select=...) from dedicated Physical Panel pages!
+    // Support full URL state restoration (?plant=..., &board=..., &select=..., &view=..., &dir=..., &group=..., &op=...)
     const initParams = new URLSearchParams(window.location.search);
-    const qPlant = initParams.get("plant");
-    const qBoard = initParams.get("board");
-    const qSelect = initParams.get("select");
     const qTheme = initParams.get("scoutTheme");
     if (qTheme) {
       const atlasBtn = document.getElementById("btnOpenPanelsAtlas");
       if (atlasBtn) atlasBtn.href = `./pannelli/index.html?scoutTheme=${encodeURIComponent(qTheme)}`;
     }
-    if (qPlant && PLANT_MAP.has(qPlant)) {
-      state.activePlant = qPlant;
-    }
-    if (qBoard && NODE_MAP.has(qBoard) && NODE_MAP.get(qBoard).internalGraph) {
-      const bNode = NODE_MAP.get(qBoard);
-      if (!qPlant && bNode.plant) state.activePlant = bNode.plant;
-      state.drillBoardId = qBoard;
-      state.selectedNodeId = `${qBoard}__MAIN`;
-    } else if (qSelect && NODE_MAP.has(qSelect)) {
-      const sNode = NODE_MAP.get(qSelect);
-      if (!qPlant && sNode.plant) state.activePlant = sNode.plant;
-      state.selectedNodeId = qSelect;
-      state.focusedNodeId = qSelect;
+    if ([...initParams.keys()].some((k) => k !== "scoutTheme")) {
+      applyStateFromUrlParams(initParams);
     }
 
     setupSearch();
