@@ -1100,23 +1100,92 @@
       }
     });
 
-    // Align single-attachment top pins directly below their parent pin when in the same vertical column (eliminates artificial S-jogs!)
-    edges.forEach((e) => {
-      const b1 = boxes.get(e.source);
-      const b2 = boxes.get(e.target);
-      const fc = edgeFaces.get(e.id);
-      const pS = edgePins.get(`${e.id}::src`);
-      const pT = edgePins.get(`${e.id}::tgt`);
-      if (!b1 || !b2 || !fc || !pS || !pT) return;
-      if (fc.exitFace === "bot" && fc.entryFace === "top" && b2.row > b1.row) {
-        const tgtList = faceAttachments.get(`${e.target}::top`) || [];
-        if (tgtList.length === 1 && pS.x >= b2.left + 20 && pS.x <= b2.right - 20) {
-          if (isShaftClear(pS.x, pS.y + 4, pT.y - 4, e.source, e.target)) {
-            pT.x = pS.x;
+    // General Neighbor-Safe Pin Straightening Pass:
+    // Whenever source & target pins face each other (bot->top, top->bot, right->left, left->right)
+    // and their neighbor-safe intervals overlap, align both pins to a single straight line!
+    const MIN_PIN_GAP_X = 16;
+    const MIN_PIN_GAP_Y = 14;
+
+    function getPinBounds(nodeId, face, edgeId, isSource) {
+      const bx = boxes.get(nodeId);
+      const list = faceAttachments.get(`${nodeId}::${face}`) || [];
+      const idx = list.findIndex((it) => it.edgeId === edgeId && it.isSource === isSource);
+      if (!bx || idx < 0) return null;
+
+      if (face === "top" || face === "bot") {
+        let lo = bx.left + 20;
+        let hi = bx.right - 20;
+        if (idx > 0) {
+          const prev = list[idx - 1];
+          const pPrev = edgePins.get(`${prev.edgeId}::${prev.isSource ? "src" : "tgt"}`);
+          if (pPrev) lo = Math.max(lo, pPrev.x + MIN_PIN_GAP_X);
+        }
+        if (idx < list.length - 1) {
+          const next = list[idx + 1];
+          const pNext = edgePins.get(`${next.edgeId}::${next.isSource ? "src" : "tgt"}`);
+          if (pNext) hi = Math.min(hi, pNext.x - MIN_PIN_GAP_X);
+        }
+        return { lo, hi, count: list.length };
+      }
+
+      let lo = bx.top + 16;
+      let hi = bx.bottom - 16;
+      if (idx > 0) {
+        const prev = list[idx - 1];
+        const pPrev = edgePins.get(`${prev.edgeId}::${prev.isSource ? "src" : "tgt"}`);
+        if (pPrev) lo = Math.max(lo, pPrev.y + MIN_PIN_GAP_Y);
+      }
+      if (idx < list.length - 1) {
+        const next = list[idx + 1];
+        const pNext = edgePins.get(`${next.edgeId}::${next.isSource ? "src" : "tgt"}`);
+        if (pNext) hi = Math.min(hi, pNext.y - MIN_PIN_GAP_Y);
+      }
+      return { lo, hi, count: list.length };
+    }
+
+    for (let pass = 0; pass < 2; pass++) {
+      edges.forEach((e) => {
+        const b1 = boxes.get(e.source);
+        const b2 = boxes.get(e.target);
+        const fc = edgeFaces.get(e.id);
+        const pS = edgePins.get(`${e.id}::src`);
+        const pT = edgePins.get(`${e.id}::tgt`);
+        if (!b1 || !b2 || !fc || !pS || !pT) return;
+
+        if ((fc.exitFace === "bot" && fc.entryFace === "top") || (fc.exitFace === "top" && fc.entryFace === "bot")) {
+          const sb = getPinBounds(e.source, fc.exitFace, e.id, true);
+          const tb = getPinBounds(e.target, fc.entryFace, e.id, false);
+          if (!sb || !tb) return;
+          const commonLo = Math.max(sb.lo, tb.lo);
+          const commonHi = Math.min(sb.hi, tb.hi);
+          if (commonLo <= commonHi) {
+            // Prefer keeping the pin of whichever side has multiple spaced siblings so its sibling spacing stays symmetric!
+            let xTarget = (pS.x + pT.x) / 2;
+            if (sb.count > 1 && tb.count === 1) xTarget = pS.x;
+            else if (tb.count > 1 && sb.count === 1) xTarget = pT.x;
+            const xAligned = Math.max(commonLo, Math.min(commonHi, xTarget));
+            if (isShaftClear(xAligned, Math.min(pS.y, pT.y) + 4, Math.max(pS.y, pT.y) - 4, e.source, e.target)) {
+              pS.x = xAligned;
+              pT.x = xAligned;
+            }
+          }
+        } else if (fc.directSide) {
+          const sb = getPinBounds(e.source, fc.exitFace, e.id, true);
+          const tb = getPinBounds(e.target, fc.entryFace, e.id, false);
+          if (!sb || !tb) return;
+          const commonLo = Math.max(sb.lo, tb.lo);
+          const commonHi = Math.min(sb.hi, tb.hi);
+          if (commonLo <= commonHi) {
+            let yTarget = (pS.y + pT.y) / 2;
+            if (sb.count > 1 && tb.count === 1) yTarget = pS.y;
+            else if (tb.count > 1 && sb.count === 1) yTarget = pT.y;
+            const yAligned = Math.max(commonLo, Math.min(commonHi, yTarget));
+            pS.y = yAligned;
+            pT.y = yAligned;
           }
         }
-      }
-    });
+      });
+    }
 
     // STEP 2: Vertical Constraint Graph (VCG) topological channel router -> mathematically eliminates avoidable stem/bar crossings!
     const channelRequests = new Map(); // channelIdx -> [{ reqKey, xS, xE, minX, maxX, span, hasTopStem, hasBotStem }]
