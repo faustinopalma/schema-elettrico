@@ -1100,11 +1100,38 @@
       }
     });
 
-    // STEP 2: Pre-sort horizontal jogs per inter-band channel by widest span first (river-routing -> zero fan-out crossings!)
-    const channelRequests = new Map(); // channelIdx -> [{ reqKey, span }]
-    function registerChannelReq(chIdx, reqKey, xA, xB) {
+    // Align single-attachment top pins directly below their parent pin when in the same vertical column (eliminates artificial S-jogs!)
+    edges.forEach((e) => {
+      const b1 = boxes.get(e.source);
+      const b2 = boxes.get(e.target);
+      const fc = edgeFaces.get(e.id);
+      const pS = edgePins.get(`${e.id}::src`);
+      const pT = edgePins.get(`${e.id}::tgt`);
+      if (!b1 || !b2 || !fc || !pS || !pT) return;
+      if (fc.exitFace === "bot" && fc.entryFace === "top" && b2.row > b1.row) {
+        const tgtList = faceAttachments.get(`${e.target}::top`) || [];
+        if (tgtList.length === 1 && pS.x >= b2.left + 20 && pS.x <= b2.right - 20) {
+          if (isShaftClear(pS.x, pS.y + 4, pT.y - 4, e.source, e.target)) {
+            pT.x = pS.x;
+          }
+        }
+      }
+    });
+
+    // STEP 2: Vertical Constraint Graph (VCG) topological channel router -> mathematically eliminates avoidable stem/bar crossings!
+    const channelRequests = new Map(); // channelIdx -> [{ reqKey, xS, xE, minX, maxX, span, hasTopStem, hasBotStem }]
+    function registerChannelReq(chIdx, reqKey, xS, xE, hasTopStem, hasBotStem) {
       if (!channelRequests.has(chIdx)) channelRequests.set(chIdx, []);
-      channelRequests.get(chIdx).push({ reqKey, span: Math.abs(xB - xA), minX: Math.min(xA, xB), maxX: Math.max(xA, xB) });
+      channelRequests.get(chIdx).push({
+        reqKey,
+        xS,
+        xE,
+        minX: Math.min(xS, xE),
+        maxX: Math.max(xS, xE),
+        span: Math.abs(xE - xS),
+        hasTopStem,
+        hasBotStem
+      });
     }
 
     edges.forEach((e) => {
@@ -1117,48 +1144,123 @@
 
       if (fc.directSide) return;
       if (b2.row === b1.row) {
-        registerChannelReq(b1.row, `same::${e.id}`, pS.x, pT.x);
+        registerChannelReq(b1.row, `same::${e.id}`, pS.x, pT.x, true, false);
       } else if (b2.row > b1.row) {
-        if (Math.abs(pT.x - pS.x) >= 4 || !isShaftClear(pT.x, pS.y + 20, pT.y, e.source, e.target)) {
-          registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x);
-        }
-        if (b2.row > b1.row + 1 && !isShaftClear(pT.x, PAD_Y + b1.row * ROW_PITCH + BAND_H + 20, pT.y, e.source, e.target)) {
-          registerChannelReq(b2.row - 1, `dn2::${e.id}`, pS.x, pT.x);
+        if (b2.row === b1.row + 1) {
+          if (Math.abs(pT.x - pS.x) >= 4) {
+            registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x, true, true);
+          }
+        } else if (isShaftClear(pT.x, PAD_Y + b1.row * ROW_PITCH + BAND_H + 20, pT.y, e.source, e.target)) {
+          if (Math.abs(pT.x - pS.x) >= 4) {
+            registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, pT.x, true, true);
+          }
+        } else {
+          const xAlley = findClearAlley(pT.x, PAD_Y + b1.row * ROW_PITCH + BAND_H + 20, pT.y, e.source, e.target);
+          e._cachedAlley = xAlley;
+          registerChannelReq(b1.row, `dn1::${e.id}`, pS.x, xAlley, true, true);
+          registerChannelReq(b2.row - 1, `dn2::${e.id}`, xAlley, pT.x, true, true);
         }
       } else {
-        registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, pT.x);
-        if (!isShaftClear(pT.x, pT.y, PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20, e.source, e.target)) {
-          registerChannelReq(b2.row, `up2::${e.id}`, pS.x, pT.x);
+        if (isShaftClear(pT.x, pT.y, PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20, e.source, e.target)) {
+          registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, pT.x, true, true);
+        } else {
+          const xAlley = findClearAlley(pS.x, pT.y, PAD_Y + (b1.row - 1) * ROW_PITCH + BAND_H + 20, e.source, e.target);
+          e._cachedAlley = xAlley;
+          registerChannelReq(b1.row - 1, `up1::${e.id}`, pS.x, xAlley, false, true);
+          registerChannelReq(b2.row, `up2::${e.id}`, xAlley, pT.x, true, false);
         }
       }
     });
 
     const resolvedTrackY = new Map(); // `${chIdx}::${reqKey}` -> yTrack
     channelRequests.forEach((reqs, chIdx) => {
-      // Sort widest horizontal span first (shallowest yTrack) so inner narrower branches drop cleanly past outer bends without crossing!
-      reqs.sort((a, b) => (b.span - a.span) || (a.minX - b.minX));
+      const n = reqs.length;
+      // Build Vertical Constraint Graph: edge i -> j means reqs[i] MUST be placed ABOVE reqs[j] (y_i < y_j)
+      const adj = Array.from({ length: n }, () => new Set());
+      const indeg = new Array(n).fill(0);
+
+      function mustBeAbove(a, b) {
+        // Putting a above b prevents:
+        // 1) a's top stem from piercing b's horizontal bar (if a.xS lies inside [b.minX, b.maxX])
+        // 2) b's bottom stem from piercing a's horizontal bar (if b.xE lies inside [a.minX, a.maxX])
+        const aTopInB = a.hasTopStem && a.xS >= b.minX - 4 && a.xS <= b.maxX + 4 && Math.abs(a.xS - b.xS) > 1;
+        const bBotInA = b.hasBotStem && b.xE >= a.minX - 4 && b.xE <= a.maxX + 4 && Math.abs(b.xE - a.xE) > 1;
+        return aTopInB || bBotInA;
+      }
+
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const iAboveJ = mustBeAbove(reqs[i], reqs[j]);
+          const jAboveI = mustBeAbove(reqs[j], reqs[i]);
+          if (iAboveJ && !jAboveI) {
+            adj[i].add(j);
+            indeg[j]++;
+          } else if (jAboveI && !iAboveJ) {
+            adj[j].add(i);
+            indeg[i]++;
+          }
+        }
+      }
+
+      // Topological order with widest-span tie-breaking
+      const ordered = [];
+      const visited = new Array(n).fill(false);
+      for (let step = 0; step < n; step++) {
+        let pick = -1;
+        for (let i = 0; i < n; i++) {
+          if (visited[i]) continue;
+          if (indeg[i] === 0) {
+            if (pick === -1 || reqs[i].span > reqs[pick].span) pick = i;
+          }
+        }
+        if (pick === -1) {
+          // Cycle fallback: pick largest span among unvisited
+          for (let i = 0; i < n; i++) {
+            if (!visited[i] && (pick === -1 || reqs[i].span > reqs[pick].span)) pick = i;
+          }
+        }
+        visited[pick] = true;
+        ordered.push(pick);
+        adj[pick].forEach((nxt) => { indeg[nxt]--; });
+      }
+
+      // Pack into non-conflicting horizontal tracks respecting VCG order (trackIdx_j > trackIdx_i if i -> j)
       const bandBot = PAD_Y + chIdx * ROW_PITCH + BAND_H;
-      const tracks = []; // [{ y, intervals: [[x1, x2]] }]
-      reqs.forEach((rq) => {
-        let placedY = null;
-        for (let t = 0; t < tracks.length; t++) {
-          const overlaps = tracks[t].intervals.some(([i1, i2]) => rq.minX <= i2 + 10 && rq.maxX >= i1 - 10);
-          if (!overlaps) {
-            // Only reuse an earlier track if no wider segment on a deeper track would cross — safest: assign greedy non-overlapping track >= current max or non-conflicting
-            // Keeping strict monotonic track index for overlapping x ranges guarantees river-routing planarity!
-            placedY = tracks[t].y;
-            tracks[t].intervals.push([rq.minX, rq.maxX]);
+      const tracks = []; // [{ items: [idx] }]
+      const assignedTrack = new Array(n).fill(-1);
+
+      ordered.forEach((idx) => {
+        const rq = reqs[idx];
+        // Must sit strictly below any predecessor u where u -> idx
+        let minTrack = 0;
+        for (let u = 0; u < n; u++) {
+          if (adj[u].has(idx) && assignedTrack[u] >= 0) {
+            minTrack = Math.max(minTrack, assignedTrack[u] + 1);
+          }
+        }
+        let placedT = -1;
+        for (let t = minTrack; t < tracks.length; t++) {
+          const clash = tracks[t].some((otherIdx) => {
+            const o = reqs[otherIdx];
+            return rq.minX <= o.maxX + 10 && rq.maxX >= o.minX - 10;
+          });
+          if (!clash) {
+            placedT = t;
+            tracks[t].push(idx);
             break;
           }
         }
-        if (placedY === null) {
-          const tIdx = tracks.length;
-          const stepY = Math.min(12, Math.max(7, Math.floor((CHANNEL_H - 22) / Math.max(1, reqs.length))));
-          placedY = bandBot + 12 + tIdx * stepY;
-          tracks.push({ y: placedY, intervals: [[rq.minX, rq.maxX]] });
+        if (placedT === -1) {
+          placedT = tracks.length;
+          tracks.push([idx]);
         }
-        resolvedTrackY.set(`${chIdx}::${rq.reqKey}`, placedY);
+        assignedTrack[idx] = placedT;
       });
+
+      const stepY = Math.min(13, Math.max(8, Math.floor((CHANNEL_H - 22) / Math.max(1, tracks.length))));
+      for (let i = 0; i < n; i++) {
+        resolvedTrackY.set(`${chIdx}::${reqs[i].reqKey}`, bandBot + 13 + assignedTrack[i] * stepY);
+      }
     });
 
     function getTrackY(chIdx, reqKey) {
@@ -1236,7 +1338,7 @@
             ];
           }
         } else {
-          const xAlley = findClearAlley(pEnd.x, yBus, pEnd.y, e.source, e.target);
+          const xAlley = e._cachedAlley !== undefined ? e._cachedAlley : findClearAlley(pEnd.x, yBus, pEnd.y, e.source, e.target);
           const yBusBottom = getTrackY(b2.row - 1, `dn2::${e.id}`);
           pts = [
             pStart,
@@ -1262,7 +1364,7 @@
             pEnd
           ];
         } else {
-          const xAlley = findClearAlley(pStart.x, pEnd.y, yChStart, e.source, e.target);
+          const xAlley = e._cachedAlley !== undefined ? e._cachedAlley : findClearAlley(pStart.x, pEnd.y, yChStart, e.source, e.target);
           const yChTop = getTrackY(b2.row, `up2::${e.id}`);
           pts = [
             pStart,
@@ -2887,9 +2989,9 @@
 
   function syncToolbarMode() {
     const isSyn = state.layoutEngine === "synoptic";
-    const badge = document.getElementById("staticModeBadge");
     const dynWrap = document.getElementById("dynamicControlsWrap");
-    if (badge) badge.style.display = isSyn ? "inline-flex" : "none";
+    const sel = document.getElementById("viewModeSelect");
+    if (sel && sel.value !== state.layoutEngine) sel.value = state.layoutEngine;
     if (dynWrap) dynWrap.style.display = isSyn ? "none" : "inline-flex";
   }
 
@@ -2901,14 +3003,14 @@
   }
 
   function init() {
-    document.querySelectorAll("[data-layout]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.layoutEngine = btn.dataset.layout;
-        document.querySelectorAll("[data-layout]").forEach((b) => b.classList.toggle("active", b === btn));
+    const viewSel = document.getElementById("viewModeSelect");
+    if (viewSel) {
+      viewSel.addEventListener("change", (e) => {
+        state.layoutEngine = e.target.value;
         syncToolbarMode();
         renderCytoscape(true);
       });
-    });
+    }
 
     document.querySelectorAll("[data-dir]").forEach((btn) => {
       btn.addEventListener("click", () => {

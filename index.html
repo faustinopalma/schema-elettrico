@@ -1054,16 +1054,16 @@ details.acc-block[open] summary {
           <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
             <select id="fsPlantSelect" class="select-compact fs-only"></select>
 
-            <span style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);">Vista:</span>
-            <div class="seg-control" id="layoutSwitcher" role="group">
-              <button class="seg-btn active" data-layout="synoptic" title="Tavola sinottica statica a fasce orizzontali e sbarre ortogonali (blocchi fissi, massima leggibilità)">📐 Tavola Sinottica</button>
-              <button class="seg-btn" data-layout="elk" title="Grafo automatico Eclipse ELK Layered">ELK</button>
-              <button class="seg-btn" data-layout="cola" title="Grafo dinamico WebCola a fisica viva">Cola</button>
-              <button class="seg-btn" data-layout="fcose" title="Grafo dinamico a molle elastiche fCoSE">fCoSE</button>
-              <button class="seg-btn" data-layout="dagre" title="Grafo gerarchico ad albero Dagre">Dagre</button>
-            </div>
-
-            <span id="staticModeBadge" class="pill" style="color:var(--cp-text-muted); border-color:var(--cp-border-strong); font-weight:600;" title="Schema statico a fasce e sbarre ortogonali: usa rotella o trascinamento per zoom e panoramica">🔒 Schema fisso a fasce</span>
+            <label style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted);" for="viewModeSelect">Vista:</label>
+            <select id="viewModeSelect" class="select-compact" title="Passa dalla vista base statica alle viste avanzate alternative a grafo interattivo">
+              <option value="synoptic" selected>📐 Tavola Sinottica (Vista base)</option>
+              <optgroup label="⚙️ Viste avanzate alternative (Grafo interattivo)">
+                <option value="elk">🕸️ Grafo ELK — Livelli automatici</option>
+                <option value="cola">🕸️ Grafo Cola — Fisica elastica</option>
+                <option value="fcose">🕸️ Grafo fCoSE — Molle relazionali</option>
+                <option value="dagre">🕸️ Grafo Dagre — Albero gerarchico</option>
+              </optgroup>
+            </select>
 
             <div id="dynamicControlsWrap" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
               <div class="seg-control" id="dirSwitcher">
