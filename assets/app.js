@@ -1080,18 +1080,18 @@
       const [nid, face] = key.split("::");
       const bx = boxes.get(nid);
       if (!bx) return;
-      list.sort((a, b) => (a.sortCoord - b.sortCoord) || (a.isSource === b.isSource ? a.edgeId.localeCompare(b.edgeId) : (a.isSource ? 1 : -1)));
+      list.sort((a, b) => (a.sortCoord - b.sortCoord) || a.edgeId.localeCompare(b.edgeId));
       const cnt = list.length;
 
       if (face === "top" || face === "bot") {
-        const step = Math.min(20, Math.floor((CARD_W - 44) / Math.max(1, cnt)));
+        const step = Math.min(30, Math.floor((CARD_W - 40) / Math.max(1, cnt)));
         const y = face === "top" ? bx.top : bx.bottom;
         list.forEach((item, idx) => {
           const x = bx.cx + (idx - (cnt - 1) / 2) * step;
           edgePins.set(`${item.edgeId}::${item.isSource ? "src" : "tgt"}`, { x, y });
         });
       } else {
-        const step = Math.min(16, Math.floor((CARD_H - 32) / Math.max(1, cnt)));
+        const step = Math.min(20, Math.floor((CARD_H - 28) / Math.max(1, cnt)));
         const x = face === "left" ? bx.left : bx.right;
         list.forEach((item, idx) => {
           const y = bx.cy + (idx - (cnt - 1) / 2) * step;
@@ -1100,50 +1100,63 @@
       }
     });
 
-    // General Neighbor-Safe Pin Straightening Pass:
-    // Whenever source & target pins face each other (bot->top, top->bot, right->left, left->right)
-    // and their neighbor-safe intervals overlap, align both pins to a single straight line!
-    const MIN_PIN_GAP_X = 16;
-    const MIN_PIN_GAP_Y = 14;
+    // General Sibling-Aware Pin Straightening Pass:
+    // Shifts sibling connectors outward (e.g. pushing a wire arriving from the left further left)
+    // whenever two facing blocks overlap so their direct connection becomes 100% straight!
+    const MIN_PIN_GAP_X = 28;
+    const MIN_PIN_GAP_Y = 16;
 
-    function getPinBounds(nodeId, face, edgeId, isSource) {
+    function gapForFace(face, cnt) {
+      if (face === "top" || face === "bot") {
+        return cnt <= 1 ? MIN_PIN_GAP_X : Math.min(MIN_PIN_GAP_X, Math.floor((CARD_W - 40) / (cnt - 1)));
+      }
+      return cnt <= 1 ? MIN_PIN_GAP_Y : Math.min(MIN_PIN_GAP_Y, Math.floor((CARD_H - 30) / (cnt - 1)));
+    }
+
+    function getMovablePinRange(nodeId, face, edgeId, isSource) {
       const bx = boxes.get(nodeId);
       const list = faceAttachments.get(`${nodeId}::${face}`) || [];
       const idx = list.findIndex((it) => it.edgeId === edgeId && it.isSource === isSource);
       if (!bx || idx < 0) return null;
-
+      const gap = gapForFace(face, list.length);
+      const rightCount = list.length - 1 - idx;
       if (face === "top" || face === "bot") {
-        let lo = bx.left + 20;
-        let hi = bx.right - 20;
-        if (idx > 0) {
-          const prev = list[idx - 1];
-          const pPrev = edgePins.get(`${prev.edgeId}::${prev.isSource ? "src" : "tgt"}`);
-          if (pPrev) lo = Math.max(lo, pPrev.x + MIN_PIN_GAP_X);
-        }
-        if (idx < list.length - 1) {
-          const next = list[idx + 1];
-          const pNext = edgePins.get(`${next.edgeId}::${next.isSource ? "src" : "tgt"}`);
-          if (pNext) hi = Math.min(hi, pNext.x - MIN_PIN_GAP_X);
-        }
-        return { lo, hi, count: list.length };
+        return {
+          bx, list, idx, gap,
+          lo: bx.left + 18 + idx * gap,
+          hi: bx.right - 18 - rightCount * gap
+        };
       }
-
-      let lo = bx.top + 16;
-      let hi = bx.bottom - 16;
-      if (idx > 0) {
-        const prev = list[idx - 1];
-        const pPrev = edgePins.get(`${prev.edgeId}::${prev.isSource ? "src" : "tgt"}`);
-        if (pPrev) lo = Math.max(lo, pPrev.y + MIN_PIN_GAP_Y);
-      }
-      if (idx < list.length - 1) {
-        const next = list[idx + 1];
-        const pNext = edgePins.get(`${next.edgeId}::${next.isSource ? "src" : "tgt"}`);
-        if (pNext) hi = Math.min(hi, pNext.y - MIN_PIN_GAP_Y);
-      }
-      return { lo, hi, count: list.length };
+      return {
+        bx, list, idx, gap,
+        lo: bx.top + 14 + idx * gap,
+        hi: bx.bottom - 14 - rightCount * gap
+      };
     }
 
-    for (let pass = 0; pass < 2; pass++) {
+    function setPinAndSpreadSiblings(info, coord, axis) {
+      const { list, idx, gap } = info;
+      const getPin = (i) => edgePins.get(`${list[i].edgeId}::${list[i].isSource ? "src" : "tgt"}`);
+      const anchor = getPin(idx);
+      if (!anchor) return;
+      anchor[axis] = coord;
+      for (let i = idx - 1; i >= 0; i--) {
+        const cur = getPin(i);
+        const nxt = getPin(i + 1);
+        if (cur && nxt && cur[axis] > nxt[axis] - gap) {
+          cur[axis] = nxt[axis] - gap;
+        }
+      }
+      for (let i = idx + 1; i < list.length; i++) {
+        const cur = getPin(i);
+        const prv = getPin(i - 1);
+        if (cur && prv && cur[axis] < prv[axis] + gap) {
+          cur[axis] = prv[axis] + gap;
+        }
+      }
+    }
+
+    for (let pass = 0; pass < 3; pass++) {
       edges.forEach((e) => {
         const b1 = boxes.get(e.source);
         const b2 = boxes.get(e.target);
@@ -1153,35 +1166,34 @@
         if (!b1 || !b2 || !fc || !pS || !pT) return;
 
         if ((fc.exitFace === "bot" && fc.entryFace === "top") || (fc.exitFace === "top" && fc.entryFace === "bot")) {
-          const sb = getPinBounds(e.source, fc.exitFace, e.id, true);
-          const tb = getPinBounds(e.target, fc.entryFace, e.id, false);
+          const sb = getMovablePinRange(e.source, fc.exitFace, e.id, true);
+          const tb = getMovablePinRange(e.target, fc.entryFace, e.id, false);
           if (!sb || !tb) return;
           const commonLo = Math.max(sb.lo, tb.lo);
           const commonHi = Math.min(sb.hi, tb.hi);
           if (commonLo <= commonHi) {
-            // Prefer keeping the pin of whichever side has multiple spaced siblings so its sibling spacing stays symmetric!
             let xTarget = (pS.x + pT.x) / 2;
-            if (sb.count > 1 && tb.count === 1) xTarget = pS.x;
-            else if (tb.count > 1 && sb.count === 1) xTarget = pT.x;
+            if (sb.list.length > 1 && tb.list.length === 1) xTarget = pS.x;
+            else if (tb.list.length > 1 && sb.list.length === 1) xTarget = pT.x;
             const xAligned = Math.max(commonLo, Math.min(commonHi, xTarget));
             if (isShaftClear(xAligned, Math.min(pS.y, pT.y) + 4, Math.max(pS.y, pT.y) - 4, e.source, e.target)) {
-              pS.x = xAligned;
-              pT.x = xAligned;
+              setPinAndSpreadSiblings(sb, xAligned, "x");
+              setPinAndSpreadSiblings(tb, xAligned, "x");
             }
           }
         } else if (fc.directSide) {
-          const sb = getPinBounds(e.source, fc.exitFace, e.id, true);
-          const tb = getPinBounds(e.target, fc.entryFace, e.id, false);
+          const sb = getMovablePinRange(e.source, fc.exitFace, e.id, true);
+          const tb = getMovablePinRange(e.target, fc.entryFace, e.id, false);
           if (!sb || !tb) return;
           const commonLo = Math.max(sb.lo, tb.lo);
           const commonHi = Math.min(sb.hi, tb.hi);
           if (commonLo <= commonHi) {
             let yTarget = (pS.y + pT.y) / 2;
-            if (sb.count > 1 && tb.count === 1) yTarget = pS.y;
-            else if (tb.count > 1 && sb.count === 1) yTarget = pT.y;
+            if (sb.list.length > 1 && tb.list.length === 1) yTarget = pS.y;
+            else if (tb.list.length > 1 && sb.list.length === 1) yTarget = pT.y;
             const yAligned = Math.max(commonLo, Math.min(commonHi, yTarget));
-            pS.y = yAligned;
-            pT.y = yAligned;
+            setPinAndSpreadSiblings(sb, yAligned, "y");
+            setPinAndSpreadSiblings(tb, yAligned, "y");
           }
         }
       });
