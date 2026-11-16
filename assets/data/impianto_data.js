@@ -9,26 +9,26 @@ window.IMPIANTO_DATA = {
     {
       "id": "IMP-INGRESSI",
       "code": "POD",
-      "name": "0. Mappa Contatori, Ingressi & Alimentazione Box",
-      "shortName": "Contatori & Box (3 Locali Contatori)",
-      "power": "4 Contatori Parti Comuni (P.T., 340 kW) + 2 Sale Contatori Alloggi (P.-1) + 152 Box sotto 80 kW",
+      "name": "0. Ingressi Energia, Locali Contatori & Quadri Generali",
+      "shortName": "Ingressi & Contatori (340 kW + Alloggi)",
+      "power": "4 Contatori Parti Comuni (340 kW) + 2 Sale Contatori Alloggi + FV",
       "swatch": "ssc",
       "shape": "round-hexagon",
       "edgeStyle": "solid",
       "icon": "grid",
-      "summary": "Risponde subito a due domande chiave: DOVE SONO I CONTATORI (3 locali fisici distinti: Locale Contatori Principale al Piano Terra per i 4 POD Parti Comuni da 340 kW, più 2 Locali Contatori al Piano -1 per gli appartamenti di Torre A e Torre B) e COME SONO ALIMENTATI I 152 BOX (tutti derivati dal Contatore Condominiale da 80 kW tramite QE.SSC → Sezione Q6, senza contatori individuali nei singoli box).",
+      "summary": "Panoramica simmetrica dei punti di consegna e misura dell'edificio: i 4 Contatori delle Parti Comuni nel Locale Contatori Principale al Piano Terra (80 + 50 + 50 + 160 = 340 kW) con i rispettivi quadri generali d'impianto, il Generatore Fotovoltaico in copertura e le 2 Sale Contatori degli appartamenti privati al Piano -1 (Torre A e Torre B).",
       "metrics": {
-        "Locale Contatori P.Terra": "4 POD Comuni (340 kW)",
-        "Sale Contatori Piano -1": "2 Sale Alloggi (A e B)",
-        "Alimentazione 152 Box": "Da POD 80 kW → QE.SSC Q6",
-        "Contatori singoli Box": "Assenti (4 linee 5G4)"
+        "Contatori Parti Comuni": "4 POD al P. Terra (340 kW)",
+        "Sale Contatori Alloggi": "2 Sale al Piano -1 (A e B)",
+        "Autoproduzione": "Fotovoltaico in Copertura",
+        "Multimetri di Quadro": "4× Vemer EV3M + TA"
       },
       "flowGuide": {
-        "in": "Rete pubblica BT 400/230V da cavidotti stradali (pozzetti 'E') + Pannelli Fotovoltaici in copertura",
-        "process": "Al Piano Terra (ingresso carraio) i 4 Contatori Parti Comuni misurano 80+50+50+160 kW; al Piano -1 (zona cantine) due sale separate ospitano i contatori privati degli appartamenti",
-        "out": "I 152 Box Auto (-1 e -2) NON dipendono dai contatori appartamenti: sono alimentati tutti dal Contatore 80 kW → QE.SSC → Sezione Q6 (4 circuiti Q6.3–Q6.6 per sgancio VVF unico)"
+        "in": "Rete pubblica BT 400/230V dai pozzetti stradali + Generatore Fotovoltaico in copertura",
+        "process": "Al Piano Terra il Locale Contatori Principale ospita i 4 contatori delle Parti Comuni (340 kW); al Piano -1 due sale dedicate ospitano i contatori privati delle unità abitative (Torri A e B)",
+        "out": "Ogni fornitura alimenta in modo indipendente il proprio quadro generale d'impianto (Supercondominio, Antincendio, Torre A, Torre B, Centrale Pompe di Calore)"
       },
-      "tabLabel": "0 · Contatori & Box"
+      "tabLabel": "0 · Ingressi & Contatori"
     },
     {
       "id": "IMP-SSC",
@@ -40,7 +40,7 @@ window.IMPIANTO_DATA = {
       "shape": "round-hexagon",
       "edgeStyle": "solid",
       "icon": "grid",
-      "summary": "Ramo alimentato dal Contatore Supercondominiale da 80 kW (Locale Contatori Principale al Piano Terra): alimenta subito a monte la Pompa Antincendio, poi tramite QE.SSC distribuisce energia alla Sezione Autorimessa Q6 (che alimenta luce e presa interna di tutti i 152 Box ai piani -1 e -2 su 4 dorsali Q6.3–Q6.6, oltre a corselli, rampa e pompe meteo), alla Portineria, alle Luci Esterne e alle 3 Centrali Tecniche (Idrica -1, Termica -2, Pozzi -2).",
+      "summary": "Ramo alimentato dal Contatore Supercondominiale da 80 kW (Piano Terra): alimenta a monte la Pompa Antincendio, poi tramite AVSSC e il quadro generale QE.SSC distribuisce energia alle 3 Centrali Tecniche interrate (Idrica -1, Termica -2, Pozzi -2), alla Portineria, alle Aree Esterne, ai 2 UPS e all'Autorimessa (corselli, rampa e box).",
       "metrics": {
         "Potenza Contrattuale": "80 kW",
         "Taglia Generale": "250 A (ABB XT3N)",
@@ -48,9 +48,9 @@ window.IMPIANTO_DATA = {
         "Piani Serviti": "Esterni, P.T, -1, -2"
       },
       "flowGuide": {
-        "in": "Contatore Ente Distributore da 80 kW nel Locale Contatori Principale al Piano Terra (ingresso carraio)",
-        "process": "Il Ripartitore da 250A separa a monte la linea antincendio; poi AVSSC e il quadro generale QE.SSC smistano le dorsali, inclusa la Sezione Autorimessa Q6 (63A con sgancio VVF 24Vac)",
-        "out": "Alimenta i 152 Box privati (-1 e -2, senza contatori singoli), Corselli/Rampa, Portineria, Luci Esterne, 2 UPS e le 3 Centrali interrate"
+        "in": "Contatore Ente Distributore da 80 kW nel Locale Contatori Principale al Piano Terra",
+        "process": "Il Ripartitore da 250A separa a monte la linea antincendio; poi AVSSC e il quadro generale QE.SSC smistano e proteggono tutte le dorsali comuni",
+        "out": "Alimenta le 3 Centrali Tecniche (-1 e -2), Portineria, Illuminazione Esterna, 2 UPS di sicurezza e l'Autorimessa interrata (corselli e box)"
       },
       "tabLabel": "1 · Supercondominio"
     },
@@ -112,7 +112,7 @@ window.IMPIANTO_DATA = {
       "shape": "octagon",
       "edgeStyle": "solid-heavy",
       "icon": "solar",
-      "summary": "Fornitura BT di alta potenza da 160 kW (doppio cavo 185 mm² per fase, In 630A) dedicata alla generazione climatizzazione/ACS geotermica centralizzata in Centrale Tecnologica (-2). Sul sistema di sbarre da 800A del quadro QE.PC sono attestati i 3 gruppi polivalenti/pompe di calore ad acqua di falda (PC1 da 48 kW, PC2A da 91 kW, PC2B da 91 kW) e il parallelo del Generatore Fotovoltaico in copertura (Q5 4P 50A).",
+      "summary": "Centrale termica/frigorifera geotermica al Piano -2 alimentata in parallelo dal Contatore dedicato da 160 kW e dai 2 campi fotovoltaici sulle coperture di Torre A e Torre B (unificati sull'unico ingresso Q5 C50A del quadro QE.PC: scelta obbligatoria per unicità del POD CEI 0-21 e per massimizzare l'autoconsumo termico/ACS comune a entrambe le torri).",
       "metrics": {
         "Potenza Contrattuale": "160 kW (+ FV)",
         "Taglia Generale": "630 A (ABB T5N / OT630)",
@@ -120,9 +120,9 @@ window.IMPIANTO_DATA = {
         "Piani Serviti": "P.T → -2 ← Copertura"
       },
       "flowGuide": {
-        "in": "Doppia sorgente: Contatore di potenza da 160 kW a terra + Pannelli Fotovoltaici sul tetto",
-        "process": "AVPC (630A) porta energia fino alla sbarra da 800A del quadro QE.PC al Piano -2, dove confluisce anche l'energia solare per l'autoconsumo",
-        "out": "Alimenta le 3 grandi Pompe di Calore geotermiche ad acqua di falda (PC1 da 48 kW + PC2A da 91 kW + PC2B da 91 kW) per caldo, freddo e acqua calda"
+        "in": "Contatore 4 dedicato da 160 kW al Piano Terra + 2 Campi Fotovoltaici sulle coperture di Torre A e Torre B",
+        "process": "AVPC (630A) porta la rete alla sbarra da 800A di QE.PC (-2), dove confluisce l'unica linea AC fotovoltaica (morsettiera X1 16 mm² → interruttore Q5 4P C50A)",
+        "out": "Alimenta esclusivamente la sbarra delle 3 Pompe di Calore (caldo/freddo/ACS per entrambe le torri); eventuale surplus solare risale sul solo Contatore 4 (mai verso QESC-A/B o QE.SSC)"
       },
       "tabLabel": "4 · Pompe Calore & FV"
     },
@@ -285,7 +285,7 @@ window.IMPIANTO_DATA = {
     {
       "id": "POD-SSC",
       "code": "POD-SSC",
-      "label": "Contatore 1 · Servizi Supercondominiali & 152 Box (80 kW)",
+      "label": "Contatore 1 · Servizi Supercondominiali (80 kW)",
       "plant": "IMP-SSC",
       "nodeClass": "supply_pod",
       "tier": 1,
@@ -298,7 +298,7 @@ window.IMPIANTO_DATA = {
         "Icc presunta CEI 0-21": "15 kA (3F) / 6 kA (F-N)",
         "Locale": "Locale Contatori Generale (Piano Terra)",
         "Ubicazione Fisica": "Locale Contatori Principale — Piano Terra (lato ingresso carraio, Tav. PL.11)",
-        "Cosa Contabilizza": "152 Box Auto (-1/-2) + Corselli/Rampa + Portineria + Luci Esterne + Centrali Idrica/Termica/Pozzi + Pompa VVF"
+        "Cosa Contabilizza": "Centrali Idrica/Termica/Pozzi + Pompa VVF + Portineria + Luci Esterne + Autorimessa (corselli e box)"
       },
       "desc": "Punto di consegna principale dell'ente distributore per le utenze comuni generali dell'insediamento, le centrali tecnologiche/idriche/pozzi, l'autorimessa interrata e la motopompa antincendio.",
       "sld": null,
@@ -333,7 +333,7 @@ window.IMPIANTO_DATA = {
       ],
       "roleType": "source",
       "roleLabel": "⚡ CONTATORE P.TERRA · 80 kW",
-      "shortFunc": "Installato nel Locale Contatori Principale al Piano Terra (PL.11): misura TUTTI i 152 Box (-1/-2), corselli, centrali, portineria e antincendio.",
+      "shortFunc": "Nel Locale Contatori Principale (P.Terra): alimenta centrali idrica/termica/pozzi, antincendio, portineria, aree esterne e autorimessa.",
       "emergencyNote": "Resta sempre in tensione dalla rete pubblica; è l'origine primaria da cui dipende anche la pompa antincendio.",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "1 · Attivo Permanente (A monte Sganci VVF)",
@@ -1706,7 +1706,7 @@ window.IMPIANTO_DATA = {
       ],
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO PRINCIPALE",
-      "shortFunc": "Quadro principale nel Locale Contatori P.Terra: tramite la Sezione Q6 alimenta tutti i 152 Box (-1/-2), più centrali, luci esterne e 2 UPS.",
+      "shortFunc": "Quadro generale nel Locale Contatori P.Terra: alimenta le 3 centrali tecniche (-1/-2), l'autorimessa (sezione Q6), gli esterni e i 2 UPS.",
       "emergencyNote": "Se si preme lo sgancio VVF Box, il relè K1 (24V) apre solo Q5 (Locale Pompe), Q6 (Box) e Q7 (Portoni EI); Centrali Termica e Idrica restano attive.",
       "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
       "safetyZone": "1 · Sbarra Attiva (Sgancia solo Q5, Q6 Box e Q7)",
@@ -8074,8 +8074,8 @@ window.IMPIANTO_DATA = {
     },
     {
       "id": "GEN-FV-ROOF",
-      "code": "GEN-FV",
-      "label": "Generatore Fotovoltaico in Copertura",
+      "code": "INVERTER & PARALLELO FV",
+      "label": "Inverter & Parallelo Fotovoltaico (Coperture Torri A & B → Linea Q5)",
       "plant": "IMP-PDC",
       "nodeClass": "supply_pod",
       "tier": 1,
@@ -8114,10 +8114,10 @@ window.IMPIANTO_DATA = {
         }
       ],
       "roleType": "source",
-      "roleLabel": "☀️ SORGENTE SOLARE FV",
-      "shortFunc": "Immette energia solare in QE.PC. Se AVPC apre, cessa di erogare per anti-isola CEI 0-21 (vedi nota INC-04).",
-      "emergencyNote": "PERCHÉ LO SGANCIO APRE LA RETE (AVPC) MA NON MOSTRA UNA FRECCIA SUL FOTOVOLTAICO: nello schema As-Built parti comuni l'interruttore Q5 del Fotovoltaico in QE.PC è montato senza bobina di sgancio (rilievo INC-04, lasciata al progetto FV). Quando AVPC apre e toglie i 400V di rete, l'inverter solare spegne automaticamente l'immissione in <0,2 s per protezione anti-isola obbligatoria CEI 0-21 (non può funzionare in isola senza rete); per sezionare anche la linea DC/AC sul tetto occorre verificare il comando VVF dedicato nel fascicolo dell'impianto FV.",
-      "roomGroup": "Copertura Edifici (+48 m)",
+      "roleLabel": "☀️ INVERTER & SPI CEI 0-21",
+      "shortFunc": "Unifica la produzione solare delle coperture A e B immettendola SOLO in QE.PC (ingresso Q5 C50A, morsetti X1 16 mm²).",
+      "emergencyNote": "PERCHÉ ALIMENTA SOLO LE POMPE DI CALORE (QE.PC): 1) Per norma CEI 0-21 un impianto FV non può mettere in parallelo contatori diversi (QESC-A, QESC-B, QE.SSC); 2) La centrale geotermica (caldo/freddo/ACS per entrambe le torri) assorbe istantaneamente tutta la potenza solare (~30–34 kW max su Q5 C50A). Se AVPC apre per sgancio VVF, l'inverter si ferma in <0,2s per protezione anti-isola CEI 0-21 (nota INC-04).",
+      "roomGroup": "Copertura / Locale Inverter FV",
       "safetyZone": "4 · Stop Automatico Anti-Isola CEI 0-21 (Nota INC-04)",
       "roleGroup": "1 · Sorgenti & Contatori di Consegna",
       "internalGraph": null
@@ -9468,8 +9468,8 @@ window.IMPIANTO_DATA = {
       "nodeClass": "field_subsystem",
       "roleType": "load",
       "roleLabel": "🏠 CONTATORI ALLOGGI A (PIANO -1)",
-      "shortFunc": "Locale Contatori A al Piano -1 (zona filtro cantine, Tav. PL.02/PL.04): contiene i contatori dei singoli appartamenti Torre A (NON alimenta i box).",
-      "emergencyNote": "IMPORTANTE: questi contatori alimentano solo gli appartamenti della Torre A; i 152 box auto sono invece sotto il Contatore Supercondominiale da 80 kW al Piano Terra per consentire lo sgancio VVF centralizzato.",
+      "shortFunc": "Locale Contatori A al Piano -1 (zona filtro cantine, Tav. PL.02/PL.04): gruppi di misura individuali degli appartamenti Torre A.",
+      "emergencyNote": "Esclusi dagli schemi unifilari perché dedicati alle singole unità abitative private; luce, emergenza e prese del locale sono alimentate da QESC-A (linea Q20).",
       "tier": 1,
       "floor": "F_M1",
       "colHint": 0.5,
@@ -9503,8 +9503,8 @@ window.IMPIANTO_DATA = {
       "nodeClass": "field_subsystem",
       "roleType": "load",
       "roleLabel": "🏠 CONTATORI ALLOGGI B (PIANO -1)",
-      "shortFunc": "Locale Contatori B al Piano -1 (zona filtro cantine, Tav. PL.02/PL.04): contiene i contatori dei singoli appartamenti Torre B (NON alimenta i box).",
-      "emergencyNote": "IMPORTANTE: questi contatori alimentano solo gli appartamenti della Torre B; i 152 box auto sono invece sotto il Contatore Supercondominiale da 80 kW al Piano Terra.",
+      "shortFunc": "Locale Contatori B al Piano -1 (zona filtro cantine, Tav. PL.02/PL.04): gruppi di misura individuali degli appartamenti Torre B.",
+      "emergencyNote": "Esclusi dagli schemi unifilari perché dedicati alle singole unità abitative private; luce, emergenza e prese del locale sono alimentate da QESC-B (linea Q20).",
       "tier": 1,
       "floor": "F_M1",
       "colHint": 4.5,
@@ -10307,6 +10307,76 @@ window.IMPIANTO_DATA = {
       "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q6)",
       "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
+    },
+    {
+      "id": "FV-TETTO-A",
+      "code": "CAMPO FV TORRE A",
+      "label": "Campo Fotovoltaico — Copertura Torre A (+48 m)",
+      "plant": "IMP-PDC",
+      "nodeClass": "supply_pod",
+      "roleType": "source",
+      "roleLabel": "☀️ PANNELLI COPERTURA TORRE A",
+      "shortFunc": "Sottocampo solare sulla copertura della Torre A (progetto specialistico FV a parte): scende verso il parallelo FV di centrale.",
+      "emergencyNote": "NON collegato al quadro QESC-A della Torre A: per la regola CEI 0-21 (un impianto FV può afferire a un solo POD) e per massimizzare l'autoconsumo, confluisce insieme a Torre B sull'unico ingresso Q5 di QE.PC.",
+      "tier": 1,
+      "floor": "F_ROOF",
+      "colHint": 2.5,
+      "specs": {
+        "Ubicazione": "Copertura Torre A (+48 m)",
+        "Documentazione": "Fascicolo progettuale specialistico Impianto Fotovoltaico (esterno alle tavole PL.01–PL.12 che si fermano al 14° piano)",
+        "Destinazione Energia": "Unificato verso QE.PC (Centrale Pompe di Calore Piano -2) — nessun ingresso FV presente in QESC-A"
+      },
+      "desc": "Generatore fotovoltaico installato sulla copertura piana della Torre A.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [],
+      "docRefs": [
+        {
+          "suite": "Schemi Unifilari",
+          "ref": "Tavola QEPC (pag. 155)",
+          "scope": "Rinvio al progettista dell'impianto fotovoltaico"
+        }
+      ],
+      "roomGroup": "Copertura Edifici (+48 m)",
+      "safetyZone": "4 · Stop Automatico Anti-Isola CEI 0-21 (Nota INC-04)",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
+    },
+    {
+      "id": "FV-TETTO-B",
+      "code": "CAMPO FV TORRE B",
+      "label": "Campo Fotovoltaico — Copertura Torre B (+48 m)",
+      "plant": "IMP-PDC",
+      "nodeClass": "supply_pod",
+      "roleType": "source",
+      "roleLabel": "☀️ PANNELLI COPERTURA TORRE B",
+      "shortFunc": "Sottocampo solare sulla copertura della Torre B (progetto specialistico FV a parte): scende verso il parallelo FV di centrale.",
+      "emergencyNote": "NON collegato al quadro QESC-B della Torre B: confluisce insieme al campo di Torre A sull'unico punto di parallelo Q5 (4P C50A) del quadro Pompe di Calore QE.PC.",
+      "tier": 1,
+      "floor": "F_ROOF",
+      "colHint": 3.5,
+      "specs": {
+        "Ubicazione": "Copertura Torre B (+48 m)",
+        "Documentazione": "Fascicolo progettuale specialistico Impianto Fotovoltaico",
+        "Destinazione Energia": "Unificato verso QE.PC (Centrale Pompe di Calore Piano -2) — nessun ingresso FV presente in QESC-B"
+      },
+      "desc": "Generatore fotovoltaico installato sulla copertura piana della Torre B.",
+      "sld": null,
+      "circuits": [],
+      "bom": [],
+      "datasheetIds": [],
+      "docRefs": [
+        {
+          "suite": "Schemi Unifilari",
+          "ref": "Tavola QEPC (pag. 155)",
+          "scope": "Rinvio al progettista dell'impianto fotovoltaico"
+        }
+      ],
+      "roomGroup": "Copertura Edifici (+48 m)",
+      "safetyZone": "4 · Stop Automatico Anti-Isola CEI 0-21 (Nota INC-04)",
+      "roleGroup": "1 · Sorgenti & Contatori di Consegna",
+      "internalGraph": null
     }
   ],
   "edges": [
@@ -11058,7 +11128,7 @@ window.IMPIANTO_DATA = {
       "flowCategory": "⚡ Consegna BT",
       "plant": "IMP-INGRESSI",
       "tier": 1,
-      "label": "Contatore 1 · 80 kW (anche 152 Box)"
+      "label": "Contatore 1 · 80 kW"
     },
     {
       "id": "e_m2",
@@ -11098,7 +11168,7 @@ window.IMPIANTO_DATA = {
       "flowCategory": "🏠 Utenze Private",
       "plant": "IMP-INGRESSI",
       "tier": 1,
-      "label": "Solo Appartamenti Torre A (P.-1)"
+      "label": "Forniture Alloggi Torre A (-1)"
     },
     {
       "id": "e_m6",
@@ -11108,7 +11178,7 @@ window.IMPIANTO_DATA = {
       "flowCategory": "🏠 Utenze Private",
       "plant": "IMP-INGRESSI",
       "tier": 1,
-      "label": "Solo Appartamenti Torre B (P.-1)"
+      "label": "Forniture Alloggi Torre B (-1)"
     },
     {
       "id": "e_f1",
@@ -11229,6 +11299,26 @@ window.IMPIANTO_DATA = {
       "tier": 1,
       "label": "Sgancio VVF 24Vac K1 → apre Q6 (152 Box)",
       "flowCategory": "🚨 Sgancio Box"
+    },
+    {
+      "id": "e_fv_a",
+      "source": "FV-TETTO-A",
+      "target": "GEN-FV-ROOF",
+      "edgeType": "power_fv",
+      "plant": "IMP-PDC",
+      "tier": 1,
+      "label": "Discesa FV Torre A",
+      "flowCategory": "☀️ Solare A"
+    },
+    {
+      "id": "e_fv_b",
+      "source": "FV-TETTO-B",
+      "target": "GEN-FV-ROOF",
+      "edgeType": "power_fv",
+      "plant": "IMP-PDC",
+      "tier": 1,
+      "label": "Discesa FV Torre B",
+      "flowCategory": "☀️ Solare B"
     }
   ],
   "datasheets": [

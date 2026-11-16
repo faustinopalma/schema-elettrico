@@ -23,14 +23,13 @@
     });
   });
 
-  // Curated set of nodes for "0. Mappa Contatori, Ingressi & Alimentazione Box"
+  // Curated set of nodes for "0. Ingressi Energia, Locali Contatori & Quadri Generali" (pure top-level symmetry)
   const METERS_OVERVIEW_IDS = new Set([
     "RETE-DISTRIBUTORE",
     "POD-SSC", "POD-SCA", "POD-SCB", "POD-PDC",
     "CONTATORI-ALLOGGI-A", "CONTATORI-ALLOGGI-B",
     "RIP-250", "QEPA",
     "AVSSC", "QESSC",
-    "Q6-BOX-SEC", "BOX-INTERNI-P1", "BOX-INTERNI-P2",
     "AVSCA", "QESCA",
     "AVSCB", "QESCB",
     "AVPC", "QEPC", "GEN-FV-ROOF"
@@ -38,10 +37,10 @@
 
   // Branches interrupted when Emergency / Shunt Trip Simulation is active
   const TRIPPED_SOURCES_IN_EMERGENCY = new Set([
-    "Q6-BOX-SEC", "QELP", "AVSCA", "QESCA", "AVSCB", "QESCB", "AVPC", "QEPC", "GEN-FV-ROOF", "UPS-1-EI"
+    "Q6-BOX-SEC", "QELP", "AVSCA", "QESCA", "AVSCB", "QESCB", "AVPC", "QEPC", "GEN-FV-ROOF", "FV-TETTO-A", "FV-TETTO-B", "UPS-1-EI"
   ]);
   const TRIPPED_EDGE_IDS_IN_EMERGENCY = new Set([
-    "e07", "e_q6_in", "e_box_p1", "e_box_p2", "e52", "e53", "e_f1", "e20"
+    "e07", "e_q6_in", "e_box_p1", "e_box_p2", "e52", "e53", "e_f1", "e20", "e_fv_a", "e_fv_b"
   ]);
 
   const state = {
@@ -416,39 +415,35 @@
         "1 · Rete Stradale Esterna & Copertura Solare",
         "2 · Locale Contatori Principale (P. Terra) — I 4 Contatori Parti Comuni",
         "3 · Locale Contatori Principale (P. Terra) — Ripartizione VVF & Avanquadri",
-        "4 · Locale Contatori Principale (P. Terra) — Quadro Supercondominiale & Sezione 152 Box",
-        "5 · Piani Interrati (-1 / -2) — 152 Box Auto, Sale Contatori Appartamenti & Quadri Generali"
+        "4 · Quadri Generali d'Impianto & Sale Contatori Appartamenti (P. Terra / -1 / -2)"
       ],
       slots: {
-        "RETE-DISTRIBUTORE":   { col: 4,   row: 0 },
-        "GEN-FV-ROOF":         { col: 8,   row: 0 },
+        "RETE-DISTRIBUTORE":   { col: 3,   row: 0 },
+        "GEN-FV-ROOF":         { col: 7,   row: 0 },
         "POD-SSC":             { col: 0,   row: 1 },
-        "POD-SCA":             { col: 3,   row: 1 },
-        "POD-SCB":             { col: 5,   row: 1 },
-        "POD-PDC":             { col: 7,   row: 1 },
+        "POD-SCA":             { col: 2,   row: 1 },
+        "POD-SCB":             { col: 4,   row: 1 },
+        "POD-PDC":             { col: 6,   row: 1 },
         "RIP-250":             { col: 0,   row: 2 },
-        "QEPA":                { col: 1,   row: 2 },
-        "AVSCA":               { col: 3,   row: 2 },
-        "AVSCB":               { col: 5,   row: 2 },
-        "AVPC":                { col: 7,   row: 2 },
-        "AVSSC":               { col: 0,   row: 3 },
+        "AVSSC":               { col: 1,   row: 2 },
+        "AVSCA":               { col: 2,   row: 2 },
+        "AVSCB":               { col: 4,   row: 2 },
+        "AVPC":                { col: 6,   row: 2 },
+        "QEPA":                { col: 0,   row: 3 },
         "QESSC":               { col: 1,   row: 3 },
-        "Q6-BOX-SEC":          { col: 2,   row: 3 },
-        "BOX-INTERNI-P1":      { col: 1,   row: 4 },
-        "BOX-INTERNI-P2":      { col: 2,   row: 4 },
-        "QESCA":               { col: 3,   row: 4 },
-        "CONTATORI-ALLOGGI-A": { col: 4,   row: 4 },
-        "QESCB":               { col: 5,   row: 4 },
-        "CONTATORI-ALLOGGI-B": { col: 6,   row: 4 },
-        "QEPC":                { col: 7.5, row: 4 }
+        "QESCA":               { col: 2,   row: 3 },
+        "CONTATORI-ALLOGGI-A": { col: 3,   row: 3 },
+        "QESCB":               { col: 4,   row: 3 },
+        "CONTATORI-ALLOGGI-B": { col: 5,   row: 3 },
+        "QEPC":                { col: 6.5, row: 3 }
       }
     },
     "IMP-SSC": {
       bands: [
         "1 · Punto di Consegna Energia (Locale Contatori P. Terra)",
         "2 · Ripartizione Primaria, Avanquadro & Portineria (P. Terra)",
-        "3 · Quadro Generale QE.SSC, Sezione 152 Box (Q6) & Luci Esterne",
-        "4 · Piani Interrati (-1 / -2) — 152 Box Auto, Corselli & Sottoquadri Centrali",
+        "3 · Quadro Generale QE.SSC, Sezione Autorimessa (Q6) & Luci Esterne",
+        "4 · Piani Interrati (-1 / -2) — Sottoquadri Centrali & Autorimessa",
         "5 · Piani Interrati (-1 / -2) — Gruppi di Pompaggio Idrici, Clima & Falda"
       ],
       slots: {
@@ -533,21 +528,23 @@
     },
     "IMP-PDC": {
       bands: [
-        "1 · Punto di Consegna Dedicato 160 kW (Locale Contatori P. Terra)",
-        "2 · Avanquadro Linea Rete (P. Terra) & Generatore Fotovoltaico (+48 m)",
-        "3 · Quadro Parallelo Rete + Fotovoltaico (Centrale Tecnologica Piano -2)",
+        "1 · Fornitura Rete 160 kW (P. Terra) & 2 Campi Solari Coperture Torri A e B (+48 m)",
+        "2 · Avanquadro Rete (AVPC 630A) & Inverter / Parallelo Fotovoltaico (CEI 0-21)",
+        "3 · Quadro Parallelo Rete + Fotovoltaico (QE.PC — Unico Punto Allaccio FV Q5 C50A)",
         "4 · Gruppi Frigo / Pompe di Calore Geotermiche (Centrale Piano -2)"
       ],
       slots: {
         "RETE-DISTRIBUTORE": { col: 0,   row: 0 },
         "POD-PDC":           { col: 1,   row: 0 },
+        "FV-TETTO-A":        { col: 2.6, row: 0 },
+        "FV-TETTO-B":        { col: 3.8, row: 0 },
         "SGANCI-VVF":        { col: 0,   row: 1 },
         "AVPC":              { col: 1,   row: 1 },
-        "GEN-FV-ROOF":       { col: 3,   row: 1 },
+        "GEN-FV-ROOF":       { col: 3.2, row: 1 },
         "QEREG":             { col: 0.8, row: 2 },
-        "QEPC":              { col: 2,   row: 2 },
-        "TERRA-RETE":        { col: 3.2, row: 2 },
-        "LD-PDC-UNITS":      { col: 2,   row: 3 }
+        "QEPC":              { col: 2.1, row: 2 },
+        "TERRA-RETE":        { col: 3.4, row: 2 },
+        "LD-PDC-UNITS":      { col: 2.1, row: 3 }
       }
     },
     "IMP-FIRE": {
