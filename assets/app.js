@@ -525,7 +525,7 @@
     if (p.nodeId) PF_PANEL_BY_NODE.set(p.nodeId, p);
   });
 
-  const UVR_24V_GATED_EDGES = new Set(["e07", "e_q6_in", "e_f1", "e53"]);
+  const UVR_24V_GATED_EDGES = new Set(["e07", "e_q6_in", "e_f1"]);
   // Pure data/supervision/alarm buses & auxiliary trickle feeds that do NOT supply main electrical power to switchboards:
   const NON_CAUSAL_UPSTREAM_EDGES = new Set([
     "e33",  // QEPA -> IRA-CENTRALI (alarm contact)
@@ -536,11 +536,12 @@
     "e39",  // QEREG -> MBUS-CONTAB (supervision bus)
     "e46",  // QEPL -> VIDEOCITOFONO (disabled WC call)
     "e47",  // QESR -> VIDEOCITOFONO (disabled WC call)
+    "e53",  // legacy tier-2 UPS-1 -> LD-BOX (superseded by e_f1 UPS-1 -> FIRE-PORTONI-EI)
     "e66",  // AVSSC -> LD-POMPA-VVF (only auxiliary charger Q9; main 15kW pump is fed by QEPA)
     "e_b1"  // BMS-SONDE-CAMPO -> QEREG (passive PT1000 temperature probes)
   ]);
   const NON_KILLING_FORWARD_EDGES = new Set([
-    "e33", "e35", "e36", "e37", "e38", "e39", "e46", "e47", "e66", "e_b1"
+    "e33", "e35", "e36", "e37", "e38", "e39", "e46", "e47", "e53", "e66", "e_b1"
   ]);
 
   const OBSERVABLE_SYMPTOM_CATALOG = [
@@ -595,7 +596,7 @@
     if (comp.kind === "fuse") {
       return { category: "fuse", icon: "🧨", sortRank: 2 };
     }
-    if (comp.kind === "diff_relay" || comp.kind === "rccb" || comp.kind === "contactor") {
+    if (comp.kind === "diff_relay" || comp.kind === "contactor") {
       return { category: "relay", icon: "⚡", sortRank: 3 };
     }
     return {
@@ -603,6 +604,40 @@
       icon: "🛡️",
       sortRank: isMainSwitch ? 4 : 1
     };
+  }
+
+  function sortCompTagList(tags) {
+    return [...tags].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+  }
+
+  function formatBreakerGroupLabel(sortedTags) {
+    if (!sortedTags.length) return "";
+    if (sortedTags.length <= 2) return sortedTags.join(", ");
+    // Group contiguous integer runs (e.g. Q2, Q4, Q5, Q6, Q7, Q8 -> "Q2, Q4–Q8")
+    const parsed = sortedTags.map((t) => {
+      const m = /^([A-Za-z]+)(\d+)$/.exec(t);
+      return m ? { raw: t, pref: m[1], num: parseInt(m[2], 10) } : { raw: t, pref: null, num: NaN };
+    });
+    const parts = [];
+    let i = 0;
+    while (i < parsed.length) {
+      let j = i;
+      while (
+        j + 1 < parsed.length &&
+        parsed[j].pref &&
+        parsed[j + 1].pref === parsed[j].pref &&
+        parsed[j + 1].num === parsed[j].num + 1
+      ) {
+        j += 1;
+      }
+      if (j - i >= 2) {
+        parts.push(`${parsed[i].raw}–${parsed[j].raw}`);
+      } else {
+        for (let k = i; k <= j; k++) parts.push(parsed[k].raw);
+      }
+      i = j + 1;
+    }
+    return parts.join(", ");
   }
 
   function extractProtectiveDevicesForNode(nodeId, opts) {
@@ -704,19 +739,21 @@
             if (tk !== "Q6" && !branchTokens.includes(tk)) branchTokens.push(tk);
           });
         });
-        if (branchTokens.length > 5) {
-          const first = compMap.get(branchTokens[0]);
+        const sortedBranch = sortCompTagList(branchTokens);
+        if (sortedBranch.length > 5) {
+          const first = compMap.get(sortedBranch[0]);
+          const grpLbl = formatBreakerGroupLabel(sortedBranch);
           picked.push({
-            id: `${branchTokens[0]}..${branchTokens[branchTokens.length - 1]}`,
+            id: `${sortedBranch[0]}..${sortedBranch[sortedBranch.length - 1]}`,
             category: "breaker",
             icon: "🛡️",
             sortRank: 1,
-            badgeText: `${branchTokens[0]}–${branchTokens[branchTokens.length - 1]}`,
+            badgeText: grpLbl,
             shortLabel: "Partenze Corselli / Rampa",
-            ratingBadge: `${branchTokens.length} interruttori`,
+            ratingBadge: `${sortedBranch.length} interruttori`,
             bayLabel: first?.bayLabel || "",
             panelCode: "QE.SSC",
-            panelHref: buildPanelPageHref("qe-ssc", branchTokens[0])
+            panelHref: buildPanelPageHref("qe-ssc", sortedBranch[0])
           });
           // Still explicitly surface any fuses coupled to those branches!
           branchTokens.forEach((tk) => {
@@ -748,12 +785,14 @@
     if (pObj) {
       const compMap = new Map((pObj.components || []).map((c) => [c.id, c]));
       const picked = new Map();
+      const isEarthDischargeOnly = outgoingEdges.length > 0 && outgoingEdges.every((e) => e.edgeType === "earth_pe");
       const addDev = (cid, isMainSw, customBadge) => {
         const c = compMap.get(cid);
         if (!c) return;
-        if (!["mccb", "mcb", "rcbo", "rccb", "fuse", "diff_relay", "contactor"].includes(c.kind)) return;
+        if (!["mccb", "mcb", "rcbo", "rccb", "fuse", "diff_relay", "contactor", "spd"].includes(c.kind)) return;
+        if (c.kind === "spd" && !isEarthDischargeOnly) return;
         if (!picked.has(c.id)) {
-          const cls = classifyPanelComp(c, isMainSw);
+          const cls = c.kind === "spd" ? { category: "relay", icon: "⚡", sortRank: 1 } : classifyPanelComp(c, isMainSw);
           const hasUvr = (c.ratingBadge || "").includes("UVR") || (c.ratingBadge || "").includes("24V") || (c.whatItDoes || "").toLowerCase().includes("minima tensione");
           picked.set(c.id, {
             id: c.id,
@@ -787,6 +826,9 @@
       if (includeBranch && outgoingEdges.length) {
         const rawTokens = [];
         outgoingEdges.forEach((e) => {
+          if ((e.id === "e30" || e.id === "e31") && compMap.has("Q28") && !rawTokens.includes("Q28")) {
+            rawTokens.push("Q28");
+          }
           expandCompTokensFromText(e.label).forEach((tk) => {
             if (tk !== "Q1" || outgoingEdges.some((oe) => /\bQ1\b/.test(oe.label))) {
               if (!rawTokens.includes(tk)) rawTokens.push(tk);
@@ -794,17 +836,18 @@
           });
         });
 
-        const validBreakers = rawTokens.filter((tk) => compMap.has(tk) && !tk.startsWith("F"));
-        const validFuses = rawTokens.filter((tk) => compMap.has(tk) && tk.startsWith("F"));
+        const validBreakers = sortCompTagList(rawTokens.filter((tk) => compMap.has(tk) && !tk.startsWith("F")));
+        const validFuses = sortCompTagList(rawTokens.filter((tk) => compMap.has(tk) && tk.startsWith("F")));
 
         if (validBreakers.length > 5) {
           const b0 = compMap.get(validBreakers[0]);
+          const grpLbl = formatBreakerGroupLabel(validBreakers);
           picked.set(`${validBreakers[0]}_RANGE`, {
-            id: `${validBreakers[0]}–${validBreakers[validBreakers.length - 1]}`,
+            id: grpLbl,
             category: "breaker",
             icon: "🛡️",
             sortRank: 1,
-            badgeText: `${validBreakers[0]}–${validBreakers[validBreakers.length - 1]}`,
+            badgeText: grpLbl,
             shortLabel: "Interruttori partenze dedicate",
             ratingBadge: `${validBreakers.length} linee`,
             bayLabel: b0?.bayLabel || "",
@@ -840,6 +883,14 @@
 
       if (includeCbxFuses && pObj.slug === "qe-lp") {
         ["F8.1", "F8.2", "F8.3"].forEach((fid) => addDev(fid, false));
+      }
+
+      if (isEarthDischargeOnly) {
+        if (compMap.has("F1") && (compMap.get("F1").shortLabel || "").toLowerCase().includes("scaricatore")) {
+          addDev("F1", false);
+        }
+        addDev("SC1", false);
+        return [...picked.values()].sort((a, b) => a.sortRank - b.sortRank);
       }
 
       if ((includeGeneral || isTargetSelf) && compMap.has("Q1")) {
@@ -991,6 +1042,7 @@
       }
 
       if (curr === "UPS-2-SGANCIO" && m === "full") {
+        impacted.add("SGANCI-VVF");
         ["QELP", "Q6-BOX-SEC", "FIRE-PORTONI-EI", "LD-BOX"].forEach((t) => {
           if (!seen.has(`${t}::full`)) {
             seen.add(`${t}::full`);
@@ -1007,9 +1059,6 @@
         const et = e.edgeType;
         if (et === "earth_pe" || et === "power_fv" || et === "emergency_trip") return;
         if (NON_KILLING_FORWARD_EDGES.has(e.id)) return;
-        if (["FTTH-CSOE", "IRA-CENTRALI", "LD-ESTERNI", "TLC-ALLOGGI-STOA"].includes(e.target) && startNodeId !== curr) {
-          return;
-        }
         const key = `${e.target}::full`;
         if (!seen.has(key)) {
           seen.add(key);
@@ -1088,7 +1137,14 @@
         const et = e.edgeType;
         const src = e.source;
 
-        if (et === "earth_pe" && !["TERRA-RETE", "GND-COLLETTORI-EQP", "GND-SPD-4X"].includes(targetId)) {
+        if (et === "earth_pe") {
+          // Earth conductors (PE) have no breakers/fuses; only trace 1 hop on IMP-GND nodes without climbing into power supplies
+          if (["TERRA-RETE", "GND-COLLETTORI-EQP"].includes(targetId) && dist === 0) {
+            activeEdges.add(eid);
+            const mSrc = ensureMeta(src, dist + 1);
+            mSrc.roles.add("control");
+            mSrc.outEdgesUsed.add(e);
+          }
           return;
         }
         if (NON_CAUSAL_UPSTREAM_EDGES.has(eid)) return;
@@ -1099,7 +1155,7 @@
         if (UVR_24V_GATED_EDGES.has(eid)) {
           const mQessc = ensureMeta("QESSC", dist + 1);
           mQessc.uvr24Involved = true;
-          if (eid === "e_f1" || eid === "e53") {
+          if (eid === "e_f1") {
             mQessc.q7PortoniInvolved = true;
             mQessc.roles.add("trip");
             const mUps1 = ensureMeta("UPS-1-EI", dist + 1);
@@ -1121,18 +1177,7 @@
         }
 
         if (eid === "e25") {
-          // e25 (24Vac K1) only trips Q5/Q6/Q7, never the main busbar of QESSC unless user selected QESSC itself
-          if (targetId === "QESSC") {
-            activeEdges.add(eid);
-            const mSg = ensureMeta(src, dist + 1);
-            mSg.roles.add("trip");
-            mSg.uvr24Involved = true;
-            mSg.outEdgesUsed.add(e);
-            if (!seen.has("SGANCI-VVF::uvr24")) {
-              seen.add("SGANCI-VVF::uvr24");
-              queue.push({ id: src, mode: "uvr24", dist: dist + 1 });
-            }
-          }
+          // e25 (24Vac K1) only trips Q5/Q6/Q7, never the main busbar of QESSC itself
           return;
         }
 
@@ -1370,15 +1415,16 @@
       const allModesUnion = new Set();
       modes.forEach((m) => m.impact.forEach((x) => allModesUnion.add(x)));
 
-      const ruledOut = validModes.length === 0;
+      const hasUserFilters = coFailedSet.size > 0 || confirmedOkSet.size > 0;
+      const ruledOut = hasUserFilters ? (validModes.length === 0) : false;
       const bestBlastSize = ruledOut
         ? 9999
-        : Math.min(...validModes.map((m) => m.size));
+        : (validModes.length > 0 ? Math.min(...validModes.map((m) => m.size)) : 500);
 
-      const branchValid = validModes.some((m) => m.kind === "branch");
-      const fullValid = validModes.some((m) => m.kind === "full");
-      const uvrValid = validModes.some((m) => m.kind === "uvr24");
-      const validOutEdges = validModes.filter((m) => m.kind === "branch" && m.edge).map((m) => m.edge);
+      const branchValid = !hasUserFilters ? outList.length > 0 : validModes.some((m) => m.kind === "branch");
+      const fullValid = !hasUserFilters ? true : validModes.some((m) => m.kind === "full");
+      const uvrValid = !hasUserFilters ? meta.uvr24Involved : validModes.some((m) => m.kind === "uvr24");
+      const validOutEdges = !hasUserFilters ? outList : validModes.filter((m) => m.kind === "branch" && m.edge).map((m) => m.edge);
 
       const devices = extractProtectiveDevicesForNode(nid, {
         outgoingEdges: ruledOut ? outList : (branchValid ? validOutEdges : []),
@@ -1434,9 +1480,10 @@
       // Sort by tightest common root cause (smallest blast radius explaining all symptoms), then closest distance!
       activeSteps.sort((a, b) => (a.bestBlastSize - b.bestBlastSize) || (a.dist - b.dist));
     } else {
-      // Put direct electrical power supply steps in sequential order, placing 230Vac manual shunt-trip buttons after power steps
+      // Group electrical power boards with breakers/fuses ahead of passive PV strings and manual 230Vac shunt-trip buttons
       const roleOrder = (s) => {
-        if (s.nodeId === "SGANCI-VVF" && !nodeMeta.get("SGANCI-VVF")?.uvr24Involved) return 1;
+        if (s.nodeId === "FV-TETTO-A" || s.nodeId === "FV-TETTO-B") return 1;
+        if (s.nodeId === "SGANCI-VVF" && !nodeMeta.get("SGANCI-VVF")?.uvr24Involved) return 2;
         return 0;
       };
       activeSteps.sort((a, b) => (roleOrder(a) - roleOrder(b)) || (a.dist - b.dist));
@@ -2285,7 +2332,7 @@
       });
       cards.forEach((c) => {
         const nid = c.dataset.nodeId;
-        if (!connNodes.has(nid) && !c.classList.contains("fault-ruled-out")) {
+        if (!connNodes.has(nid)) {
           c.classList.add("dimmed");
         }
       });
