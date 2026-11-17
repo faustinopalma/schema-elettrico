@@ -12,6 +12,7 @@ Applicazione web interattiva per esplorare l'architettura funzionale, i quadri e
 - **Atlante e 18 Pagine Dedicate ai Pannelli Fisici (`pannelli/`)**: ricostruzione interattiva del *Fronte Quadro* e della carpenteria reale per tutti i 18 quadri elettrici con fascicolo costruttivo (`AVSSC`, `QE-POR`, `QE.SSC`, `QE.CT`, `QE.CI`, `QE.LP`, `QE.PA`, `AVSC-A`, `QESC-A`, `QE.PL`, `QE.01BICI`, `AVSC-B`, `QESC-B`, `QE.02RIUNIONI`, `QE.03POLIFUNZ`, `AVPC`, `QE.PC`, `QE-REG`), con ubicazione fisica nell'edificio, disposizione per colonne e guide DIN, dettaglio di cosa comanda ogni interruttore (`223` organi di manovra/protezione) e cosa protegge ogni fusibile (`52` portafusibili), simulazione sgancio VVF e navigazione bidirezionale con le mappe d'impianto.
 - **Flussi animati accessibili**: forme distinte orientate a velocità lineare costante e codifica cromatica legata esclusivamente alla tipologia fisica di energia o segnale trasferito, con simulazione **Esercizio Normale** vs **Sgancio VVF / Scarica a Terra**.
 - **Libreria tecnica integrata**: 17 schede tecniche PDF pubbliche dei produttori e registro dei rilievi di verifica documentale.
+- **Fallback essenziale per smartphone**: aprendo il sito da telefono viene mostrata automaticamente una guida tascabile priva di grafi (ricerca rapida sigle/interruttori, consultazione per impianto o per locale fisico, navigazione testuale *a monte / a valle*, schede PDF e rilievi), mantenendo invariata l'esperienza completa su PC.
 
 ## Avvio locale
 

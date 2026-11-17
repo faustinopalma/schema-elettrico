@@ -3409,7 +3409,707 @@
     syncGlobalNavBackUi();
   }
 
-  function init() {
+  let desktopInitialized = false;
+  let mobileInitialized = false;
+
+  // ==================== SMARTPHONE ESSENTIAL FALLBACK (NO GRAPHS, PC UNTOUCHED) ====================
+  const mobState = {
+    tab: "plants",           // 'plants' | 'rooms' | 'audit' | 'docs'
+    plantId: "IMP-INGRESSI",
+    selectedNodeId: null,    // null = list mode | nodeId = essential component sheet
+    query: "",
+    history: []              // intra-mobile step stack: { tab, plantId, selectedNodeId, label, scrollY }
+  };
+
+  function getMobileNodeAccentVar(node) {
+    const nid = node.id || "";
+    if (nid === "TERRA-RETE" || node.plant === "IMP-GND") return "var(--cp-border-strong)";
+    if (nid === "SGANCI-VVF" || nid === "IRA-CENTRALI") return "var(--cp-danger)";
+    if (node.roleType === "ups" || nid === "QEPA" || nid === "LD-POMPA-VVF" || nid === "FIRE-PORTONI-EI") {
+      return "var(--cp-warning)";
+    }
+    if (node.plant === "IMP-BMS" || node.plant === "IMP-TLC") return "var(--cp-link)";
+    return "var(--cp-accent)";
+  }
+
+  function syncMobileUrl() {
+    const u = new URL(window.location.href);
+    const sp = u.searchParams;
+    sp.set("plant", mobState.plantId);
+    if (mobState.selectedNodeId) sp.set("select", mobState.selectedNodeId);
+    else sp.delete("select");
+    sp.delete("board");
+    sp.delete("focus");
+    sp.delete("ret");
+    sp.delete("retLabel");
+    window.history.replaceState({}, "", u.toString());
+  }
+
+  function navigateMobileExternal(href) {
+    if (!href) return;
+    syncMobileUrl();
+    const curNode = mobState.selectedNodeId ? NODE_MAP.get(mobState.selectedNodeId) : null;
+    const retLbl = curNode
+      ? `Scheda ${curNode.code}`
+      : `Guida Smartphone (${PLANT_MAP.get(mobState.plantId)?.shortName || "Impianti"})`;
+    if (window.SE_NAV) {
+      window.SE_NAV.navigateTo(href, retLbl);
+    } else {
+      window.location.href = href;
+    }
+  }
+
+  function renderMobileNodeRowHtml(n, extraSubHtml = "") {
+    const accentVar = getMobileNodeAccentVar(n);
+    const incs = INC_BY_NODE.get(n.id) || [];
+    const fl = FLOOR_MAP.get(n.floor) || { name: "" };
+    const shortLoc = (n.roomGroup || fl.name || "")
+      .replace(/\s*\(.*?\)/g, "")
+      .replace(/Principale\s*—\s*/, "");
+    return `
+      <button type="button" class="mob-node-btn" data-mob-node="${escXml(n.id)}" style="--mob-accent:${accentVar};">
+        <div class="mob-node-top">
+          <span class="mob-code-badge">${escXml(n.code)}</span>
+          <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+            ${incs.length ? `<span class="pill" style="font-size:10px; padding:1px 5px; background:var(--cp-warning); color:var(--cp-text);">⚠ ${incs.length}</span>` : ""}
+            <span class="mob-room-meta">${escXml(shortLoc)}</span>
+            <span style="color:var(--cp-text-muted); font-weight:700;">›</span>
+          </div>
+        </div>
+        <div class="mob-node-title">${escXml(n.label)}</div>
+        ${n.shortFunc ? `<div class="mob-node-sub">${escXml(n.shortFunc)}</div>` : ""}
+        ${extraSubHtml}
+      </button>
+    `;
+  }
+
+  function buildMobilePlantsTabHtml() {
+    const pid = mobState.plantId;
+    const activeP = PLANT_MAP.get(pid) || DATA.plants[0];
+    const fg = activeP.flowGuide || {};
+    const cVar = `var(--plant-${activeP.swatch})`;
+
+    const ownNodes = pid === "IMP-INGRESSI"
+      ? DATA.nodes.filter((n) => METERS_OVERVIEW_IDS.has(n.id))
+      : DATA.nodes.filter((n) => n.plant === pid && n.tier <= 2 && n.nodeClass !== "doc_reference");
+
+    const schema = SYNOPTIC_SCHEMAS[pid];
+    let listHtml = "";
+
+    if (schema && schema.bands && schema.slots) {
+      const buckets = schema.bands.map(() => []);
+      const unslotted = [];
+      ownNodes.forEach((n) => {
+        const sl = schema.slots[n.id];
+        if (sl && buckets[sl.row]) {
+          buckets[sl.row].push({ node: n, col: sl.col });
+        } else {
+          unslotted.push(n);
+        }
+      });
+      buckets.forEach((arr, rIdx) => {
+        if (!arr.length) return;
+        arr.sort((a, b) => a.col - b.col);
+        listHtml += `<div class="mob-band-title">${escXml(schema.bands[rIdx])}</div>`;
+        listHtml += arr.map((it) => renderMobileNodeRowHtml(it.node)).join("");
+      });
+      if (unslotted.length) {
+        listHtml += `<div class="mob-band-title">Altri componenti</div>`;
+        listHtml += unslotted.map((n) => renderMobileNodeRowHtml(n)).join("");
+      }
+    } else {
+      listHtml = ownNodes.map((n) => renderMobileNodeRowHtml(n)).join("");
+    }
+
+    return `
+      <label for="mobPlantSelect" style="display:block; font-size:11.5px; font-weight:700; color:var(--cp-text-muted); margin:0 2px 4px;">Seleziona impianto (${DATA.plants.length}):</label>
+      <select id="mobPlantSelect" class="mob-select">
+        ${DATA.plants.map((p) => `<option value="${escXml(p.id)}" ${p.id === pid ? "selected" : ""}>${escXml(p.name)}</option>`).join("")}
+      </select>
+
+      <div class="mob-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <strong style="font-size:14px;">${escXml(activeP.shortName || activeP.name)}</strong>
+          <span class="pill" style="color:${cVar}; background:var(--plant-${activeP.swatch}-bg);">${escXml(activeP.power || "")}</span>
+        </div>
+        ${activeP.summary ? `<p style="margin:6px 0 0; font-size:12.5px; color:var(--cp-text-muted);">${escXml(activeP.summary)}</p>` : ""}
+        <div class="mob-summary-steps">
+          <div class="mob-summary-step"><strong style="color:var(--cp-success);">1 · Origine:</strong> ${escXml(fg.in || "-")}</div>
+          <div class="mob-summary-step"><strong style="color:${cVar};">2 · Gestione:</strong> ${escXml(fg.process || "-")}</div>
+          <div class="mob-summary-step"><strong style="color:var(--cp-link);">3 · Servizio:</strong> ${escXml(fg.out || "-")}</div>
+        </div>
+      </div>
+
+      ${listHtml}
+    `;
+  }
+
+  function buildMobileRoomsTabHtml() {
+    const floorRank = { F_TERRA: 1, F_M1: 2, F_M2: 3, F_PIANI: 4, F_ROOF: 5, F_EXT: 6 };
+    const roomMap = new Map();
+    DATA.nodes.forEach((n) => {
+      if (n.nodeClass === "doc_reference") return;
+      const fl = FLOOR_MAP.get(n.floor) || { name: "Edificio" };
+      const rKey = n.roomGroup || fl.name || "Altro";
+      if (!roomMap.has(rKey)) {
+        roomMap.set(rKey, { label: rKey, rank: floorRank[n.floor] || 9, items: [] });
+      }
+      roomMap.get(rKey).items.push(n);
+    });
+
+    const groups = [...roomMap.values()].sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label, "it"));
+    return `
+      <div style="font-size:12px; color:var(--cp-text-muted); margin:0 2px 10px;">
+        Componenti raggruppati per locale fisico, utile durante un sopralluogo davanti ai quadri.
+      </div>
+      ${groups.map((g, idx) => `
+        <details class="mob-acc" ${idx === 0 ? "open" : ""}>
+          <summary>
+            <span>📍 ${escXml(g.label)}</span>
+            <span class="pill" style="color:var(--cp-accent); background:var(--cp-accent-soft); flex-shrink:0;">${g.items.length}</span>
+          </summary>
+          <div class="mob-acc-body">
+            ${g.items.map((n) => renderMobileNodeRowHtml(n)).join("")}
+          </div>
+        </details>
+      `).join("")}
+    `;
+  }
+
+  function buildMobileAuditTabHtml() {
+    const sevColor = (sev) => {
+      if (sev === "critica" || sev === "alta") return "var(--cp-danger)";
+      if (sev === "media") return "var(--cp-warning)";
+      return "var(--cp-link)";
+    };
+    return `
+      <div style="font-size:12px; color:var(--cp-text-muted); margin:0 2px 10px;">
+        ${DATA.inconsistencies.length} verifiche tecniche e particolarità operative emerse dagli schemi costruttivi.
+      </div>
+      ${DATA.inconsistencies.map((inc) => `
+        <div class="mob-card" style="border-left:4px solid ${sevColor(inc.severity)};">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:5px;">
+            <span class="mono" style="font-size:11.5px; font-weight:700; color:var(--cp-accent);">${escXml(inc.id)} · ${escXml(inc.severity.toUpperCase())}</span>
+            <span style="font-size:11px; color:var(--cp-text-muted);">${escXml(inc.category)}</span>
+          </div>
+          <div style="font-size:13.5px; font-weight:700; margin-bottom:6px;">${escXml(inc.title)}</div>
+          <div style="font-size:12.5px; margin-bottom:6px;"><strong>Riscontro:</strong> ${escXml(inc.finding)}</div>
+          <div style="font-size:12px; color:var(--cp-text-muted); margin-bottom:8px;"><strong>Impatto:</strong> ${escXml(inc.impact)}</div>
+          ${(inc.affectedNodes && inc.affectedNodes.length) ? `
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${inc.affectedNodes.map((nid) => {
+                const nd = NODE_MAP.get(nid);
+                return nd ? `<button type="button" class="btn" style="font-size:11.5px; padding:4px 9px;" data-mob-node="${escXml(nd.id)}">⚡ ${escXml(nd.code)}</button>` : "";
+              }).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `).join("")}
+    `;
+  }
+
+  function buildMobileDocsTabHtml() {
+    const curTheme = document.documentElement.getAttribute("data-theme") || "light";
+    const atlasHref = `./pannelli/index.html?scoutTheme=${encodeURIComponent(curTheme)}`;
+    return `
+      <div class="mob-card" style="border-color:var(--cp-accent); background:var(--cp-accent-soft);">
+        <div style="font-size:13.5px; font-weight:700; margin-bottom:4px;">🗄️ Atlante dei 18 Pannelli Fisici (Fronte Quadro)</div>
+        <div style="font-size:12px; color:var(--cp-text-muted); margin-bottom:9px;">
+          Disposizione fisica degli interruttori e apparecchiature all'interno delle carpenterie reali.
+        </div>
+        <a href="${escXml(atlasHref)}" class="btn btn-primary" data-mob-ext="${escXml(atlasHref)}" style="text-decoration:none; width:100%; justify-content:center;">
+          🗄️ Apri i 18 Pannelli Fisici →
+        </a>
+      </div>
+
+      <div class="mob-band-title">Schede Tecniche PDF Costruttori (${DATA.datasheets.length})</div>
+      ${DATA.datasheets.map((d) => `
+        <div class="mob-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="pill" style="color:var(--cp-accent); background:var(--cp-accent-soft);">${escXml(d.brand)}</span>
+            <span style="font-size:11px; color:var(--cp-text-muted);">${escXml(d.category)}</span>
+          </div>
+          <div style="font-size:13.5px; font-weight:700; margin-bottom:4px;">${escXml(d.family)}</div>
+          <div style="font-size:12px; color:var(--cp-text-muted); margin-bottom:9px;">${escXml(d.keySpecs)}</div>
+          <div style="display:flex; gap:8px;">
+            <a class="btn btn-primary" href="${escXml(d.file)}" target="_blank" rel="noopener" style="flex:1; justify-content:center; text-decoration:none;">📄 Apri PDF</a>
+            <a class="btn" href="${escXml(d.vendorUrl)}" target="_blank" rel="noopener" style="text-decoration:none;">🌐 Sito</a>
+          </div>
+        </div>
+      `).join("")}
+    `;
+  }
+
+  function buildMobileSearchResultsHtml(rawQuery) {
+    const q = rawQuery.trim().toLowerCase();
+    const matchedNodes = [];
+    const matchedCircuits = [];
+    const matchedDocs = [];
+
+    DATA.nodes.forEach((n) => {
+      if (n.nodeClass === "doc_reference") return;
+      const hay = `${n.code} ${n.label} ${n.shortFunc || ""} ${n.roomGroup || ""} ${n.desc || ""} ${n.emergencyNote || ""}`.toLowerCase();
+      if (hay.includes(q)) matchedNodes.push(n);
+      (n.circuits || []).forEach((c) => {
+        if (`${c.code} ${c.desc} ${c.breaker || ""} ${c.cable || ""}`.toLowerCase().includes(q)) {
+          matchedCircuits.push({ board: n, circuit: c });
+        }
+      });
+    });
+
+    DATA.datasheets.forEach((d) => {
+      if (`${d.brand} ${d.family} ${d.keySpecs || ""} ${(d.models || []).join(" ")}`.toLowerCase().includes(q)) {
+        matchedDocs.push(d);
+      }
+    });
+
+    const total = matchedNodes.length + matchedCircuits.length + matchedDocs.length;
+    if (!total) {
+      return `
+        <div class="mob-card" style="text-align:center; color:var(--cp-text-muted); padding:22px 14px;">
+          Nessun risultato trovato per <strong>"${escXml(rawQuery)}"</strong>.
+        </div>
+      `;
+    }
+
+    let html = `<div style="font-size:12px; color:var(--cp-text-muted); margin:0 2px 8px;">Risultati per <strong>"${escXml(rawQuery)}"</strong> (${total}):</div>`;
+
+    if (matchedNodes.length) {
+      html += `<div class="mob-band-title">Quadri &amp; Componenti (${matchedNodes.length})</div>`;
+      html += matchedNodes.slice(0, 20).map((n) => renderMobileNodeRowHtml(n)).join("");
+    }
+
+    if (matchedCircuits.length) {
+      html += `<div class="mob-band-title">Linee &amp; Interruttori Interni (${matchedCircuits.length})</div>`;
+      html += matchedCircuits.slice(0, 20).map(({ board, circuit }) => renderMobileNodeRowHtml(
+        board,
+        `<div style="margin-top:5px; padding-top:5px; border-top:1px dashed var(--cp-border); font-size:11.5px;">
+          <strong class="mono" style="color:var(--cp-accent);">${escXml(circuit.code)}:</strong> ${escXml(circuit.desc)}
+          ${circuit.breaker ? `<span style="color:var(--cp-text-muted);"> · ${escXml(circuit.breaker)}</span>` : ""}
+        </div>`
+      )).join("");
+    }
+
+    if (matchedDocs.length) {
+      html += `<div class="mob-band-title">Schede PDF (${matchedDocs.length})</div>`;
+      html += matchedDocs.slice(0, 10).map((d) => `
+        <div class="mob-card">
+          <div style="font-size:13px; font-weight:700; margin-bottom:4px;">${escXml(d.brand)} — ${escXml(d.family)}</div>
+          <div style="font-size:11.5px; color:var(--cp-text-muted); margin-bottom:8px;">${escXml(d.keySpecs)}</div>
+          <a class="btn btn-primary" href="${escXml(d.file)}" target="_blank" rel="noopener" style="text-decoration:none; width:100%; justify-content:center;">📄 Apri PDF</a>
+        </div>
+      `).join("");
+    }
+
+    return html;
+  }
+
+  function buildMobileNodeDetailHtml(node) {
+    const p = PLANT_MAP.get(node.plant) || DATA.plants[0];
+    const fl = FLOOR_MAP.get(node.floor) || { name: node.floor || "" };
+    const accentVar = getMobileNodeAccentVar(node);
+    const physTarget = resolvePhysicalPanelTarget(node, null);
+
+    const refEdges = DATA.edges.filter((e) => e.edgeType !== "doc_trace");
+    const incoming = refEdges.filter((e) => e.target === node.id);
+    const outgoing = refEdges.filter((e) => e.source === node.id);
+    const dsList = (node.datasheetIds || []).map((id) => DS_MAP.get(id)).filter(Boolean);
+    const incs = INC_BY_NODE.get(node.id) || [];
+    const isEarthSink = node.id === "TERRA-RETE";
+
+    const renderConnBtn = (edge, otherId, dirArrow) => {
+      const other = NODE_MAP.get(otherId);
+      if (!other) return "";
+      return `
+        <button type="button" class="mob-io-btn" data-mob-node="${escXml(other.id)}">
+          <div style="min-width:0;">
+            <div style="font-size:13px; font-weight:700; line-height:1.25;">
+              ${dirArrow} ${escXml(other.label)} <span class="mono" style="font-size:11px; color:var(--cp-accent);">(${escXml(other.code)})</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--cp-text-muted); margin-top:2px;">
+              ${escXml(edge.flowCategory)}: <strong class="mono">${escXml(edge.label)}</strong>
+            </div>
+          </div>
+          <span style="color:var(--cp-accent); font-weight:700; flex-shrink:0;">›</span>
+        </button>
+      `;
+    };
+
+    return `
+      <div class="mob-card" style="border-top:4px solid ${accentVar};">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+          <span class="pill" style="color:var(--cp-accent); background:var(--cp-accent-soft);">${escXml(node.roleLabel || p.shortName)}</span>
+          <span class="mono" style="font-size:11px; color:var(--cp-text-muted);">${escXml(p.shortName)}</span>
+        </div>
+        <h2 style="margin:0 0 4px; font-size:16.5px; line-height:1.25;">${escXml(node.label)}</h2>
+        <div style="font-size:12px; color:var(--cp-text-muted); margin-bottom:10px;">
+          Sigla: <strong class="mono" style="color:var(--cp-text);">${escXml(node.code)}</strong> · 📍 ${escXml(node.roomGroup || fl.name)}
+        </div>
+
+        <div style="padding:9px 11px; border-radius:0.625rem; background:var(--cp-bg-elevated); border:1px solid var(--cp-border); margin-bottom:9px;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:4px;">${escXml(node.shortFunc || "")}</div>
+          ${node.desc ? `<div style="font-size:12px; color:var(--cp-text-muted);">${escXml(node.desc)}</div>` : ""}
+        </div>
+
+        ${node.emergencyNote ? `
+          <div class="emg-callout" style="margin:0 0 9px;">
+            <strong>🚒 Emergenza / Sgancio VVF:</strong><br/>
+            ${escXml(node.emergencyNote)}
+          </div>
+        ` : ""}
+
+        ${physTarget ? `
+          <a href="${escXml(physTarget.href)}" data-mob-ext="${escXml(physTarget.href)}" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none; margin-top:4px;">
+            🗄️ Vedi Fronte Quadro Fisico (${escXml(physTarget.code)}) →
+          </a>
+        ` : ""}
+      </div>
+
+      <div class="mob-card">
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--cp-link); margin-bottom:7px;">
+          ${isEarthSink ? `⏚ Riceve scariche di terra da (${incoming.length})` : `📥 A monte — Da dove arriva (${incoming.length})`}
+        </div>
+        ${incoming.length
+          ? incoming.map((e) => renderConnBtn(e, e.source, "⬅")).join("")
+          : `<div style="font-size:12px; color:var(--cp-text-muted);">★ Origine primaria di alimentazione o captazione diretta.</div>`
+        }
+
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--cp-accent); margin:12px 0 7px;">
+          📤 A valle — Cosa alimenta / comanda (${outgoing.length})
+        </div>
+        ${outgoing.length
+          ? outgoing.map((e) => renderConnBtn(e, e.target, "➡")).join("")
+          : `<div style="font-size:12px; color:var(--cp-text-muted);">${isEarthSink ? "⏚ Disperde nel terreno." : "🎯 Utenza / destinazione finale."}</div>`
+        }
+      </div>
+
+      ${(node.circuits && node.circuits.length) ? `
+        <details class="mob-acc" open>
+          <summary>
+            <span>🔌 Interruttori &amp; Linee Interne (${node.circuits.length})</span>
+            <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
+          </summary>
+          <div class="mob-acc-body">
+            ${node.circuits.map((c) => `
+              <div class="mob-circuit-row">
+                <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
+                  <strong class="mono" style="color:var(--cp-accent);">${escXml(c.code)}</strong>
+                  <span style="font-size:11px; color:var(--cp-text-muted); text-align:right;">${escXml(c.breaker || "")}</span>
+                </div>
+                <div style="margin-top:2px;">${escXml(c.desc)}</div>
+                ${c.cable ? `<div class="mono" style="font-size:11px; color:var(--cp-text-muted); margin-top:2px;">Cavo: ${escXml(c.cable)}</div>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        </details>
+      ` : ""}
+
+      ${Object.keys(node.specs || {}).length ? `
+        <details class="mob-acc" ${(node.circuits && node.circuits.length) ? "" : "open"}>
+          <summary>
+            <span>📐 Dati di Targa Essenziali</span>
+            <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
+          </summary>
+          <div class="mob-acc-body">
+            <div class="mob-spec-grid">
+              ${Object.entries(node.specs || {}).map(([k, v]) => `
+                <div class="spec-box">
+                  <div class="spec-k">${escXml(k)}</div>
+                  <div class="spec-v" style="word-break:break-word;">${escXml(v)}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </details>
+      ` : ""}
+
+      ${dsList.length ? `
+        <details class="mob-acc">
+          <summary>
+            <span>📚 Schede PDF Componenti (${dsList.length})</span>
+            <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
+          </summary>
+          <div class="mob-acc-body">
+            ${dsList.map((d) => `
+              <div style="padding:7px 0; border-top:1px solid var(--cp-border);">
+                <div style="font-weight:700; font-size:12.5px;">${escXml(d.brand)} — ${escXml(d.family)}</div>
+                <div style="font-size:11.5px; color:var(--cp-text-muted); margin:2px 0 6px;">${escXml(d.keySpecs)}</div>
+                <a class="btn btn-primary" href="${escXml(d.file)}" target="_blank" rel="noopener" style="font-size:11.5px; padding:4px 10px; text-decoration:none;">📄 Apri PDF</a>
+              </div>
+            `).join("")}
+          </div>
+        </details>
+      ` : ""}
+
+      ${incs.length ? `
+        <details class="mob-acc" open>
+          <summary style="color:var(--cp-danger);">
+            <span>⚠️ Rilievi Tecnici (${incs.length})</span>
+            <span class="mono" style="font-size:11px;">▾</span>
+          </summary>
+          <div class="mob-acc-body">
+            ${incs.map((inc) => `
+              <div style="margin-bottom:8px; font-size:12px;">
+                <div><strong>${escXml(inc.id)} [${escXml(inc.severity.toUpperCase())}] — ${escXml(inc.title)}</strong></div>
+                <div style="color:var(--cp-text-muted); margin-top:2px;">${escXml(inc.finding)}</div>
+              </div>
+            `).join("")}
+          </div>
+        </details>
+      ` : ""}
+    `;
+  }
+
+  function renderMobileMain() {
+    const shell = document.getElementById("mobileShell");
+    const mainEl = document.getElementById("mobMain");
+    if (!shell || !mainEl) return;
+
+    const tabsEl = document.getElementById("mobTabsBar");
+    const detBar = document.getElementById("mobDetailBar");
+    const backBtn = document.getElementById("mobDetailBackBtn");
+    const clearBtn = document.getElementById("mobSearchClear");
+
+    const hasSearch = mobState.query.trim().length >= 2;
+    if (clearBtn) clearBtn.style.display = mobState.query.length > 0 ? "inline-flex" : "none";
+
+    shell.querySelectorAll(".mob-tab").forEach((t) => {
+      t.classList.toggle("active", t.dataset.mobTab === mobState.tab);
+    });
+
+    if (hasSearch) {
+      if (tabsEl) tabsEl.style.display = "none";
+      if (detBar) detBar.style.display = "none";
+      mainEl.innerHTML = buildMobileSearchResultsHtml(mobState.query) + buildMobileFooterHtml();
+    } else if (mobState.selectedNodeId && NODE_MAP.has(mobState.selectedNodeId)) {
+      if (tabsEl) tabsEl.style.display = "none";
+      if (detBar) detBar.style.display = "flex";
+      if (backBtn) {
+        const prev = mobState.history[mobState.history.length - 1];
+        backBtn.textContent = prev && prev.label ? `← ${prev.label}` : "← Torna all'elenco";
+      }
+      mainEl.innerHTML = buildMobileNodeDetailHtml(NODE_MAP.get(mobState.selectedNodeId)) + buildMobileFooterHtml();
+    } else {
+      if (tabsEl) tabsEl.style.display = "grid";
+      if (detBar) detBar.style.display = "none";
+      let bodyHtml = "";
+      if (mobState.tab === "rooms") bodyHtml = buildMobileRoomsTabHtml();
+      else if (mobState.tab === "audit") bodyHtml = buildMobileAuditTabHtml();
+      else if (mobState.tab === "docs") bodyHtml = buildMobileDocsTabHtml();
+      else bodyHtml = buildMobilePlantsTabHtml();
+      mainEl.innerHTML = bodyHtml + buildMobileFooterHtml();
+    }
+
+    // Wire dynamic events inside #mobMain
+    const pSel = document.getElementById("mobPlantSelect");
+    if (pSel) {
+      pSel.addEventListener("change", (e) => {
+        mobState.plantId = e.target.value;
+        mobState.selectedNodeId = null;
+        mobState.history = [];
+        syncMobileUrl();
+        renderMobileMain();
+      });
+    }
+
+    mainEl.querySelectorAll("[data-mob-node]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.dataset.mobNode;
+        if (!NODE_MAP.has(targetId)) return;
+        if (mobState.query.trim().length >= 2) {
+          mobState.query = "";
+          const inp = document.getElementById("mobSearchInput");
+          if (inp) inp.value = "";
+        } else {
+          const prevNode = mobState.selectedNodeId ? NODE_MAP.get(mobState.selectedNodeId) : null;
+          mobState.history.push({
+            tab: mobState.tab,
+            plantId: mobState.plantId,
+            selectedNodeId: mobState.selectedNodeId,
+            label: prevNode ? `Torna a ${prevNode.code}` : "Torna all'elenco",
+            scrollY: window.scrollY || 0
+          });
+        }
+        const tNode = NODE_MAP.get(targetId);
+        if (tNode.plant && PLANT_MAP.has(tNode.plant) && mobState.plantId !== "IMP-INGRESSI") {
+          mobState.plantId = tNode.plant;
+        }
+        mobState.selectedNodeId = targetId;
+        syncMobileUrl();
+        renderMobileMain();
+        window.scrollTo({ top: 0, behavior: "instant" });
+      });
+    });
+
+    mainEl.querySelectorAll("[data-mob-ext]").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        navigateMobileExternal(a.dataset.mobExt);
+      });
+    });
+
+    const forceBtn = document.getElementById("btnForceDesktopMode");
+    if (forceBtn) {
+      forceBtn.addEventListener("click", () => {
+        try { sessionStorage.setItem("se_force_desktop", "1"); } catch (_) {}
+        const u = new URL(window.location.href);
+        u.searchParams.delete("mobile");
+        u.searchParams.set("desktop", "1");
+        window.location.href = u.toString();
+      });
+    }
+  }
+
+  function buildMobileFooterHtml() {
+    return `
+      <footer class="mob-footer">
+        <div style="margin-bottom:8px;">
+          📱 <strong>Versione essenziale per smartphone</strong> (senza grafi).<br/>
+          Apri il sito da PC per le tavole sinottiche e i grafi interattivi completi.
+        </div>
+        <button id="btnForceDesktopMode" type="button" class="btn" style="font-size:11.5px;">
+          🖥️ Mostra comunque versione PC
+        </button>
+      </footer>
+    `;
+  }
+
+  function initMobileFallback() {
+    if (mobileInitialized) {
+      renderMobileMain();
+      return;
+    }
+    mobileInitialized = true;
+
+    const sp = new URLSearchParams(window.location.search);
+    const qPlant = sp.get("plant");
+    const qSelect = sp.get("select");
+    const qBoard = sp.get("board");
+    if (qPlant && PLANT_MAP.has(qPlant)) {
+      mobState.plantId = qPlant;
+    }
+    if (qSelect && NODE_MAP.has(qSelect)) {
+      mobState.selectedNodeId = qSelect;
+      const sn = NODE_MAP.get(qSelect);
+      if (!qPlant && sn.plant && PLANT_MAP.has(sn.plant)) mobState.plantId = sn.plant;
+    } else if (qBoard && NODE_MAP.has(qBoard)) {
+      mobState.selectedNodeId = qBoard;
+      const bn = NODE_MAP.get(qBoard);
+      if (!qPlant && bn.plant && PLANT_MAP.has(bn.plant)) mobState.plantId = bn.plant;
+    }
+
+    const extTop = window.SE_NAV ? window.SE_NAV.peek() : null;
+    const shell = document.getElementById("mobileShell");
+    shell.innerHTML = `
+      <header class="mob-header">
+        <div class="mob-header-top">
+          <div class="mob-brand">
+            <div class="mob-brand-mark">⚡</div>
+            <div>
+              <h1 class="mob-brand-title">Guida Rapida Impianti</h1>
+              <p class="mob-brand-sub">Parti Comuni · Vista essenziale smartphone</p>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            ${extTop ? `<button id="mobExtBackBtn" type="button" class="btn btn-primary" style="font-size:11.5px; padding:5px 9px;">← Indietro</button>` : ""}
+            <button id="mobThemeBtn" type="button" class="btn" style="padding:6px 9px;" title="Cambia tema chiaro/scuro">🌓</button>
+          </div>
+        </div>
+
+        <div class="mob-search-row">
+          <span class="mob-search-icon">🔎</span>
+          <input id="mobSearchInput" class="mob-search-input" type="search" placeholder="Cerca sigla (QE.SSC, Q6), locale, utenza..." autocomplete="off" />
+          <button id="mobSearchClear" class="mob-search-clear" type="button" aria-label="Cancella ricerca">✕</button>
+        </div>
+
+        <nav id="mobTabsBar" class="mob-tabs" aria-label="Sezioni guida smartphone">
+          <button type="button" class="mob-tab active" data-mob-tab="plants">⚡ Impianti</button>
+          <button type="button" class="mob-tab" data-mob-tab="rooms">📍 Locali</button>
+          <button type="button" class="mob-tab" data-mob-tab="audit">⚠️ Rilievi</button>
+          <button type="button" class="mob-tab" data-mob-tab="docs">📚 Schede</button>
+        </nav>
+
+        <div id="mobDetailBar" class="mob-detail-bar" style="display:none;">
+          <button id="mobDetailBackBtn" type="button" class="btn btn-primary" style="font-size:12px;">← Torna all'elenco</button>
+          <button id="mobDetailCloseBtn" type="button" class="btn" style="font-size:12px;">✕ Elenco</button>
+        </div>
+      </header>
+      <main id="mobMain" class="mob-main"></main>
+    `;
+
+    const sInput = document.getElementById("mobSearchInput");
+    const sClear = document.getElementById("mobSearchClear");
+    sInput.addEventListener("input", () => {
+      mobState.query = sInput.value;
+      renderMobileMain();
+    });
+    sClear.addEventListener("click", () => {
+      mobState.query = "";
+      sInput.value = "";
+      renderMobileMain();
+      sInput.focus();
+    });
+
+    shell.querySelectorAll(".mob-tab").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", () => {
+        mobState.tab = tabBtn.dataset.mobTab;
+        mobState.selectedNodeId = null;
+        mobState.history = [];
+        syncMobileUrl();
+        renderMobileMain();
+        window.scrollTo({ top: 0, behavior: "instant" });
+      });
+    });
+
+    document.getElementById("mobDetailBackBtn").addEventListener("click", () => {
+      const prev = mobState.history.pop();
+      if (prev) {
+        mobState.tab = prev.tab;
+        mobState.plantId = prev.plantId;
+        mobState.selectedNodeId = prev.selectedNodeId;
+        syncMobileUrl();
+        renderMobileMain();
+        window.scrollTo({ top: prev.scrollY || 0, behavior: "instant" });
+      } else {
+        mobState.selectedNodeId = null;
+        syncMobileUrl();
+        renderMobileMain();
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+    });
+
+    document.getElementById("mobDetailCloseBtn").addEventListener("click", () => {
+      mobState.selectedNodeId = null;
+      mobState.history = [];
+      syncMobileUrl();
+      renderMobileMain();
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
+
+    const extBack = document.getElementById("mobExtBackBtn");
+    if (extBack && window.SE_NAV) {
+      extBack.addEventListener("click", () => {
+        window.SE_NAV.goBack(null, null);
+      });
+    }
+
+    document.getElementById("mobThemeBtn").addEventListener("click", () => {
+      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      const u = new URL(window.location.href);
+      u.searchParams.set("scoutTheme", next);
+      window.history.replaceState({}, "", u.toString());
+      renderMobileMain();
+    });
+
+    renderMobileMain();
+  }
+
+  function initDesktop() {
+    if (desktopInitialized) return;
+    desktopInitialized = true;
+
     ["btnGlobalNavBack", "btnFsNavBack"].forEach((id) => {
       const b = document.getElementById(id);
       if (b) b.addEventListener("click", handleGlobalStepBack);
@@ -3651,6 +4351,54 @@
     setupSearch();
     refreshAll();
     startFlowAnimationLoop();
+  }
+
+  function init() {
+    const retMobBtn = document.getElementById("btnReturnMobileFallback");
+    if (retMobBtn) {
+      retMobBtn.addEventListener("click", () => {
+        try { sessionStorage.removeItem("se_force_desktop"); } catch (_) {}
+        const u = new URL(window.location.href);
+        u.searchParams.delete("desktop");
+        window.location.href = u.toString();
+      });
+    }
+
+    if (document.documentElement.classList.contains("is-mobile-fallback")) {
+      initMobileFallback();
+    } else {
+      initDesktop();
+    }
+
+    // Smoothly handle responsive cross-over if a browser window is resized across 820px (unless explicitly forced)
+    const mqNarrow = window.matchMedia("(max-width: 820px)");
+    const onViewportChange = (e) => {
+      const sp = new URLSearchParams(window.location.search);
+      let forcedDesktop = sp.get("desktop") === "1";
+      if (!forcedDesktop && sp.get("mobile") !== "1") {
+        try { forcedDesktop = sessionStorage.getItem("se_force_desktop") === "1"; } catch (_) {}
+      }
+      if (forcedDesktop || sp.get("mobile") === "1") return;
+      if (e.matches) {
+        document.documentElement.classList.add("is-mobile-fallback");
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        initMobileFallback();
+      } else {
+        document.documentElement.classList.remove("is-mobile-fallback");
+        if (!desktopInitialized) {
+          initDesktop();
+        } else {
+          refreshAll();
+          startFlowAnimationLoop();
+        }
+      }
+    };
+    if (typeof mqNarrow.addEventListener === "function") {
+      mqNarrow.addEventListener("change", onViewportChange);
+    }
   }
 
   if (document.readyState === "loading") {
