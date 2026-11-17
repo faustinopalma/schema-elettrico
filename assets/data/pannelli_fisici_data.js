@@ -883,11 +883,11 @@ window.PANNELLI_FISICI_DATA = {
       "plantLabel": "1 · Supercondominio",
       "swatch": "ssc",
       "location": {
-        "buildingZone": "Corpo Parti Comuni Generali",
-        "floor": "Piano Terra (0,0 m)",
-        "room": "Locale Contatori Principale",
+        "buildingZone": "Torre A — Locali Tecnici & Contatori Piano -1",
+        "floor": "Piano Primo Interrato (-1 · -3,2 m)",
+        "room": "Locale Contatori Scala A",
         "mounting": "Armadio metallico autoportante a pavimento H=2013 mm con porta in vetro e colonna laterale SX risalita cavi",
-        "whereHowToFind": "Posizionato a pavimento nel Locale Contatori Principale al Piano Terra, a fianco dell'avanquadro AVSSC. È il cuore distributivo dell'intero supercondominio: alimenta le tre centrali tecnologiche (QE.CT, QE.CI, QE.LP), l'intera autorimessa interrata con tutti i 152 box privati (sezione Q6), l'illuminazione esterna e i circuiti di sicurezza portoni EI / sgancio VVF."
+        "whereHowToFind": "Posizionato a pavimento nel Locale Contatori Scala A al Piano -1 (corsello sud sotto Torre A, tra il Box 66.1 e il Box 64.1 — tavola PL.04), sulla parete sinistra entrando dalla porta, subito a fianco dell'armadio QESC-A e di fronte ai gruppi UPS 1 e UPS 2 (riceve il montante da AVSSC tramite il cavidotto interrato Ø160 di PL.12.1)."
       },
       "enclosure": {
         "tag": "A1",

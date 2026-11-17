@@ -70,6 +70,22 @@
     return null;
   }
 
+  function buildPlanimetriaHref(node, parentBoardId, explicitCompId) {
+    const params = new URLSearchParams();
+    const pTarget = resolvePhysicalPanelTarget(node, parentBoardId);
+    if (pTarget && pTarget.slug) {
+      params.set("panel", pTarget.slug);
+      const comp = explicitCompId || pTarget.comp;
+      if (comp) params.set("comp", comp);
+    } else if (node && node.id) {
+      params.set("node", parentBoardId || node.id);
+    }
+    const curTheme = new URLSearchParams(window.location.search).get("scoutTheme");
+    if (curTheme) params.set("scoutTheme", curTheme);
+    const qs = params.toString();
+    return `./planimetrie/index.html${qs ? `?${qs}` : ""}`;
+  }
+
   function syncDrillBreadcrumbPhysicalBtn(isInternal, parentBoard) {
     const btn = document.getElementById("btnOpenPhysicalFromDrill");
     if (!btn) return;
@@ -4169,6 +4185,10 @@
       const loc = (s.node.roomGroup || fl.name || "").replace(/\s*\(.*?\)/g, "");
       const op = PLANT_MAP.get(s.node.plant);
       const isCrossPlant = !isMobile && !faultDiag.isInternal && s.node.plant && s.node.plant !== state.activePlant && state.activePlant !== "IMP-INGRESSI";
+      const leadComp = (s.activeDevices && s.activeDevices.length === 1 && s.activeDevices[0].panelHref)
+        ? s.activeDevices[0].id
+        : null;
+      const stepPlanHref = buildPlanimetriaHref(s.node, faultDiag.isInternal ? state.drillBoardId : null, leadComp);
 
       return `
         <div class="fault-step-card ${s.ruledOut ? "is-ruled-out" : (s.isPrimarySuspect ? "is-top-suspect" : "")}">
@@ -4194,6 +4214,7 @@
 
           ${!s.ruledOut ? `
             <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+              <a class="btn" style="font-size:11px; padding:3px 8px; text-decoration:none;" href="${escXml(stepPlanHref)}" ${extAttr}="${escXml(stepPlanHref)}" title="Mostra dove si trova fisicamente sulla planimetria">🗺️ Planimetria</a>
               ${isMobile
                 ? `<button type="button" class="btn" style="font-size:11px; padding:3px 8px;" data-mob-node="${escXml(s.nodeId)}">🔍 Apri scheda ${escXml(s.node.code)}</button>`
                 : `
@@ -4306,6 +4327,7 @@
     const canDrillInternal = Boolean(node.internalGraph) && !state.drillBoardId;
     const canJumpPlant = !state.drillBoardId && node.plant !== state.activePlant && node.plant !== "IMP-INGRESSI";
     const physTarget = resolvePhysicalPanelTarget(node, state.drillBoardId);
+    const planHref = buildPlanimetriaHref(node, state.drillBoardId, null);
     const isFaultTargetHere = state.faultMode && (state.faultTargetId || state.selectedNodeId) === node.id;
 
     document.getElementById("inspHeader").innerHTML = `
@@ -4320,12 +4342,15 @@
         </div>
       </div>
       <h3 class="insp-title">${node.label}</h3>
-      <div style="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · ${fl.name}</div>
+      <div class="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · ${fl.name}</div>
 
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
         <button id="btnInspFaultToggle" type="button" class="btn ${isFaultTargetHere ? "btn-fault-active" : ""}" style="font-size:12px; ${!isFaultTargetHere ? "border-color:var(--cp-danger); color:var(--cp-danger);" : ""}">
           ${isFaultTargetHere ? "✕ Chiudi Ricerca Guasto" : `🛠️ Catena Guasto da ${escXml(node.code)}`}
         </button>
+        <a id="btnOpenPlanFromInsp" class="btn" href="${escXml(planHref)}" style="font-size:12px; text-decoration:none;" title="Vedi dove si trova fisicamente sulla planimetria dell'edificio">
+          🗺️ Dove si trova (Planimetria)
+        </a>
         ${physTarget ? `
           <a id="btnOpenPhysFromInsp" class="btn btn-primary" href="${physTarget.href}" style="font-size:12px; text-decoration:none;">
             🗄️ ${state.drillBoardId && physTarget.comp ? `Vedi ${physTarget.comp} nel Pannello Fisico ${physTarget.code}` : `Apri Pannello Fisico (${physTarget.code})`} →
@@ -4370,6 +4395,14 @@
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
         e.preventDefault();
         navigateToExternalPage(bPhys.getAttribute("href"));
+      });
+    }
+    const bPlan = document.getElementById("btnOpenPlanFromInsp");
+    if (bPlan) {
+      bPlan.addEventListener("click", (e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        navigateToExternalPage(bPlan.getAttribute("href"));
       });
     }
     const bClose = document.getElementById("btnCloseInspFs");
@@ -5140,13 +5173,24 @@
   function buildMobileDocsTabHtml() {
     const curTheme = document.documentElement.getAttribute("data-theme") || "light";
     const atlasHref = `./pannelli/index.html?scoutTheme=${encodeURIComponent(curTheme)}`;
+    const planHref = `./planimetrie/index.html?scoutTheme=${encodeURIComponent(curTheme)}`;
     return `
       <div class="mob-card" style="border-color:var(--cp-accent); background:var(--cp-accent-soft);">
+        <div style="font-size:13.5px; font-weight:700; margin-bottom:4px;">🗺️ Planimetrie &amp; Posizione Fisica Quadri / Fusibili</div>
+        <div style="font-size:12px; color:var(--cp-text-muted); margin-bottom:9px;">
+          Piante per piano e istruzioni passo-passo per raggiungere fisicamente qualsiasi quadro, interruttore o fusibile.
+        </div>
+        <a href="${escXml(planHref)}" class="btn btn-primary" data-mob-ext="${escXml(planHref)}" style="text-decoration:none; width:100%; justify-content:center;">
+          🗺️ Apri Planimetrie Edificio →
+        </a>
+      </div>
+
+      <div class="mob-card" style="border-color:var(--cp-border-strong);">
         <div style="font-size:13.5px; font-weight:700; margin-bottom:4px;">🗄️ Atlante dei 18 Pannelli Fisici (Fronte Quadro)</div>
         <div style="font-size:12px; color:var(--cp-text-muted); margin-bottom:9px;">
           Disposizione fisica degli interruttori e apparecchiature all'interno delle carpenterie reali.
         </div>
-        <a href="${escXml(atlasHref)}" class="btn btn-primary" data-mob-ext="${escXml(atlasHref)}" style="text-decoration:none; width:100%; justify-content:center;">
+        <a href="${escXml(atlasHref)}" class="btn" data-mob-ext="${escXml(atlasHref)}" style="text-decoration:none; width:100%; justify-content:center;">
           🗄️ Apri i 18 Pannelli Fisici →
         </a>
       </div>
@@ -5292,6 +5336,9 @@
             🗄️ Vedi Fronte Quadro Fisico (${escXml(physTarget.code)}) →
           </a>
         ` : ""}
+        <a href="${escXml(buildPlanimetriaHref(node, null, null))}" data-mob-ext="${escXml(buildPlanimetriaHref(node, null, null))}" class="btn" style="width:100%; justify-content:center; text-decoration:none; margin-top:6px;">
+          🗺️ Dove si trova nell'edificio (Planimetria) →
+        </a>
         <button type="button" id="btnMobFaultToggle" class="btn ${mobState.faultMode ? "btn-fault-active" : ""}" style="width:100%; justify-content:center; margin-top:7px; ${!mobState.faultMode ? "border-color:var(--cp-danger); color:var(--cp-danger);" : ""}">
           ${mobState.faultMode ? "✕ Chiudi Catena di Guasto" : "🛠️ Ricerca Guasto: Interruttori & Fusibili a monte"}
         </button>
@@ -5721,7 +5768,7 @@
       if (b) b.addEventListener("click", handleGlobalStepBack);
     });
 
-    ["btnOpenPanelsAtlas", "btnOpenPhysicalFromDrill"].forEach((id) => {
+    ["btnOpenPlanimetrie", "btnOpenPanelsAtlas", "btnOpenPhysicalFromDrill"].forEach((id) => {
       const a = document.getElementById(id);
       if (a) {
         a.addEventListener("click", (e) => {

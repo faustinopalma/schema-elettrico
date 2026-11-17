@@ -392,6 +392,7 @@
             `).join("")}
           </select>
           <a class="pp-btn" data-keep-theme href="${esc(withTheme(`./${nextP.slug}.html`))}" title="Pannello successivo: ${esc(nextP.code)}">${esc(nextP.code)} ▶</a>
+          <a class="pp-btn" data-keep-theme href="${esc(withTheme(`../planimetrie/index.html?panel=${encodeURIComponent(slug)}`))}">🗺️ Planimetria</a>
           <a class="pp-btn" data-keep-theme href="${esc(atlasUrl)}">🗄️ Tutti i 18 Pannelli</a>
           <a class="pp-btn" data-keep-theme href="${esc(internalUrl)}">🔬 Schema Elettrico Interno</a>
           <a class="pp-btn" data-keep-theme href="${esc(mapUrl)}">📐 Mappa Impianto</a>
@@ -413,6 +414,11 @@
             <div style="font-size:13px; font-weight:600; margin-bottom:6px;">${esc(panel.location.floor)} · ${esc(panel.location.buildingZone)}</div>
             <div class="pp-muted">${esc(panel.location.whereHowToFind)}</div>
             <div style="margin-top:8px; font-size:12px;"><strong>Installazione:</strong> ${esc(panel.location.mounting)}</div>
+            <div style="margin-top:10px;">
+              <a id="ppOpenPlanimetriaCardBtn" class="pp-btn pp-btn-primary" data-keep-theme href="${esc(withTheme(`../planimetrie/index.html?panel=${encodeURIComponent(slug)}`))}">
+                🗺️ Vedi posizione sulla Planimetria →
+              </a>
+            </div>
           </div>
 
           <div class="pp-card">
@@ -606,8 +612,11 @@
         ` : ""}
 
         <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px; padding-top:12px; border-top:1px solid var(--cp-border);">
+          <a class="pp-btn pp-btn-primary" style="justify-content:center;" data-keep-theme href="${esc(withTheme(`../planimetrie/index.html?panel=${encodeURIComponent(slug)}&comp=${encodeURIComponent(c.id)}`))}">
+            🗺️ Dove si trova ${esc(c.id)} nell'edificio (Planimetria) →
+          </a>
           ${targetP ? `
-            <a class="pp-btn pp-btn-primary" style="justify-content:center;" data-keep-theme href="${esc(withTheme(`./${targetP.slug}.html`))}">
+            <a class="pp-btn" style="justify-content:center; border-color:var(--cp-accent); color:var(--cp-accent);" data-keep-theme href="${esc(withTheme(`./${targetP.slug}.html`))}">
               🗄️ Apri Pannello Collegato: ${esc(targetP.code)} →
             </a>
           ` : ""}
@@ -847,7 +856,10 @@
 
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <a class="pp-btn pp-btn-primary" style="flex:1; justify-content:center;" data-keep-theme href="${esc(withTheme(`./${p.slug}.html`))}">
-              🗄️ Apri Pannello Fisico →
+              🗄️ Apri Pannello →
+            </a>
+            <a class="pp-btn" data-keep-theme href="${esc(withTheme(`../planimetrie/index.html?panel=${encodeURIComponent(p.slug)}`))}" title="Vedi dove si trova fisicamente sulla planimetria">
+              🗺️ Mappa
             </a>
             <a class="pp-btn" data-keep-theme href="${esc(withTheme(`../index.html?plant=${encodeURIComponent(p.plantId)}&board=${encodeURIComponent(p.nodeId)}`))}" title="Apri lo schema elettrico funzionale interno">
               🔬 Schema
@@ -876,6 +888,7 @@
         </div>
         <div class="pp-actions">
           <input id="atlasSearch" class="pp-input" style="min-width:300px;" type="search" placeholder="🔎 Cerca qualsiasi interruttore, fusibile o utenza nei 18 quadri..." />
+          <a class="pp-btn" data-keep-theme href="${esc(withTheme("../planimetrie/index.html"))}">🗺️ Planimetrie</a>
           <a class="pp-btn" data-keep-theme href="${esc(defaultMapsUrl)}">📐 Mappe d'Impianto</a>
           <button id="atlasThemeBtn" class="pp-btn" type="button">🌓 Tema</button>
         </div>

@@ -1504,7 +1504,7 @@ window.IMPIANTO_DATA = {
       "plant": "IMP-SSC",
       "nodeClass": "switchgear_node",
       "tier": 1,
-      "floor": "F_TERRA",
+      "floor": "F_M1",
       "colHint": 2,
       "specs": {
         "Tensione": "400/230Vac (aus. 24Vac)",
@@ -1706,9 +1706,9 @@ window.IMPIANTO_DATA = {
       ],
       "roleType": "hub",
       "roleLabel": "🎛️ QUADRO PRINCIPALE",
-      "shortFunc": "Quadro generale nel Locale Contatori P.Terra: alimenta le 3 centrali tecniche (-1/-2), l'autorimessa (sezione Q6), gli esterni e i 2 UPS.",
+      "shortFunc": "Quadro generale nel Locale Contatori Scala A (-1, a fianco di QESC-A e UPS 1/2): alimenta le 3 centrali (-1/-2), i 152 box (sez. Q6) e gli esterni.",
       "emergencyNote": "Se si preme lo sgancio VVF Box, il relè K1 (24V) apre solo Q5 (Locale Pompe), Q6 (Box) e Q7 (Portoni EI); Centrali Termica e Idrica restano attive.",
-      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "roomGroup": "Locale Contatori Scala A — Piano -1 (PL.04)",
       "safetyZone": "1 · Sbarra Attiva (Sgancia solo Q5, Q6 Box e Q7)",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
@@ -9281,13 +9281,13 @@ window.IMPIANTO_DATA = {
       "plant": "IMP-FIRE",
       "nodeClass": "field_subsystem",
       "tier": 2,
-      "floor": "F_M2",
+      "floor": "F_TERRA",
       "colHint": 1,
       "specs": {
         "Motopompa Principale": "15 kW 400V 3F da QE.PA (cavo FTG18OM16 4G16 mm²)",
         "Ausiliari & Allarmi": "Quadro servizi ausiliari da AVSSC (Q9) + Linea allarmi verso Portineria"
       },
-      "desc": "Gruppo di spinta antincendio nel Locale Pompe (-2) con doppia alimentazione funzionale (potenza in cavo resistente al fuoco da QE.PA e ausiliari di mantenimento da AVSSC).",
+      "desc": "Stazione di spinta antincendio ospitata nel Modulo Antincendio per Esterno Prefabbricato a nord del Locale Contatori Principale (Piano Terra, PL.11/PL.12.1), con doppia alimentazione funzionale (potenza in cavo resistente al fuoco da QE.PA e ausiliari da AVSSC).",
       "sld": null,
       "circuits": [],
       "bom": [],
@@ -9304,9 +9304,9 @@ window.IMPIANTO_DATA = {
       ],
       "roleType": "load",
       "roleLabel": "🚒 MOTOPOMPA IDRANTI 15 kW",
-      "shortFunc": "Motopompa principale antincendio nel Locale Pompe (-2) che mette in pressione la rete idranti/naspi in caso di rogo.",
+      "shortFunc": "Motopompa principale antincendio nel Modulo Prefabbricato Esterno (accanto al Locale Contatori P.Terra) per rete idranti.",
       "emergencyNote": "Alimentata con cavo ignifugo FTG18OM16: progettata per funzionare ad oltranza anche sotto incendio.",
-      "roomGroup": "Locale Pompe & Antincendio (P.-2)",
+      "roomGroup": "Modulo Antincendio Esterno — P. Terra (PL.11)",
       "safetyZone": "1 · Attivo Permanente (Linea Ignifuga VVF)",
       "roleGroup": "4 · Utilizzatori Finali (Box, Centrali, Torri) & Terra",
       "internalGraph": null
@@ -9789,10 +9789,10 @@ window.IMPIANTO_DATA = {
       "shortFunc": "Interruttore Q6 (4P 63A + bobina sgancio VVF 24Vac) dentro QE.SSC: alimenta tutti i 152 Box (-1/-2) e i corselli.",
       "emergencyNote": "PERCHÉ I 152 BOX SONO SOTTO IL CONTATORE CONDOMINIALE 80 kW E NON SOTTO GLI APPARTAMENTI: nell'autorimessa soggetta a CPI (>300 m², Attività 75 D.P.R. 151/2011) i Vigili del Fuoco devono poter togliere tensione a tutti i 152 box con un solo pulsante. Aprendo Q6 tramite bobina a minima tensione 24Vac (K1), vengono sezionati istantaneamente tutti i circuiti interni box Q6.3–Q6.6.",
       "tier": 1,
-      "floor": "F_TERRA",
+      "floor": "F_M1",
       "colHint": 1.2,
       "specs": {
-        "Ubicazione": "Dentro Quadro QE.SSC — Locale Contatori Principale (Piano Terra)",
+        "Ubicazione": "Dentro Quadro QE.SSC — Locale Contatori Scala A (Piano -1, tra Box 66.1 e 64.1 · PL.04)",
         "Interruttore Generale Sezione": "Q6: ABB S204P-C63 4P (63A, 15 kA) + Bobina min. tensione 24Vac (ABB A428398)",
         "Ripartitore Interno": "RP1: Ripartitore tetrapolare 4P 125A",
         "Contatore a monte": "Contatore 1 · Servizi Supercondominiali (80 kW) — nessun contatore singolo sui box",
@@ -9896,7 +9896,7 @@ window.IMPIANTO_DATA = {
           "scope": "Distribuzione dorsali box ai piani -2 e -1"
         }
       ],
-      "roomGroup": "Locale Contatori Principale — P. Terra (PL.11)",
+      "roomGroup": "Locale Contatori Scala A — Piano -1 (PL.04)",
       "safetyZone": "2 · Sezionato da Sgancio VVF Autorimessa (24V K1 su Q6)",
       "roleGroup": "2 · Quadri di Protezione & Distribuzione",
       "internalGraph": {
