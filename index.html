@@ -631,7 +631,267 @@ code, pre, .mono {
 
 .syn-card.dimmed,
 .syn-wire-group.dimmed {
-  opacity: 0.18;
+  opacity: 0.15;
+}
+
+/* ==================== FAULT CHAIN & BREAKER/FUSE HIGHLIGHTING ==================== */
+.btn.btn-fault-active {
+  background: var(--cp-danger);
+  border-color: var(--cp-danger);
+  color: var(--cp-accent-fg);
+}
+
+.btn.btn-fault-active:hover {
+  opacity: 0.92;
+}
+
+.syn-card.fault-target {
+  border: 2.5px solid var(--cp-danger);
+  background: color-mix(in srgb, var(--cp-danger) 8%, var(--cp-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cp-danger) 20%, transparent), var(--card-subtle);
+  z-index: 6;
+}
+
+.syn-card.fault-cofail {
+  border: 2px dashed var(--cp-danger);
+  background: color-mix(in srgb, var(--cp-danger) 6%, var(--cp-surface));
+  z-index: 5;
+}
+
+.syn-card.fault-suspect {
+  border: 2px solid var(--cp-accent);
+  background: var(--cp-surface);
+  z-index: 5;
+}
+
+.syn-card.fault-top-suspect {
+  border: 2.5px solid var(--cp-warning);
+  background: color-mix(in srgb, var(--cp-warning) 9%, var(--cp-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cp-warning) 24%, transparent), var(--card-subtle);
+  z-index: 6;
+}
+
+.syn-card.fault-ruled-out {
+  opacity: 0.34;
+  border-style: dashed;
+}
+
+.syn-fault-badge {
+  font-family: Consolas, "Courier New", Courier, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.syn-fault-badge.is-target {
+  background: var(--cp-danger);
+  color: var(--cp-accent-fg);
+}
+
+.syn-fault-badge.is-top {
+  background: var(--cp-warning);
+  color: var(--cp-text);
+}
+
+.syn-fault-badge.is-step {
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+}
+
+.syn-prot-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+  max-height: 36px;
+  overflow: hidden;
+}
+
+.syn-prot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: Consolas, "Courier New", Courier, monospace;
+  font-size: 9.4px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--cp-border-strong);
+  background: var(--cp-bg-elevated);
+  color: var(--cp-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.syn-prot-pill.is-fuse {
+  border-color: var(--cp-warning);
+  background: color-mix(in srgb, var(--cp-warning) 16%, var(--cp-surface));
+}
+
+.syn-prot-pill.is-breaker {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+
+.syn-prot-pill:hover {
+  text-decoration: none;
+  border-color: var(--cp-text);
+}
+
+/* Inspector & Mobile Fault Diagnosis Panel */
+.fault-panel {
+  border: 1.5px solid var(--cp-accent);
+  border-radius: 12px;
+  background: var(--cp-bg-elevated);
+  padding: 11px 12px;
+  margin-bottom: 14px;
+}
+
+.fault-panel-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.fault-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.fault-kpi-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border-strong);
+}
+
+.fault-step-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-left: 4px solid var(--cp-accent);
+  border-radius: 0.625rem;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  box-shadow: var(--card-subtle);
+}
+
+.fault-step-card.is-top-suspect {
+  border-color: var(--cp-warning);
+  border-left-width: 5px;
+  background: color-mix(in srgb, var(--cp-warning) 7%, var(--cp-surface));
+}
+
+.fault-step-card.is-ruled-out {
+  opacity: 0.58;
+  border-left-color: var(--cp-border-strong);
+  background: var(--cp-surface-soft);
+}
+
+.prot-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 6px 0 4px;
+}
+
+.prot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid var(--cp-border-strong);
+  background: var(--cp-bg-elevated);
+  color: var(--cp-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.prot-chip.is-breaker {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+
+.prot-chip.is-fuse {
+  border-color: var(--cp-warning);
+  background: color-mix(in srgb, var(--cp-warning) 16%, var(--cp-surface));
+  color: var(--cp-text);
+}
+
+.prot-chip.is-relay {
+  border-color: var(--cp-danger);
+  background: color-mix(in srgb, var(--cp-danger) 10%, var(--cp-surface));
+  color: var(--cp-danger);
+}
+
+.prot-chip:hover {
+  text-decoration: none;
+  filter: brightness(0.97);
+}
+
+.diag-filter-box {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.diag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 0;
+  border-top: 1px dashed var(--cp-border);
+  font-size: 11.8px;
+}
+
+.diag-row:first-of-type {
+  border-top: none;
+}
+
+.diag-btn-grp {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.diag-state-btn {
+  border: 1px solid var(--cp-border-strong);
+  background: var(--cp-bg-elevated);
+  color: var(--cp-text-muted);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-family: inherit;
+  font-size: 10.8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.diag-state-btn.active-fail {
+  border-color: var(--cp-danger);
+  background: var(--cp-danger);
+  color: var(--cp-accent-fg);
+}
+
+.diag-state-btn.active-ok {
+  border-color: var(--cp-success);
+  background: var(--cp-success);
+  color: var(--cp-accent-fg);
 }
 
 .syn-card-top {
@@ -1496,6 +1756,8 @@ html.is-mobile-fallback #mobileShell {
               <button class="seg-btn" data-opstate="emergency">🚨 Simula Sgancio / Scarica</button>
             </div>
 
+            <button id="btnFaultMode" class="btn" type="button" title="Evidenzia tutti gli interruttori, i fusibili e i quadri a monte che possono aver tolto alimentazione o consenso al punto selezionato">🛠️ Ricerca Guasto</button>
+
             <button id="btnToggleFlow" class="btn" title="Pausa o avvia il movimento delle forme sui fili">⏸ Pausa</button>
 
             <label class="btn" id="lblBridges" style="cursor:pointer;" title="Abilita i blocchi ponte verso gli altri impianti collegati (disattivato di default)">
@@ -1586,9 +1848,9 @@ html.is-mobile-fallback #mobileShell {
   <script src="./assets/vendor/cytoscape-elk.js"></script>
   <script src="./assets/vendor/cytoscape-cola.js"></script>
   <script src="./assets/vendor/cytoscape-fcose.js"></script>
-  <script src="./assets/data/impianto_data.js?v=20261117a"></script>
-  <script src="./assets/data/pannelli_fisici_data.js?v=20261117a"></script>
-  <script src="./assets/nav_history.js?v=20261117a"></script>
-  <script src="./assets/app.js?v=20261117a"></script>
+  <script src="./assets/data/impianto_data.js?v=20261117b"></script>
+  <script src="./assets/data/pannelli_fisici_data.js?v=20261117b"></script>
+  <script src="./assets/nav_history.js?v=20261117b"></script>
+  <script src="./assets/app.js?v=20261117b"></script>
 </body>
 </html>

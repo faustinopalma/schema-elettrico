@@ -93,6 +93,11 @@
 
   function buildCurrentGraphLabel() {
     const eng = ENGINE_LABELS[state.layoutEngine] || "Mappa";
+    if (state.faultMode) {
+      const tId = state.faultTargetId || state.selectedNodeId;
+      const tNode = findNodeAny(tId);
+      return `Ricerca Guasto · ${tNode ? tNode.code : "Impianto"}`;
+    }
     if (state.drillBoardId && NODE_MAP.has(state.drillBoardId)) {
       const b = NODE_MAP.get(state.drillBoardId);
       return state.layoutEngine !== "synoptic"
@@ -128,6 +133,17 @@
     else sp.delete("bridges");
     if (!state.livePhysics) sp.set("physics", "0");
     else sp.delete("physics");
+    if (state.faultMode && (state.faultTargetId || state.selectedNodeId)) {
+      sp.set("fault", state.faultTargetId || state.selectedNodeId);
+      if (state.faultCoFailed.length) sp.set("cf", state.faultCoFailed.join(","));
+      else sp.delete("cf");
+      if (state.faultConfirmedOk.length) sp.set("ok", state.faultConfirmedOk.join(","));
+      else sp.delete("ok");
+    } else {
+      sp.delete("fault");
+      sp.delete("cf");
+      sp.delete("ok");
+    }
     sp.delete("ret");
     sp.delete("retLabel");
     window.history.replaceState({}, "", u.toString());
@@ -153,6 +169,11 @@
       lblL.style.borderColor = state.livePhysics ? "var(--cp-accent)" : "var(--cp-border)";
       lblL.style.background = state.livePhysics ? "var(--cp-accent-soft)" : "var(--cp-surface)";
     }
+    const fBtn = document.getElementById("btnFaultMode");
+    if (fBtn) {
+      fBtn.classList.toggle("btn-fault-active", Boolean(state.faultMode));
+      fBtn.textContent = state.faultMode ? "🛠️ Ricerca Guasto: ON" : "🛠️ Ricerca Guasto";
+    }
     syncToolbarMode();
   }
 
@@ -168,6 +189,9 @@
     const qDir = sp.get("dir");
     const qGroup = sp.get("group");
     const qOp = sp.get("op");
+    const qFault = sp.get("fault");
+    const qCf = sp.get("cf");
+    const qOk = sp.get("ok");
 
     state.layoutEngine = (qView && validViews.has(qView)) ? qView : "synoptic";
     state.flowDir = qDir === "LR" ? "LR" : "TB";
@@ -193,11 +217,23 @@
       if (qSelect && NODE_MAP.has(qSelect)) {
         const sNode = NODE_MAP.get(qSelect);
         if (!qPlant && sNode.plant) state.activePlant = sNode.plant;
-        state.selectedNodeId = qSelect;
+        state.selectedNodeId = sNode.id;
         state.focusedNodeId = qFocus !== null ? qFocus : null;
       } else {
         state.focusedNodeId = null;
       }
+    }
+
+    if (qFault) {
+      state.faultMode = true;
+      state.faultTargetId = qFault;
+      state.faultCoFailed = qCf ? qCf.split(",").filter(Boolean) : [];
+      state.faultConfirmedOk = qOk ? qOk.split(",").filter(Boolean) : [];
+    } else {
+      state.faultMode = false;
+      state.faultTargetId = null;
+      state.faultCoFailed = [];
+      state.faultConfirmedOk = [];
     }
     syncToolbarControlsFromState();
   }
@@ -286,6 +322,10 @@
     showBridges: false,          // Strictly OFF by default! User can enable anytime.
     selectedNodeId: "RETE-DISTRIBUTORE",
     focusedNodeId: null,         // Click-only neighborhood highlight (NO hover dimming!)
+    faultMode: false,            // Upstream Breaker & Fuse Fault-Chain Tracing mode
+    faultTargetId: null,         // Node ID currently diagnosed for upstream open breakers/fuses
+    faultCoFailed: [],           // Sibling loads confirmed ALSO stopped/closed
+    faultConfirmedOk: [],        // Sibling loads confirmed STILL working normally
     isFullscreen: false,
     livePhysics: true,           // Continuous elastic rebalancing while dragging blocks in graph modes!
     activeLayoutHandle: null,
@@ -463,6 +503,993 @@
     }
   }
 
+  // ==================== UPSTREAM FAULT CHAIN, BREAKER/FUSE EXTRACTOR & DIFFERENTIAL DIAGNOSIS ====================
+  const PF_PANEL_BY_NODE = new Map();
+  (PF_DATA.panels || []).forEach((p) => {
+    if (p.nodeId) PF_PANEL_BY_NODE.set(p.nodeId, p);
+  });
+
+  const UVR_24V_GATED_EDGES = new Set(["e07", "e_q6_in", "e_f1", "e53"]);
+  const NON_CAUSAL_UPSTREAM_EDGES = new Set(["e33", "e38", "e46", "e47"]);
+  const NON_KILLING_FORWARD_EDGES = new Set(["e33", "e38", "e46", "e47", "e62"]);
+
+  const OBSERVABLE_SYMPTOM_CATALOG = [
+    { id: "FIRE-PORTONI-EI", label: "🚪 Portoni Tagliafuoco chiusi" },
+    { id: "BOX-INTERNI-P1", label: "🚗 Corrente 152 Box assente" },
+    { id: "LD-FALDA", label: "💧 Pompe Pozzi di Falda ferme" },
+    { id: "LD-IDRICO", label: "🚿 Acqua potabile (Autoclavi) ferma" },
+    { id: "LD-POMPE-CT", label: "🌡️ Pompe Clima Centrale -2 ferme" },
+    { id: "QEPOR", label: "🏢 Luce / Prese Portineria spente" },
+    { id: "LD-PDC-UNITS", label: "❄️ Pompe di Calore in blocco" },
+    { id: "GEN-FV-ROOF", label: "☀️ Fotovoltaico staccato" },
+    { id: "VIDEOCITOFONO", label: "🔔 Videocitofono spento" },
+    { id: "LD-ROOF-A", label: "🛗 Ascensori / UTA Torre A fermi" },
+    { id: "QEP-TORRE-A", label: "💡 Luci Piani Torre A spente" },
+    { id: "LD-ROOF-B", label: "🛗 Ascensori / UTA Torre B fermi" },
+    { id: "QEP-TORRE-B", label: "💡 Luci Piani Torre B spente" }
+  ];
+
+  function expandCompTokensFromText(rawText) {
+    const out = [];
+    const s = String(rawText || "");
+    // Dotted ranges: Q6.7–Q6.10 or Q6.1-Q6.2
+    const dotRe = /\b([QF]\d+\.)(\d+)\s*[–-]\s*(?:\1)?(\d+)\b/g;
+    let m;
+    while ((m = dotRe.exec(s)) !== null) {
+      const pref = m[1];
+      const a = parseInt(m[2], 10);
+      const b = parseInt(m[3], 10);
+      if (b >= a && b - a <= 24) {
+        for (let k = a; k <= b; k++) out.push(`${pref}${k}`);
+      }
+    }
+    // Integer ranges: Q4–Q14 or Q12-Q21
+    const intRe = /\b([QF])(\d+)\s*[–-]\s*(?:\1)?(\d+)\b/g;
+    while ((m = intRe.exec(s)) !== null) {
+      const pref = m[1];
+      const a = parseInt(m[2], 10);
+      const b = parseInt(m[3], 10);
+      if (b >= a && b - a <= 30) {
+        for (let k = a; k <= b; k++) out.push(`${pref}${k}`);
+      }
+    }
+    // Single component tags: Q1, Q6.11, F3, F14, F8.1, RD4, DER1, K1
+    const tokRe = /\b(Q\d+(?:\.\d+)*|F\d+(?:\.\d+)*|RD\d+|DER\d+|K\d+)\b/g;
+    while ((m = tokRe.exec(s)) !== null) {
+      out.push(m[1]);
+    }
+    return [...new Set(out)];
+  }
+
+  function classifyPanelComp(comp, isMainSwitch) {
+    if (comp.kind === "fuse") {
+      return { category: "fuse", icon: "🧨", sortRank: 2 };
+    }
+    if (comp.kind === "diff_relay" || comp.kind === "rccb" || comp.kind === "contactor") {
+      return { category: "relay", icon: "⚡", sortRank: 3 };
+    }
+    return {
+      category: "breaker",
+      icon: "🛡️",
+      sortRank: isMainSwitch ? 4 : 1
+    };
+  }
+
+  function extractProtectiveDevicesForNode(nodeId, opts) {
+    const {
+      outgoingEdges = [],
+      includeBranch = true,
+      includeGeneral = true,
+      includeUvr24 = false,
+      includeQ7Portoni = false,
+      includeCbxFuses = false,
+      isTargetSelf = false,
+      isInternal = false,
+      parentBoardId = null
+    } = opts || {};
+
+    // Level-2 Internal Component Mode
+    if (isInternal && parentBoardId) {
+      const pRef = (PF_DATA.nodeToPanel || {})[parentBoardId];
+      const pObj = pRef ? PF_PANEL_BY_SLUG.get(pRef.slug) : null;
+      const intNode = findNodeAny(nodeId);
+      if (!intNode) return [];
+      const tokens = expandCompTokensFromText(`${intNode.code || ""} ${intNode.shortFunc || ""}`);
+      if (pObj) {
+        const compMap = new Map((pObj.components || []).map((c) => [c.id, c]));
+        const picked = new Map();
+        const addC = (cid, asMain) => {
+          const c = compMap.get(cid);
+          if (!c) return;
+          if (!["mccb", "mcb", "rcbo", "rccb", "fuse", "diff_relay", "contactor"].includes(c.kind)) return;
+          if (!picked.has(c.id)) {
+            const cls = classifyPanelComp(c, asMain);
+            picked.set(c.id, {
+              id: c.id,
+              category: cls.category,
+              icon: cls.icon,
+              sortRank: cls.sortRank,
+              badgeText: `${c.id}`,
+              shortLabel: c.shortLabel || "",
+              ratingBadge: c.ratingBadge || "",
+              bayLabel: c.bayLabel || "",
+              panelCode: pObj.code,
+              panelHref: buildPanelPageHref(pObj.slug, c.id)
+            });
+          }
+        };
+        if (nodeId.endsWith("__MAIN")) addC("Q1", true);
+        tokens.forEach((t) => addC(t, t === "Q1"));
+        [...picked.keys()].forEach((cid) => {
+          const c = compMap.get(cid);
+          (c?.relatedIds || []).forEach((rid) => {
+            const rc = compMap.get(rid);
+            if (rc && (rc.kind === "fuse" || rc.kind === "diff_relay" || rc.kind === "rccb")) {
+              addC(rc.id, false);
+            }
+          });
+        });
+        return [...picked.values()].sort((a, b) => a.sortRank - b.sortRank);
+      }
+      return tokens.slice(0, 4).map((tk) => ({
+        id: tk,
+        category: tk.startsWith("F") ? "fuse" : "breaker",
+        icon: tk.startsWith("F") ? "🧨" : "🛡️",
+        sortRank: tk.startsWith("F") ? 2 : 1,
+        badgeText: tk,
+        shortLabel: intNode.label || "",
+        ratingBadge: "",
+        bayLabel: "",
+        panelCode: "",
+        panelHref: null
+      }));
+    }
+
+    // Special virtual section Q6-BOX-SEC inside QE.SSC
+    if (nodeId === "Q6-BOX-SEC") {
+      const pObj = PF_PANEL_BY_SLUG.get("qe-ssc");
+      const compMap = new Map((pObj?.components || []).map((c) => [c.id, c]));
+      const picked = [];
+      const addQ6Comp = (cid, isMainQ6) => {
+        const c = compMap.get(cid);
+        if (!c) return;
+        const cls = classifyPanelComp(c, isMainQ6);
+        picked.push({
+          id: c.id,
+          category: cls.category,
+          icon: cls.icon,
+          sortRank: cls.sortRank,
+          badgeText: c.id === "Q6" ? "Q6 [UVR 24V]" : c.id,
+          shortLabel: c.shortLabel || "",
+          ratingBadge: c.ratingBadge || "",
+          bayLabel: c.bayLabel || "",
+          panelCode: "QE.SSC",
+          panelHref: buildPanelPageHref("qe-ssc", c.id)
+        });
+      };
+      if (includeBranch) {
+        const branchTokens = [];
+        outgoingEdges.forEach((e) => {
+          expandCompTokensFromText(e.label).forEach((tk) => {
+            if (tk !== "Q6" && !branchTokens.includes(tk)) branchTokens.push(tk);
+          });
+        });
+        if (branchTokens.length > 5) {
+          const first = compMap.get(branchTokens[0]);
+          picked.push({
+            id: `${branchTokens[0]}..${branchTokens[branchTokens.length - 1]}`,
+            category: "breaker",
+            icon: "🛡️",
+            sortRank: 1,
+            badgeText: `${branchTokens[0]}–${branchTokens[branchTokens.length - 1]}`,
+            shortLabel: "Partenze Corselli / Rampa",
+            ratingBadge: `${branchTokens.length} interruttori`,
+            bayLabel: first?.bayLabel || "",
+            panelCode: "QE.SSC",
+            panelHref: buildPanelPageHref("qe-ssc", branchTokens[0])
+          });
+          // Still explicitly surface any fuses coupled to those branches!
+          branchTokens.forEach((tk) => {
+            const c = compMap.get(tk);
+            (c?.relatedIds || []).forEach((rid) => {
+              const rc = compMap.get(rid);
+              if (rc && rc.kind === "fuse" && !picked.some((p) => p.id === rc.id)) addQ6Comp(rc.id, false);
+            });
+          });
+        } else {
+          branchTokens.forEach((tk) => {
+            addQ6Comp(tk, false);
+            const c = compMap.get(tk);
+            (c?.relatedIds || []).forEach((rid) => {
+              const rc = compMap.get(rid);
+              if (rc && rc.kind === "fuse" && !picked.some((p) => p.id === rc.id)) addQ6Comp(rc.id, false);
+            });
+          });
+        }
+      }
+      if (includeGeneral || isTargetSelf) {
+        addQ6Comp("Q6", true);
+      }
+      return picked.sort((a, b) => a.sortRank - b.sortRank);
+    }
+
+    // Standard Switchboards backed by PF_DATA.panels
+    const pObj = PF_PANEL_BY_NODE.get(nodeId);
+    if (pObj) {
+      const compMap = new Map((pObj.components || []).map((c) => [c.id, c]));
+      const picked = new Map();
+      const addDev = (cid, isMainSw, customBadge) => {
+        const c = compMap.get(cid);
+        if (!c) return;
+        if (!["mccb", "mcb", "rcbo", "rccb", "fuse", "diff_relay", "contactor"].includes(c.kind)) return;
+        if (!picked.has(c.id)) {
+          const cls = classifyPanelComp(c, isMainSw);
+          const hasUvr = (c.ratingBadge || "").includes("UVR") || (c.ratingBadge || "").includes("24V") || (c.whatItDoes || "").toLowerCase().includes("minima tensione");
+          picked.set(c.id, {
+            id: c.id,
+            category: cls.category,
+            icon: cls.icon,
+            sortRank: cls.sortRank,
+            badgeText: customBadge || (hasUvr && c.kind !== "fuse" && c.kind !== "contactor" ? `${c.id} [UVR]` : c.id),
+            shortLabel: c.shortLabel || "",
+            ratingBadge: c.ratingBadge || "",
+            bayLabel: c.bayLabel || "",
+            panelCode: pObj.code,
+            panelHref: buildPanelPageHref(pObj.slug, c.id)
+          });
+        }
+      };
+
+      const expandCoupled = (cid) => {
+        const c = compMap.get(cid);
+        if (!c) return;
+        (c.relatedIds || []).forEach((rid) => {
+          const rc = compMap.get(rid);
+          if (!rc) return;
+          // Avoid pulling K1/F3/F14 unless uvr24 is actually involved on this path
+          if ((rid === "K1" || rid === "F3" || rid === "F14") && pObj.slug === "qe-ssc" && !includeUvr24) return;
+          if (rc.kind === "fuse" || rc.kind === "diff_relay" || rc.kind === "rccb") {
+            addDev(rc.id, false);
+          }
+        });
+      };
+
+      if (includeBranch && outgoingEdges.length) {
+        const rawTokens = [];
+        outgoingEdges.forEach((e) => {
+          expandCompTokensFromText(e.label).forEach((tk) => {
+            if (tk !== "Q1" || outgoingEdges.some((oe) => /\bQ1\b/.test(oe.label))) {
+              if (!rawTokens.includes(tk)) rawTokens.push(tk);
+            }
+          });
+        });
+
+        const validBreakers = rawTokens.filter((tk) => compMap.has(tk) && !tk.startsWith("F"));
+        const validFuses = rawTokens.filter((tk) => compMap.has(tk) && tk.startsWith("F"));
+
+        if (validBreakers.length > 5) {
+          const b0 = compMap.get(validBreakers[0]);
+          picked.set(`${validBreakers[0]}_RANGE`, {
+            id: `${validBreakers[0]}–${validBreakers[validBreakers.length - 1]}`,
+            category: "breaker",
+            icon: "🛡️",
+            sortRank: 1,
+            badgeText: `${validBreakers[0]}–${validBreakers[validBreakers.length - 1]}`,
+            shortLabel: "Interruttori partenze dedicate",
+            ratingBadge: `${validBreakers.length} linee`,
+            bayLabel: b0?.bayLabel || "",
+            panelCode: pObj.code,
+            panelHref: buildPanelPageHref(pObj.slug, validBreakers[0])
+          });
+          validBreakers.forEach((tk) => expandCoupled(tk));
+        } else {
+          validBreakers.forEach((tk) => {
+            addDev(tk, tk === "Q1");
+            expandCoupled(tk);
+          });
+        }
+        validFuses.forEach((tk) => addDev(tk, false));
+      }
+
+      if (includeQ7Portoni && pObj.slug === "qe-ssc") {
+        addDev("Q7", false, "Q7 [UVR]");
+        addDev("Q6.11", false);
+      }
+
+      if (includeUvr24 && pObj.slug === "qe-ssc") {
+        addDev("F3", false, "F3 (4A 24V)");
+        addDev("F14", false, "F14 (4A)");
+        addDev("K1", false, "K1 (Relè 24V)");
+        addDev("Q14", false, "Q14 (UPS2)");
+      }
+
+      if (nodeId === "QEREG" && (includeGeneral || includeBranch || isTargetSelf)) {
+        addDev("Q1", false);
+        ["F1", "F3", "F4", "F5"].forEach((fid) => addDev(fid, false));
+      }
+
+      if (includeCbxFuses && pObj.slug === "qe-lp") {
+        ["F8.1", "F8.2", "F8.3"].forEach((fid) => addDev(fid, false));
+      }
+
+      if ((includeGeneral || isTargetSelf) && compMap.has("Q1")) {
+        addDev("Q1", !isTargetSelf);
+        expandCoupled("Q1");
+      }
+
+      return [...picked.values()].sort((a, b) => a.sortRank - b.sortRank);
+    }
+
+    // Non-panel nodes (POD meters, UPS units, VVF buttons, floor QEP boards)
+    const nObj = NODE_MAP.get(nodeId);
+    if (!nObj) return [];
+
+    if (nodeId.startsWith("POD-") || nodeId.startsWith("CONTATORI-ALLOGGI")) {
+      return [{
+        id: `${nodeId}_DG`,
+        category: "breaker",
+        icon: "🛡️",
+        sortRank: 1,
+        badgeText: "Limitatore Contatore",
+        shortLabel: "Interruttore integrato sul contatore di fornitura",
+        ratingBadge: nObj.specs?.["Potenza disp."] || "400V",
+        bayLabel: nObj.roomGroup || "",
+        panelCode: nObj.code,
+        panelHref: null
+      }];
+    }
+
+    if (nodeId === "UPS-1-EI") {
+      const list = [];
+      if (includeQ7Portoni) {
+        list.push({
+          id: "Q7",
+          category: "breaker",
+          icon: "🛡️",
+          sortRank: 1,
+          badgeText: "Q7 [UVR 24V] (in QE.SSC)",
+          shortLabel: "Interruttore uscita XUPS verso Portoni Tagliafuoco",
+          ratingBadge: "2P C10 + UVR 24Vac",
+          bayLabel: "QE.SSC · Pannello 7",
+          panelCode: "QE.SSC",
+          panelHref: buildPanelPageHref("qe-ssc", "Q7")
+        });
+      }
+      list.push({
+        id: "UPS1_PROT",
+        category: "breaker",
+        icon: "🔋",
+        sortRank: 2,
+        badgeText: "Prot. / Batteria UPS 1",
+        shortLabel: "Protezione uscita / autonomia batterie UPS 1000VA",
+        ratingBadge: "1000 VA Online",
+        bayLabel: "Locale Contatori Scala A (-1)",
+        panelCode: "UPS-1",
+        panelHref: null
+      });
+      return list;
+    }
+
+    if (nodeId === "UPS-2-SGANCIO") {
+      return [{
+        id: "UPS2_PROT",
+        category: "breaker",
+        icon: "🔋",
+        sortRank: 1,
+        badgeText: "Prot. / Batteria UPS 2",
+        shortLabel: "Alimenta trasf. 24Vac T14 (se spento apre Q5, Q6, Q7!)",
+        ratingBadge: "2000 VA Online",
+        bayLabel: "Locale Contatori Scala A (-1)",
+        panelCode: "UPS-2",
+        panelHref: null
+      }];
+    }
+
+    if (nodeId === "SGANCI-VVF") {
+      return [{
+        id: includeUvr24 ? "PEM_24V" : "PULS_VVF",
+        category: "relay",
+        icon: "🚨",
+        sortRank: 1,
+        badgeText: includeUvr24 ? "Pulsante NC Box / Linea 24Vac" : "Pulsante Sgancio VVF",
+        shortLabel: includeUvr24
+          ? "Pulsante VVF Autorimessa o corto/apertura su dorsale 24Vac (es. bobine wallbox)"
+          : "Comando di sgancio emergenza VVF del compartimento",
+        ratingBadge: includeUvr24 ? "24Vac Fail-Safe" : "230Vac SOR",
+        bayLabel: "Ingressi / Portineria",
+        panelCode: "VVF",
+        panelHref: null
+      }];
+    }
+
+    if (nodeId === "QEP-TORRE-A" || nodeId === "QEP-TORRE-B") {
+      return [{
+        id: "DG_QEP",
+        category: "breaker",
+        icon: "🛡️",
+        sortRank: 1,
+        badgeText: "DG 25A + Diff. 30mA (QEP)",
+        shortLabel: "Sezionatore generale e magnetotermici-differenziali nel centralino di piano",
+        ratingBadge: "25A / C10-C16 30mA",
+        bayLabel: "Pianerottolo di piano",
+        panelCode: nObj.code,
+        panelHref: null
+      }];
+    }
+
+    if (nodeId === "RIP-250") {
+      return [{
+        id: "RIP250_MORS",
+        category: "breaker",
+        icon: "🔀",
+        sortRank: 3,
+        badgeText: "Sbarre Ripartitore 250A",
+        shortLabel: "Ripartitore passivo tetrapolare a monte sgancio (senza fusibili)",
+        ratingBadge: "4P 250A",
+        bayLabel: "Locale Contatori P. Terra",
+        panelCode: "RIP-250A",
+        panelHref: null
+      }];
+    }
+
+    return [];
+  }
+
+  function computeForwardImpactLevel1(startNodeId, mode, viaEdgeId, allEdges) {
+    const impacted = new Set();
+    const queue = [];
+
+    if (mode === "branch" && viaEdgeId) {
+      const e0 = allEdges.find((x) => x.id === viaEdgeId);
+      if (e0) queue.push({ id: e0.target, m: "full" });
+    } else if (mode === "sor_btn" && viaEdgeId) {
+      const e0 = allEdges.find((x) => x.id === viaEdgeId);
+      if (e0) queue.push({ id: e0.target, m: "full" });
+    } else if (mode === "uvr24") {
+      ["QELP", "Q6-BOX-SEC", "FIRE-PORTONI-EI", "LD-BOX"].forEach((t) => {
+        queue.push({ id: t, m: "full" });
+      });
+    } else {
+      queue.push({ id: startNodeId, m: "full" });
+    }
+
+    const seen = new Set(queue.map((q) => `${q.id}::${q.m}`));
+    while (queue.length > 0) {
+      const { id: curr, m } = queue.shift();
+      if (m === "full") {
+        impacted.add(curr);
+        // Hydraulic coupling: stopping groundwater well pumps (LD-FALDA) blocks water-to-water heat pumps (LD-PDC-UNITS)
+        if (curr === "LD-FALDA" && !seen.has("LD-PDC-UNITS::full")) {
+          seen.add("LD-PDC-UNITS::full");
+          queue.push({ id: "LD-PDC-UNITS", m: "full" });
+        }
+      }
+
+      if (curr === "UPS-2-SGANCIO" && m === "full") {
+        ["QELP", "Q6-BOX-SEC", "FIRE-PORTONI-EI", "LD-BOX"].forEach((t) => {
+          if (!seen.has(`${t}::full`)) {
+            seen.add(`${t}::full`);
+            queue.push({ id: t, m: "full" });
+          }
+        });
+        continue;
+      }
+
+      if (curr === "SGANCI-VVF") continue;
+
+      allEdges.forEach((e) => {
+        if (e.source !== curr) return;
+        const et = e.edgeType;
+        if (et === "earth_pe" || et === "power_fv" || et === "emergency_trip") return;
+        if (NON_KILLING_FORWARD_EDGES.has(e.id)) return;
+        if (["FTTH-CSOE", "IRA-CENTRALI", "LD-ESTERNI", "TLC-ALLOGGI-STOA"].includes(e.target) && startNodeId !== curr) {
+          return;
+        }
+        const key = `${e.target}::full`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          queue.push({ id: e.target, m: "full" });
+        }
+      });
+    }
+
+    // CEI 0-21 anti-islanding: if QE.PC loses AC grid voltage, rooftop PV inverter disconnects
+    if (impacted.has("QEPC")) {
+      impacted.add("GEN-FV-ROOF");
+    }
+    return impacted;
+  }
+
+  function traceUpstreamRawLevel1(targetId) {
+    const allEdges = DATA.edges.filter((e) => e.edgeType !== "doc_trace");
+    const nodeMeta = new Map(); // nodeId -> { dist, roles: Set, outEdgesUsed: Set, uvr24Involved, sorEdges: Set, q7PortoniInvolved, cbxInvolved }
+    const activeEdges = new Set();
+
+    const ensureMeta = (nid, dist) => {
+      if (!nodeMeta.has(nid)) {
+        nodeMeta.set(nid, {
+          dist,
+          roles: new Set(),
+          outEdgesUsed: new Set(),
+          uvr24Involved: false,
+          sorEdges: new Set(),
+          q7PortoniInvolved: false,
+          cbxInvolved: false
+        });
+      } else if (dist < nodeMeta.get(nid).dist) {
+        nodeMeta.get(nid).dist = dist;
+      }
+      return nodeMeta.get(nid);
+    };
+
+    ensureMeta(targetId, 0).roles.add("target");
+    const queue = [{ id: targetId, mode: "full", dist: 0 }];
+    const seen = new Set([`${targetId}::full`]);
+
+    // Special case: if diagnosing GEN-FV-ROOF (inverter FV disconnected), include both rooftop PV strings AND AC parallel reference QEPC (anti-islanding CEI 0-21)
+    if (targetId === "GEN-FV-ROOF") {
+      const e20 = allEdges.find((e) => e.id === "e20");
+      if (e20) {
+        activeEdges.add("e20");
+        const mQepc = ensureMeta("QEPC", 1);
+        mQepc.roles.add("power");
+        mQepc.outEdgesUsed.add(e20);
+        seen.add("QEPC::full");
+        queue.push({ id: "QEPC", mode: "full", dist: 1 });
+      }
+    }
+
+    // Special case: if diagnosing LD-PDC-UNITS (geothermal water-to-water heat pumps), groundwater wells LD-FALDA are a direct hydraulic prerequisite!
+    if (targetId === "LD-PDC-UNITS") {
+      const mFalda = ensureMeta("LD-FALDA", 1);
+      mFalda.roles.add("control");
+      seen.add("LD-FALDA::full");
+      queue.push({ id: "LD-FALDA", mode: "full", dist: 1 });
+    }
+
+    while (queue.length > 0) {
+      const { id: curr, mode, dist } = queue.shift();
+
+      if (curr === "SGANCI-VVF" && mode === "uvr24") {
+        const e24 = allEdges.find((e) => e.id === "e24");
+        if (e24) {
+          activeEdges.add(e24.id);
+          const mUps2 = ensureMeta("UPS-2-SGANCIO", dist + 1);
+          mUps2.roles.add("trip");
+          mUps2.outEdgesUsed.add(e24);
+          if (!seen.has("UPS-2-SGANCIO::full")) {
+            seen.add("UPS-2-SGANCIO::full");
+            queue.push({ id: "UPS-2-SGANCIO", mode: "full", dist: dist + 1 });
+          }
+        }
+        continue;
+      }
+
+      allEdges.forEach((e) => {
+        if (e.target !== curr) return;
+        const eid = e.id;
+        const et = e.edgeType;
+        const src = e.source;
+
+        if (et === "earth_pe" && !["TERRA-RETE", "GND-COLLETTORI-EQP", "GND-SPD-4X"].includes(targetId)) {
+          return;
+        }
+        if (NON_CAUSAL_UPSTREAM_EDGES.has(eid)) return;
+        // Rooftop PV is supplemental to 160 kW grid on QEPC: only a primary cause when diagnosing GEN-FV-ROOF itself
+        if (et === "power_fv" && targetId !== "GEN-FV-ROOF") return;
+
+        // Check if this incoming branch is gated by the 24Vac UVR K1 circuit in QE.SSC!
+        if (UVR_24V_GATED_EDGES.has(eid)) {
+          const mQessc = ensureMeta("QESSC", dist + 1);
+          mQessc.uvr24Involved = true;
+          if (eid === "e_f1" || eid === "e53") {
+            mQessc.q7PortoniInvolved = true;
+            mQessc.roles.add("trip");
+            const mUps1 = ensureMeta("UPS-1-EI", dist + 1);
+            mUps1.q7PortoniInvolved = true;
+          }
+          const e25 = allEdges.find((x) => x.id === "e25");
+          const eq6 = allEdges.find((x) => x.id === "e_q6_vvf");
+          if (e25) activeEdges.add(e25.id);
+          if (eid === "e_q6_in" && eq6) activeEdges.add(eq6.id);
+
+          const mSg = ensureMeta("SGANCI-VVF", dist + 1);
+          mSg.roles.add("trip");
+          mSg.uvr24Involved = true;
+          if (e25) mSg.outEdgesUsed.add(e25);
+          if (!seen.has("SGANCI-VVF::uvr24")) {
+            seen.add("SGANCI-VVF::uvr24");
+            queue.push({ id: "SGANCI-VVF", mode: "uvr24", dist: dist + 1 });
+          }
+        }
+
+        if (eid === "e25") {
+          // e25 (24Vac K1) only trips Q5/Q6/Q7, never the main busbar of QESSC unless user selected QESSC itself
+          if (targetId === "QESSC") {
+            activeEdges.add(eid);
+            const mSg = ensureMeta(src, dist + 1);
+            mSg.roles.add("trip");
+            mSg.uvr24Involved = true;
+            mSg.outEdgesUsed.add(e);
+            if (!seen.has("SGANCI-VVF::uvr24")) {
+              seen.add("SGANCI-VVF::uvr24");
+              queue.push({ id: src, mode: "uvr24", dist: dist + 1 });
+            }
+          }
+          return;
+        }
+
+        if (eid === "e_q6_vvf") {
+          activeEdges.add(eid);
+          const mSg = ensureMeta(src, dist + 1);
+          mSg.roles.add("trip");
+          mSg.uvr24Involved = true;
+          mSg.outEdgesUsed.add(e);
+          if (!seen.has("SGANCI-VVF::uvr24")) {
+            seen.add("SGANCI-VVF::uvr24");
+            queue.push({ id: src, mode: "uvr24", dist: dist + 1 });
+          }
+          return;
+        }
+
+        if (et === "emergency_trip") {
+          // 230Vac SOR shunt-trip button on AVSSC / AVSCA / AVSCB / AVPC
+          activeEdges.add(eid);
+          const mSg = ensureMeta(src, dist + 1);
+          mSg.roles.add("trip");
+          mSg.sorEdges.add(eid);
+          mSg.outEdgesUsed.add(e);
+          return;
+        }
+
+        if (eid === "e36") {
+          ensureMeta("QELP", dist).cbxInvolved = true;
+        }
+
+        activeEdges.add(eid);
+        const mSrc = ensureMeta(src, dist + 1);
+        const role = (et === "bms_bus" || et === "tlc_signal") ? "control" : "power";
+        mSrc.roles.add(role);
+        mSrc.outEdgesUsed.add(e);
+
+        const nextKey = `${src}::full`;
+        if (!seen.has(nextKey)) {
+          seen.add(nextKey);
+          queue.push({ id: src, mode: "full", dist: dist + 1 });
+        }
+      });
+    }
+
+    return { nodeMeta, activeEdges, allEdges };
+  }
+
+  function computeFaultDiagnosis(overrideTargetId, overrideCoFailed, overrideConfirmedOk, forceLevel1) {
+    const isInternal = !forceLevel1 && Boolean(state.drillBoardId);
+    const targetId = overrideTargetId || state.faultTargetId || state.selectedNodeId;
+    const coFailedArr = overrideCoFailed !== undefined ? overrideCoFailed : state.faultCoFailed;
+    const confirmedOkArr = overrideConfirmedOk !== undefined ? overrideConfirmedOk : state.faultConfirmedOk;
+    const coFailedSet = new Set((coFailedArr || []).filter((id) => id !== targetId));
+    const confirmedOkSet = new Set((confirmedOkArr || []).filter((id) => id !== targetId && !coFailedSet.has(id)));
+    const mustExplainAll = [targetId, ...coFailedSet];
+
+    // LEVEL-2 INTERNAL SWITCHBOARD FAULT CHAIN
+    if (isInternal) {
+      const board = NODE_MAP.get(state.drillBoardId);
+      if (!board || !board.internalGraph) return null;
+      const iNodes = board.internalGraph.nodes;
+      const iEdges = board.internalGraph.edges;
+      const nodeMap = new Map(iNodes.map((n) => [n.id, n]));
+      if (!nodeMap.has(targetId)) return null;
+
+      const distMap = new Map([[targetId, 0]]);
+      const activeEdgeIds = new Set();
+      const q = [targetId];
+
+      while (q.length > 0) {
+        const cur = q.shift();
+        const d = distMap.get(cur);
+        // Special internal 24Vac UVR dependency inside QE.SSC
+        const curObj = nodeMap.get(cur);
+        if (board.id === "QESSC" && curObj && (curObj.code || "").includes("[UVR]") && cur !== "QESSC__C_17") {
+          if (!distMap.has("QESSC__C_17")) {
+            distMap.set("QESSC__C_17", d + 1);
+            q.push("QESSC__C_17");
+          }
+          iEdges.forEach((ie) => {
+            if (ie.target === "QESSC__C_17") activeEdgeIds.add(ie.id);
+          });
+        }
+        iEdges.forEach((ie) => {
+          if (ie.target !== cur) return;
+          if (ie.edgeType === "earth_pe" && !targetId.endsWith("__PE") && !targetId.endsWith("__SPD")) return;
+          activeEdgeIds.add(ie.id);
+          if (!distMap.has(ie.source)) {
+            distMap.set(ie.source, d + 1);
+            q.push(ie.source);
+          }
+        });
+      }
+
+      const targetSelfDevices = extractProtectiveDevicesForNode(targetId, {
+        isTargetSelf: true,
+        isInternal: true,
+        parentBoardId: board.id
+      });
+
+      const steps = [];
+      [...distMap.entries()]
+        .filter(([nid]) => nid !== targetId)
+        .sort((a, b) => a[1] - b[1])
+        .forEach(([nid, dist], idx) => {
+          const nObj = nodeMap.get(nid);
+          const devs = extractProtectiveDevicesForNode(nid, {
+            includeBranch: true,
+            includeGeneral: true,
+            isInternal: true,
+            parentBoardId: board.id
+          });
+          steps.push({
+            nodeId: nid,
+            node: { ...nObj, plant: board.plant, floor: board.floor, roomGroup: board.roomGroup },
+            dist,
+            activeRank: idx + 1,
+            ruledOut: false,
+            isPrimarySuspect: idx === 0,
+            roles: nid === "QESSC__C_17" ? ["trip"] : ["power"],
+            activeDevices: devs,
+            modeHint: nid === "QESSC__C_17"
+              ? "Fusibili F14 / F3 (4A) e trasformatore T14 (24Vac) che mantengono armati Q5, Q6 e Q7."
+              : (nObj.shortFunc || "Elemento a monte all'interno del quadro.")
+          });
+        });
+
+      const stepByNodeId = new Map(steps.map((s) => [s.nodeId, s]));
+      let breakerCount = targetSelfDevices.filter((d) => d.category === "breaker").length;
+      let fuseCount = targetSelfDevices.filter((d) => d.category === "fuse").length;
+      steps.forEach((s) => {
+        breakerCount += s.activeDevices.filter((d) => d.category === "breaker").length;
+        fuseCount += s.activeDevices.filter((d) => d.category === "fuse").length;
+      });
+
+      return {
+        isInternal: true,
+        targetId,
+        targetNode: { ...nodeMap.get(targetId), plant: board.plant, floor: board.floor, roomGroup: board.roomGroup },
+        targetSelfDevices,
+        coFailedSet,
+        confirmedOkSet,
+        steps,
+        activeSteps: steps,
+        ruledOutSteps: [],
+        stepByNodeId,
+        activeEdgeIds,
+        ruledOutEdgeIds: new Set(),
+        discriminators: [],
+        breakerCount,
+        fuseCount,
+        hasFilters: false
+      };
+    }
+
+    // LEVEL-1 BUILDING-WIDE FAULT CHAIN & DIFFERENTIAL EXCLUSION
+    if (!NODE_MAP.has(targetId)) return null;
+    const { nodeMeta, activeEdges: rawEdgeIds, allEdges } = traceUpstreamRawLevel1(targetId);
+
+    const targetNode = NODE_MAP.get(targetId);
+    const targetSelfDevices = extractProtectiveDevicesForNode(targetId, {
+      includeBranch: false,
+      includeGeneral: true,
+      isTargetSelf: true
+    });
+
+    // Evaluate multi-mode physical hypotheses for each upstream node
+    const candidateEntries = [];
+    nodeMeta.forEach((meta, nid) => {
+      if (nid === targetId) return;
+      const nObj = NODE_MAP.get(nid);
+      if (!nObj) return;
+
+      const outList = [...meta.outEdgesUsed];
+      const modes = [];
+
+      // Mode 1: Individual outgoing feeder breaker(s) on this board toward the faulty chain
+      if (outList.length > 0 && nid !== "SGANCI-VVF" && nid !== "UPS-2-SGANCIO") {
+        outList.forEach((oe) => {
+          const imp = computeForwardImpactLevel1(nid, "branch", oe.id, allEdges);
+          modes.push({
+            kind: "branch",
+            edge: oe,
+            impact: imp,
+            size: imp.size
+          });
+        });
+      }
+
+      // Mode 2: 24Vac UVR emergency loop (inside QE.SSC: F3/F14/T14/K1/Q14, or UPS-2, or SGANCI-VVF Box)
+      if (meta.uvr24Involved && (nid === "QESSC" || nid === "SGANCI-VVF" || nid === "UPS-2-SGANCIO")) {
+        const imp = computeForwardImpactLevel1(nid, "uvr24", null, allEdges);
+        modes.push({
+          kind: "uvr24",
+          edge: null,
+          impact: imp,
+          size: imp.size
+        });
+      }
+
+      // Mode 3: 230Vac SOR shunt-trip button from SGANCI-VVF
+      if (nid === "SGANCI-VVF" && meta.sorEdges.size > 0) {
+        meta.sorEdges.forEach((seId) => {
+          const imp = computeForwardImpactLevel1("SGANCI-VVF", "sor_btn", seId, allEdges);
+          modes.push({
+            kind: "sor_btn",
+            edgeId: seId,
+            impact: imp,
+            size: imp.size
+          });
+        });
+      }
+
+      // Mode 4: Full board / upstream supply loss (e.g. Q1 general breaker open or upstream feed dead)
+      if (nid !== "SGANCI-VVF") {
+        const imp = computeForwardImpactLevel1(nid, "full", null, allEdges);
+        modes.push({
+          kind: "full",
+          edge: null,
+          impact: imp,
+          size: imp.size
+        });
+      }
+
+      // Check which modes satisfy ALL user observations (explains target + all coFailed, and doesn't kill any confirmedOk!)
+      const validModes = modes.filter((m) => {
+        const explainsAll = mustExplainAll.every((reqId) => m.impact.has(reqId));
+        if (!explainsAll) return false;
+        for (const okId of confirmedOkSet) {
+          if (m.impact.has(okId)) return false;
+        }
+        return true;
+      });
+
+      const allModesUnion = new Set();
+      modes.forEach((m) => m.impact.forEach((x) => allModesUnion.add(x)));
+
+      const ruledOut = validModes.length === 0;
+      const bestBlastSize = ruledOut
+        ? 9999
+        : Math.min(...validModes.map((m) => m.size));
+
+      const branchValid = validModes.some((m) => m.kind === "branch");
+      const fullValid = validModes.some((m) => m.kind === "full");
+      const uvrValid = validModes.some((m) => m.kind === "uvr24");
+      const validOutEdges = validModes.filter((m) => m.kind === "branch" && m.edge).map((m) => m.edge);
+
+      const devices = extractProtectiveDevicesForNode(nid, {
+        outgoingEdges: ruledOut ? outList : (branchValid ? validOutEdges : []),
+        includeBranch: ruledOut ? outList.length > 0 : branchValid,
+        includeGeneral: ruledOut ? true : fullValid,
+        includeUvr24: ruledOut ? meta.uvr24Involved : uvrValid,
+        includeQ7Portoni: meta.q7PortoniInvolved && (ruledOut || uvrValid || fullValid || branchValid),
+        includeCbxFuses: meta.cbxInvolved && (ruledOut || fullValid || branchValid)
+      });
+
+      // Compose crystal-clear diagnostic guidance explaining which breaker/fuse to check on this node
+      let modeHint = "";
+      if (ruledOut) {
+        const missesCoFail = [...coFailedSet].some((cf) => !allModesUnion.has(cf));
+        modeHint = missesCoFail
+          ? "Escluso come causa unica: un'apertura qui non spiegherebbe gli altri impianti fermi segnalati."
+          : "Escluso: se fosse aperto, sarebbero spente anche le utenze che hai indicato come funzionanti.";
+      } else if (nid === "QESSC" && uvrValid && !fullValid && !branchValid) {
+        modeHint = "🎯 Causa specifica nel quadro QE.SSC: verifica i fusibili F3 / F14 (4A gG), il trasformatore 24Vac T14, il relè K1 e Q14 (l'assenza del 24V fa scattare insieme Q5 Pozzi, Q6 Box e Q7 Portoni EI lasciando attiva la sbarra generale!).";
+      } else if (branchValid && !fullValid) {
+        const eLbls = validOutEdges.map((e) => e.label).join(" / ");
+        modeHint = `🎯 Sbarra generale sana (altre utenze attive): controlla solo la partenza dedicata ${eLbls}.`;
+      } else if (nid === "UPS-2-SGANCIO") {
+        modeHint = "Se UPS 2 è spento, guasto o scarico cade il 24Vac su T14/K1 facendo aprire insieme Q5 (Pozzi), Q6 (Box) e Q7 (Portoni EI).";
+      } else if (nid === "SGANCI-VVF" && meta.uvr24Involved) {
+        modeHint = "Controlla che il pulsante VVF Autorimessa non sia azionato e che non ci siano corti/aperture sulla dorsale 24Vac (es. bobine sgancio wallbox).";
+      } else if (nid === "LD-FALDA" && targetId === "LD-PDC-UNITS") {
+        modeHint = "Interdipendenza idraulica: se le pompe dei pozzi di falda si fermano, le Pompe di Calore vanno in blocco flussostato per mancanza acqua.";
+      } else if (outList.length > 0) {
+        modeHint = `Linea verso valle: ${outList.map((e) => e.label).join(" · ")}. Controlla l'interruttore di partenza, eventuali fusibili ausiliari e il generale di quadro.`;
+      } else {
+        modeHint = nObj.shortFunc || "Punto di alimentazione o comando a monte.";
+      }
+
+      candidateEntries.push({
+        nodeId: nid,
+        node: nObj,
+        dist: meta.dist,
+        ruledOut,
+        bestBlastSize,
+        roles: [...meta.roles],
+        activeDevices: devices,
+        allImpactUnion: allModesUnion,
+        modeHint
+      });
+    });
+
+    const hasFilters = coFailedSet.size > 0 || confirmedOkSet.size > 0;
+    const activeSteps = candidateEntries.filter((c) => !c.ruledOut);
+    const ruledOutSteps = candidateEntries.filter((c) => c.ruledOut).sort((a, b) => a.dist - b.dist);
+
+    if (hasFilters) {
+      // Sort by tightest common root cause (smallest blast radius explaining all symptoms), then closest distance!
+      activeSteps.sort((a, b) => (a.bestBlastSize - b.bestBlastSize) || (a.dist - b.dist));
+    } else {
+      activeSteps.sort((a, b) => a.dist - b.dist);
+    }
+
+    const minBlast = activeSteps.length > 0 ? activeSteps[0].bestBlastSize : 9999;
+    activeSteps.forEach((s, idx) => {
+      s.activeRank = idx + 1;
+      s.isPrimarySuspect = hasFilters
+        ? (s.bestBlastSize <= minBlast + 1 && idx < 3)
+        : (idx === 0);
+    });
+
+    const steps = [...activeSteps, ...ruledOutSteps];
+    const stepByNodeId = new Map(steps.map((s) => [s.nodeId, s]));
+
+    // Determine active vs ruled-out edges along the upstream chain
+    const activeEdgeIds = new Set();
+    const ruledOutEdgeIds = new Set();
+    rawEdgeIds.forEach((eid) => {
+      const eObj = allEdges.find((x) => x.id === eid);
+      if (!eObj) return;
+      const srcStep = stepByNodeId.get(eObj.source);
+      const tgtIsActive = eObj.target === targetId || coFailedSet.has(eObj.target) || (stepByNodeId.has(eObj.target) && !stepByNodeId.get(eObj.target).ruledOut);
+      if (srcStep && !srcStep.ruledOut && tgtIsActive) {
+        activeEdgeIds.add(eid);
+      } else {
+        ruledOutEdgeIds.add(eid);
+      }
+    });
+
+    // Build dynamic list of observable discriminator symptoms relevant to this chain
+    const totalCandidates = candidateEntries.length;
+    const discriminators = OBSERVABLE_SYMPTOM_CATALOG.filter((sym) => {
+      if (sym.id === targetId) return false;
+      if (coFailedSet.has(sym.id) || confirmedOkSet.has(sym.id)) return true;
+      let hitCount = 0;
+      candidateEntries.forEach((c) => {
+        if (c.allImpactUnion.has(sym.id)) hitCount += 1;
+      });
+      return hitCount > 0 && hitCount < totalCandidates;
+    }).slice(0, 6);
+
+    let breakerCount = targetSelfDevices.filter((d) => d.category === "breaker").length;
+    let fuseCount = targetSelfDevices.filter((d) => d.category === "fuse").length;
+    activeSteps.forEach((s) => {
+      breakerCount += s.activeDevices.filter((d) => d.category === "breaker").length;
+      fuseCount += s.activeDevices.filter((d) => d.category === "fuse").length;
+    });
+
+    return {
+      isInternal: false,
+      targetId,
+      targetNode,
+      targetSelfDevices,
+      coFailedSet,
+      confirmedOkSet,
+      steps,
+      activeSteps,
+      ruledOutSteps,
+      stepByNodeId,
+      activeEdgeIds,
+      ruledOutEdgeIds,
+      discriminators,
+      breakerCount,
+      fuseCount,
+      hasFilters
+    };
+  }
+
+  function getActiveFaultDiagnosis() {
+    if (!state.faultMode) return null;
+    return computeFaultDiagnosis();
+  }
+
   // ==================== BUILD GRAPH (LEVEL 1 PLANT MAP OR LEVEL 2 INTERNAL BOARD MAP) ====================
   function computeCurrentGraph() {
     // LEVEL 2: Internal Component Sub-Graph of a Specific Switchboard!
@@ -518,7 +1545,7 @@
         }
       });
     } else {
-      // LEVEL 1B: Specific Plant (1..8) — Bridges strictly OFF by default unless state.showBridges === true!
+      // LEVEL 1B: Specific Plant (1..8) — Bridges strictly OFF by default unless state.showBridges === true (or selectively pulled in by Fault Mode)!
       const plantOwnNodes = DATA.nodes.filter((n) => n.plant === pid && n.tier <= 2 && n.nodeClass !== "doc_reference");
       const ownSet = new Set(plantOwnNodes.map((n) => n.id));
 
@@ -526,6 +1553,38 @@
         nodes.push({ ...n, isBridge: false });
         includedIds.add(n.id);
       });
+
+      // When Fault Mode is active, selectively include upstream chain nodes across plants so the full chain is visible!
+      let faultChainNodes = null;
+      let faultChainEdges = null;
+      if (state.faultMode && !state.drillBoardId) {
+        const tId = state.faultTargetId || state.selectedNodeId;
+        if (NODE_MAP.has(tId)) {
+          const raw = traceUpstreamRawLevel1(tId);
+          faultChainNodes = new Set([...raw.nodeMeta.keys(), ...(state.faultCoFailed || [])]);
+          faultChainEdges = raw.activeEdges;
+          if (state.layoutEngine !== "synoptic") {
+            // In dynamic Cytoscape graphs, include ALL cross-plant chain nodes even multiple hops away!
+            faultChainNodes.forEach((cid) => {
+              const cn = NODE_MAP.get(cid);
+              if (cn && !includedIds.has(cn.id)) {
+                nodes.push({ ...cn, isBridge: !ownSet.has(cn.id) });
+                includedIds.add(cn.id);
+              }
+            });
+          } else {
+            // In static Synoptic mode, include any chain node that has an explicit pre-validated slot on this plant's board!
+            const synSlots = (SYNOPTIC_SCHEMAS[pid] && SYNOPTIC_SCHEMAS[pid].slots) || {};
+            faultChainNodes.forEach((cid) => {
+              const cn = NODE_MAP.get(cid);
+              if (cn && !includedIds.has(cn.id) && synSlots[cn.id]) {
+                nodes.push({ ...cn, isBridge: true });
+                includedIds.add(cn.id);
+              }
+            });
+          }
+        }
+      }
 
       DATA.edges.forEach((e) => {
         if (e.edgeType === "doc_trace") return;
@@ -545,6 +1604,8 @@
               includedIds.add(endN.id);
             }
           });
+          edges.push({ ...e });
+        } else if (faultChainNodes && includedIds.has(e.source) && includedIds.has(e.target) && (faultChainEdges.has(e.id) || sOwn || tOwn)) {
           edges.push({ ...e });
         }
       });
@@ -632,26 +1693,59 @@
       .replace(/"/g, "&quot;");
   }
 
-  function buildNodeCardDataUri(node, pal, isSelected) {
+  function buildNodeCardDataUri(node, pal, isSelected, faultDiag) {
     const W = node.isInternalComp ? 266 : 304;
     const H = node.isInternalComp ? 102 : 124;
     const col = resolveNodeCarrierColors(node, pal);
     const pInfo = PLANT_MAP.get(node.plant);
     const isHorizontal = state.flowDir === "LR";
 
-    const cardBg = node.isBridge ? pal.bgElevated : pal.surface;
-    const headerBg = node.isBridge ? pal.surfaceSoft : col.bg;
-    const strokeCol = isSelected ? col.fg : (node.isBridge ? pal.borderStrong : col.fg);
-    const strokeW = isSelected ? 3.6 : (node.roleType === "source" ? 2.6 : 1.9);
-    const dashAttr = node.isBridge ? 'stroke-dasharray="7,4"' : "";
+    const fStep = faultDiag && faultDiag.stepByNodeId ? faultDiag.stepByNodeId.get(node.id) : null;
+    const isFaultTarget = Boolean(faultDiag && faultDiag.targetId === node.id);
+    const isFaultCoFail = Boolean(faultDiag && faultDiag.coFailedSet && faultDiag.coFailedSet.has(node.id));
+    const isFaultActiveStep = Boolean(fStep && !fStep.ruledOut);
 
-    const roleBanner = node.isBridge
+    let cardBg = node.isBridge ? pal.bgElevated : pal.surface;
+    let headerBg = node.isBridge ? pal.surfaceSoft : col.bg;
+    let strokeCol = isSelected ? col.fg : (node.isBridge ? pal.borderStrong : col.fg);
+    let strokeW = isSelected ? 3.6 : (node.roleType === "source" ? 2.6 : 1.9);
+    let dashAttr = node.isBridge ? 'stroke-dasharray="7,4"' : "";
+
+    if (isFaultTarget) {
+      strokeCol = pal.danger;
+      strokeW = 4.0;
+      dashAttr = "";
+    } else if (isFaultCoFail) {
+      strokeCol = pal.danger;
+      strokeW = 3.0;
+      dashAttr = 'stroke-dasharray="7,4"';
+    } else if (isFaultActiveStep) {
+      strokeCol = fStep.isPrimarySuspect ? pal.warning : col.fg;
+      strokeW = fStep.isPrimarySuspect ? 3.8 : 2.8;
+      dashAttr = "";
+    }
+
+    let roleBanner = node.isBridge
       ? `↪ PONTE · ${pInfo ? pInfo.shortName.toUpperCase() : ""}`
       : (node.roleLabel || "COMPONENTE");
+    if (isFaultTarget) roleBanner = "🎯 PUNTO NON FUNZIONANTE";
+    else if (isFaultCoFail) roleBanner = "🔴 ANCHE FERMO";
+    else if (isFaultActiveStep) {
+      roleBanner = fStep.isPrimarySuspect
+        ? `★ #${fStep.activeRank} CAUSA A MONTE`
+        : `#${fStep.activeRank} CONTROLLO A MONTE`;
+    }
 
     const cleanTitle = node.label.replace(/\s*\([^)]*\)\s*$/, "").trim();
     const titleLines = wrapTextLines(cleanTitle, node.isInternalComp ? 30 : 32, 1);
-    const funcLines = wrapTextLines(node.shortFunc || node.desc || "", node.isInternalComp ? 36 : 41, 2);
+
+    let bodyDesc = node.shortFunc || node.desc || "";
+    if (isFaultActiveStep && fStep.activeDevices && fStep.activeDevices.length) {
+      bodyDesc = fStep.activeDevices.map((d) => `${d.icon} ${d.badgeText}`).join(" · ");
+    } else if (isFaultTarget && faultDiag.targetSelfDevices && faultDiag.targetSelfDevices.length) {
+      bodyDesc = "A bordo: " + faultDiag.targetSelfDevices.map((d) => `${d.icon} ${d.badgeText}`).join(" · ");
+    }
+    const funcLines = wrapTextLines(bodyDesc, node.isInternalComp ? 36 : 41, 2);
 
     const incs = INC_BY_NODE.get(node.id) || [];
     const hasInternal = Boolean(node.internalGraph);
@@ -1098,6 +2192,28 @@
 
     cards.forEach((c) => c.classList.remove("dimmed"));
     wires.forEach((w) => w.classList.remove("dimmed"));
+
+    if (state.faultMode) {
+      clearBtn.style.display = "none";
+      const faultDiag = getActiveFaultDiagnosis();
+      if (!faultDiag) return;
+      const keepNodes = new Set([faultDiag.targetId, ...faultDiag.coFailedSet]);
+      faultDiag.activeSteps.forEach((s) => keepNodes.add(s.nodeId));
+
+      wires.forEach((w) => {
+        const eid = w.dataset.edgeId;
+        if (!faultDiag.activeEdgeIds.has(eid)) {
+          w.classList.add("dimmed");
+        }
+      });
+      cards.forEach((c) => {
+        const nid = c.dataset.nodeId;
+        if (!keepNodes.has(nid) && !c.classList.contains("fault-ruled-out")) {
+          c.classList.add("dimmed");
+        }
+      });
+      return;
+    }
 
     if (!state.focusedNodeId) {
       clearBtn.style.display = "none";
@@ -1712,23 +2828,32 @@
     });
 
     // STEP 4: Render SVG Wires, Spaced Exit Port Dots, Arrowheads & Non-Colliding Badges
+    const faultDiag = getActiveFaultDiagnosis();
     let svgWiresHtml = "";
-    let portDotsSvg = "";
     const placedBadgeRects = [];
     const wireSpecs = [];
 
-    routedEdges.forEach(({ e, pts, pStart, pEnd, arrowAngleDeg, badgeCandidates }) => {
+    // In Fault Mode, place badges for active fault-chain wires first so they never get crowded out
+    const orderedRoutedEdges = faultDiag
+      ? [...routedEdges].sort((a, b) => {
+          const aAct = faultDiag.activeEdgeIds.has(a.e.id) ? 0 : 1;
+          const bAct = faultDiag.activeEdgeIds.has(b.e.id) ? 0 : 1;
+          return aAct - bAct;
+        })
+      : routedEdges;
+
+    orderedRoutedEdges.forEach(({ e, pts, pStart, pEnd, arrowAngleDeg, badgeCandidates }) => {
       const interrupted = isEdgeInterruptedInEmergency(e);
       const cStyle = resolveCarrierStyle(e.edgeType, interrupted, pal);
       const color = cStyle.color;
       const dash = cStyle.svgDash;
-      const strokeW = cStyle.width;
+      const isFaultWire = Boolean(faultDiag && faultDiag.activeEdgeIds.has(e.id));
+      const strokeW = isFaultWire ? (cStyle.width + 1.0) : cStyle.width;
 
       const dPath = buildRoundedOrthoPath(pts, 11);
       if (!dPath) return;
 
-      // Distinct outgoing terminal connector pin dot on source block border
-      portDotsSvg += `<circle cx="${pStart.x.toFixed(1)}" cy="${pStart.y.toFixed(1)}" r="2.9" fill="${pal.surface}" stroke="${color}" stroke-width="1.8" />`;
+      const dotSvg = `<circle cx="${pStart.x.toFixed(1)}" cy="${pStart.y.toFixed(1)}" r="${isFaultWire ? "3.4" : "2.9"}" fill="${pal.surface}" stroke="${color}" stroke-width="${isFaultWire ? "2.1" : "1.8"}" />`;
 
       // Arrowhead / Tee at target port
       let headSvg = "";
@@ -1739,14 +2864,16 @@
       }
 
       // Compact horizontal micro-badge checked against BOTH other badges AND other wires!
+      // When Fault Mode is ON, suppress badges on dimmed non-chain wires so breaker/fuse labels stand out cleanly!
       let badgeSvg = "";
+      const rawShort = (e.label || "").replace(/\s*·\s*.*/, "").slice(0, isFaultWire ? 26 : 22);
       const shortLbl = interrupted
         ? (e.edgeType === "power_fv" ? "⛔ STOP CEI 0-21" : "⛔ SEZIONATO")
-        : (e.label || "").replace(/\s*·\s*.*/, "").slice(0, 22);
+        : (isFaultWire && rawShort ? `🛡️ ${rawShort}` : rawShort);
 
-      if (shortLbl && badgeCandidates.length) {
-        const bw = Math.max(46, shortLbl.length * 5.6 + 10);
-        const bh = 15;
+      if (shortLbl && badgeCandidates.length && (!faultDiag || isFaultWire)) {
+        const bw = Math.max(46, shortLbl.length * 5.7 + 12);
+        const bh = isFaultWire ? 16.5 : 15;
         for (const cand of badgeCandidates) {
           const bx1 = cand.x - bw / 2;
           const by1 = cand.y - bh / 2;
@@ -1755,7 +2882,7 @@
           const hitsBadge = placedBadgeRects.some((r) =>
             bx1 < r.x2 + 4 && bx2 > r.x1 - 4 && by1 < r.y2 + 2 && by2 > r.y1 - 2
           );
-          const hitsOtherWire = allWireSegs.some((sg) =>
+          const hitsOtherWire = !isFaultWire && allWireSegs.some((sg) =>
             sg.edgeId !== e.id && sg.x2 > bx1 - 2 && sg.x1 < bx2 + 2 && sg.y2 > by1 - 2 && sg.y1 < by2 + 2
           );
           if (!hitsBadge && !hitsOtherWire) {
@@ -1763,9 +2890,9 @@
             badgeSvg = `
               <g>
                 <rect x="${bx1.toFixed(1)}" y="${by1.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="4"
-                  fill="${pal.surface}" stroke="${interrupted ? pal.danger : pal.border}" stroke-width="1" opacity="0.95" />
-                <text x="${cand.x.toFixed(1)}" y="${(cand.y + 3.3).toFixed(1)}" text-anchor="middle"
-                  font-family="Segoe UI, Aptos, sans-serif" font-size="9.3" font-weight="600" fill="${interrupted ? pal.danger : pal.textMuted}">${escXml(shortLbl)}</text>
+                  fill="${pal.surface}" stroke="${interrupted ? pal.danger : (isFaultWire ? color : pal.border)}" stroke-width="${isFaultWire ? "1.6" : "1"}" opacity="0.97" />
+                <text x="${cand.x.toFixed(1)}" y="${(cand.y + 3.4).toFixed(1)}" text-anchor="middle"
+                  font-family="Segoe UI, Aptos, sans-serif" font-size="${isFaultWire ? "9.6" : "9.3"}" font-weight="${isFaultWire ? "700" : "600"}" fill="${interrupted ? pal.danger : (isFaultWire ? pal.text : pal.textMuted)}">${escXml(shortLbl)}</text>
               </g>
             `;
             break;
@@ -1775,9 +2902,10 @@
 
       const pathDomId = `synpath_${e.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
       svgWiresHtml += `
-        <g class="syn-wire-group" data-edge-id="${e.id}" data-source="${e.source}" data-target="${e.target}">
+        <g class="syn-wire-group ${isFaultWire ? "fault-active" : ""}" data-edge-id="${e.id}" data-source="${e.source}" data-target="${e.target}">
           <path id="${pathDomId}" d="${dPath}" fill="none" stroke="${color}" stroke-width="${strokeW}"
             ${dash ? `stroke-dasharray="${dash}"` : ""} stroke-linecap="round" stroke-linejoin="round" />
+          ${dotSvg}
           ${headSvg}
           ${badgeSvg}
         </g>
@@ -1794,7 +2922,7 @@
       });
     });
 
-    const dotsSvg = portDotsSvg;
+    const dotsSvg = "";
 
     // Build Crisp HTML Technical Cards
     let cardsHtml = "";
@@ -1814,19 +2942,56 @@
       const hasDrill = Boolean(n.internalGraph) && !n.isInternalComp;
       const physTarget = !n.isInternalComp ? resolvePhysicalPanelTarget(n, null) : null;
 
+      // Fault-chain status & inline Breaker/Fuse pills on the card!
+      let faultCls = "";
+      let topRightChipHtml = incs.length > 0
+        ? `<span style="background:var(--cp-warning); color:var(--cp-text); font-weight:700; padding:0 5px; border-radius:4px; font-size:9.5px;">⚠ ${incs.length}</span>`
+        : `<span class="syn-room-chip" title="${escXml(n.roomGroup || "")}">${escXml(shortRoom)}</span>`;
+      let midContentHtml = `<div class="syn-func" title="${escXml(n.shortFunc || n.desc || "")}">${escXml(n.shortFunc || n.desc || "")}</div>`;
+
+      if (faultDiag) {
+        const fStep = faultDiag.stepByNodeId.get(n.id);
+        const renderInlinePills = (devs) => devs.slice(0, 4).map((d) => {
+          const pCls = d.category === "fuse" ? "is-fuse" : (d.category === "breaker" ? "is-breaker" : "");
+          const tip = `${d.badgeText} — ${d.shortLabel} (${d.ratingBadge})`;
+          return d.panelHref
+            ? `<a class="syn-prot-pill ${pCls}" href="${escXml(d.panelHref)}" data-panel-link="true" title="${escXml(tip)}">${d.icon} ${escXml(d.badgeText)}</a>`
+            : `<span class="syn-prot-pill ${pCls}" title="${escXml(tip)}">${d.icon} ${escXml(d.badgeText)}</span>`;
+        }).join("");
+
+        if (n.id === faultDiag.targetId) {
+          faultCls = "fault-target";
+          topRightChipHtml = `<span class="syn-fault-badge is-target">🎯 NON FUNZIONA</span>`;
+          if (faultDiag.targetSelfDevices && faultDiag.targetSelfDevices.length) {
+            midContentHtml = `<div class="syn-prot-strip">${renderInlinePills(faultDiag.targetSelfDevices)}</div>`;
+          }
+        } else if (faultDiag.coFailedSet.has(n.id)) {
+          faultCls = "fault-cofail";
+          topRightChipHtml = `<span class="syn-fault-badge is-target">🔴 ANCHE FERMO</span>`;
+        } else if (fStep) {
+          if (fStep.ruledOut) {
+            faultCls = "fault-ruled-out";
+            topRightChipHtml = `<span class="syn-room-chip">Escluso</span>`;
+          } else {
+            faultCls = fStep.isPrimarySuspect ? "fault-top-suspect" : "fault-suspect";
+            topRightChipHtml = `<span class="syn-fault-badge ${fStep.isPrimarySuspect ? "is-top" : "is-step"}">${fStep.isPrimarySuspect ? `★ #${fStep.activeRank}` : `#${fStep.activeRank} A MONTE`}</span>`;
+            if (fStep.activeDevices && fStep.activeDevices.length) {
+              midContentHtml = `<div class="syn-prot-strip">${renderInlinePills(fStep.activeDevices)}</div>`;
+            }
+          }
+        }
+      }
+
       cardsHtml += `
-        <div class="syn-card ${n.isBridge ? "is-bridge" : ""} ${isSel ? "is-selected" : ""} ${isTripped ? "is-tripped" : ""}"
+        <div class="syn-card ${n.isBridge ? "is-bridge" : ""} ${isSel ? "is-selected" : ""} ${isTripped ? "is-tripped" : ""} ${faultCls}"
           data-node-id="${n.id}"
           style="left:${bx.left.toFixed(1)}px; top:${bx.top.toFixed(1)}px; width:${CARD_W}px; height:${CARD_H}px; --card-accent:${accent};">
           <div class="syn-card-top">
             <span class="syn-code" title="${escXml(n.code)}">${escXml(n.code)}</span>
-            ${incs.length > 0
-              ? `<span style="background:var(--cp-warning); color:var(--cp-text); font-weight:700; padding:0 5px; border-radius:4px; font-size:9.5px;">⚠ ${incs.length}</span>`
-              : `<span class="syn-room-chip" title="${escXml(n.roomGroup || "")}">${escXml(shortRoom)}</span>`
-            }
+            ${topRightChipHtml}
           </div>
           <div class="syn-title" title="${escXml(n.label)}">${escXml(n.label)}</div>
-          <div class="syn-func" title="${escXml(n.shortFunc || n.desc || "")}">${escXml(n.shortFunc || n.desc || "")}</div>
+          ${midContentHtml}
           ${(hasDrill || physTarget) ? `
             <div class="syn-card-foot">
               ${physTarget
@@ -1888,6 +3053,22 @@
       cardEl.addEventListener("click", (ev) => {
         ev.stopPropagation();
         const nid = cardEl.dataset.nodeId;
+        if (state.faultMode) {
+          if (state.faultTargetId !== nid) {
+            state.faultTargetId = nid;
+            state.faultCoFailed = [];
+            state.faultConfirmedOk = [];
+            state.selectedNodeId = nid;
+            state.focusedNodeId = null;
+            refreshAll();
+          } else {
+            selectNode(nid, false);
+          }
+          if (state.isFullscreen) {
+            document.getElementById("inspector").classList.remove("closed-in-fs");
+          }
+          return;
+        }
         state.focusedNodeId = state.focusedNodeId === nid ? null : nid;
         selectNode(nid, false);
         if (state.isFullscreen) {
@@ -2239,9 +3420,10 @@
       gIdx += 1;
     });
 
+    const faultDiag = getActiveFaultDiagnosis();
     nodes.forEach((n) => {
       const grp = resolveNodeGroup(n, isInternal);
-      const card = buildNodeCardDataUri(n, pal, n.id === state.selectedNodeId);
+      const card = buildNodeCardDataUri(n, pal, n.id === state.selectedNodeId, faultDiag);
       const elObj = {
         data: {
           id: n.id,
@@ -2457,6 +3639,23 @@
         }
       }
 
+      if (state.faultMode) {
+        if (state.faultTargetId !== nid) {
+          state.faultTargetId = nid;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+          state.selectedNodeId = nid;
+          state.focusedNodeId = null;
+          refreshAll();
+        } else {
+          selectNode(nid, false);
+        }
+        if (state.isFullscreen) {
+          document.getElementById("inspector").classList.remove("closed-in-fs");
+        }
+        return;
+      }
+
       // Toggle click focus if clicking already-focused node, else focus it!
       if (state.focusedNodeId === nid) {
         state.focusedNodeId = null;
@@ -2493,6 +3692,26 @@
     if (!cyInstance) return;
     cyInstance.elements().removeClass("dimmed flow-highlight");
 
+    if (state.faultMode) {
+      clearBtn.style.display = "none";
+      const faultDiag = getActiveFaultDiagnosis();
+      if (!faultDiag) return;
+      const keepIds = new Set([faultDiag.targetId, ...faultDiag.coFailedSet]);
+      faultDiag.activeSteps.forEach((s) => keepIds.add(s.nodeId));
+
+      cyInstance.nodes("[!isGroup]").forEach((nd) => {
+        if (!keepIds.has(nd.id())) nd.addClass("dimmed");
+      });
+      cyInstance.edges().forEach((ed) => {
+        if (faultDiag.activeEdgeIds.has(ed.id())) {
+          ed.addClass("flow-highlight");
+        } else {
+          ed.addClass("dimmed");
+        }
+      });
+      return;
+    }
+
     if (!state.focusedNodeId) {
       clearBtn.style.display = "none";
       return;
@@ -2523,11 +3742,12 @@
     }
     if (!cyInstance) return;
     const pal = getPalette();
+    const faultDiag = getActiveFaultDiagnosis();
     const { nodes } = computeCurrentGraph();
     nodes.forEach((n) => {
       const cyNode = cyInstance.getElementById(n.id);
       if (cyNode && cyNode.length) {
-        const card = buildNodeCardDataUri(n, pal, n.id === state.selectedNodeId);
+        const card = buildNodeCardDataUri(n, pal, n.id === state.selectedNodeId, faultDiag);
         cyNode.data("cardUri", card.uri);
       }
     });
@@ -2540,6 +3760,13 @@
     state.drillBoardId = boardId;
     state.focusedNodeId = null;
     state.selectedNodeId = `${boardId}__MAIN`;
+    if (state.faultMode) {
+      const outLeaves = b.internalGraph.nodes.filter((sn) => sn.roleType === "load");
+      state.faultTargetId = outLeaves.length ? outLeaves[0].id : `${boardId}__MAIN`;
+      state.selectedNodeId = state.faultTargetId;
+      state.faultCoFailed = [];
+      state.faultConfirmedOk = [];
+    }
     renderCytoscape(true);
     renderInspector();
     syncUrlWithState();
@@ -2560,7 +3787,14 @@
     const prevBoard = state.drillBoardId;
     state.drillBoardId = null;
     state.focusedNodeId = null;
-    if (prevBoard) state.selectedNodeId = prevBoard;
+    if (prevBoard) {
+      state.selectedNodeId = prevBoard;
+      if (state.faultMode) {
+        state.faultTargetId = prevBoard;
+        state.faultCoFailed = [];
+        state.faultConfirmedOk = [];
+      }
+    }
     renderCytoscape(true);
     renderInspector();
     syncUrlWithState();
@@ -2748,7 +3982,7 @@
           if (ws.interrupted) return;
           if (ws.wireGrp && ws.wireGrp.classList.contains("dimmed")) return;
           const eType = ws.edgeType;
-          if (state.opState === "normal" && (eType === "earth_pe" || eType === "emergency_trip")) {
+          if (state.opState === "normal" && (eType === "earth_pe" || (eType === "emergency_trip" && !state.faultMode))) {
             return;
           }
 
@@ -2787,7 +4021,7 @@
           if (edge.data("interrupted")) return;
 
           const eType = edge.data("edgeType");
-          if (state.opState === "normal" && (eType === "earth_pe" || eType === "emergency_trip")) {
+          if (state.opState === "normal" && (eType === "earth_pe" || (eType === "emergency_trip" && !state.faultMode))) {
             return;
           }
 
@@ -2861,6 +4095,12 @@
         state.activePlant = btn.dataset.plant;
         state.drillBoardId = null;
         state.focusedNodeId = null;
+        if (state.faultMode) {
+          state.faultMode = false;
+          state.faultTargetId = null;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+        }
         refreshAll();
       });
     });
@@ -2892,6 +4132,168 @@
     `;
   }
 
+  function renderProtChipHtml(d, extAttrName) {
+    const cls = d.category === "fuse" ? "is-fuse" : (d.category === "relay" ? "is-relay" : "is-breaker");
+    const sub = d.ratingBadge ? ` <span style="font-weight:600; opacity:0.85; font-size:10.5px;">· ${escXml(d.ratingBadge)}</span>` : "";
+    const tip = [d.shortLabel, d.bayLabel ? `Posizione: ${d.bayLabel}` : ""].filter(Boolean).join(" — ");
+    if (d.panelHref) {
+      return `<a class="prot-chip ${cls}" href="${escXml(d.panelHref)}" ${extAttrName}="${escXml(d.panelHref)}" title="${escXml(tip)}">${d.icon} <span class="mono">${escXml(d.badgeText)}</span>${sub} ↗</a>`;
+    }
+    return `<span class="prot-chip ${cls}" style="cursor:default;" title="${escXml(tip)}">${d.icon} <span class="mono">${escXml(d.badgeText)}</span>${sub}</span>`;
+  }
+
+  function buildFaultPanelHtml(faultDiag, isMobile) {
+    if (!faultDiag) return "";
+    const extAttr = isMobile ? "data-mob-ext" : "data-fault-ext";
+    const tNode = faultDiag.targetNode;
+    const isOrigin = faultDiag.steps.length === 0 && (!faultDiag.targetSelfDevices || faultDiag.targetSelfDevices.length === 0);
+
+    const selfBlockHtml = (faultDiag.targetSelfDevices && faultDiag.targetSelfDevices.length) ? `
+      <div class="fault-step-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+          <div>
+            <span class="syn-fault-badge is-target">A BORDO</span>
+            <strong style="font-size:12.5px; margin-left:4px;">${escXml(tNode.code)} — Protezione locale</strong>
+          </div>
+          <span style="font-size:11px; color:var(--cp-text-muted);">📍 ${escXml((tNode.roomGroup || "").replace(/\s*\(.*?\)/g, ""))}</span>
+        </div>
+        <div class="prot-chips-wrap">
+          ${faultDiag.targetSelfDevices.map((d) => renderProtChipHtml(d, extAttr)).join("")}
+        </div>
+        <div style="font-size:11.5px; color:var(--cp-text-muted);">Verifica per primo l'organo di manovra/protezione generale a bordo dello stesso quadro.</div>
+      </div>
+    ` : "";
+
+    const renderStepCard = (s) => {
+      const fl = FLOOR_MAP.get(s.node.floor) || { name: s.node.floor || "" };
+      const loc = (s.node.roomGroup || fl.name || "").replace(/\s*\(.*?\)/g, "");
+      const op = PLANT_MAP.get(s.node.plant);
+      const isCrossPlant = !isMobile && !faultDiag.isInternal && s.node.plant && s.node.plant !== state.activePlant && state.activePlant !== "IMP-INGRESSI";
+
+      return `
+        <div class="fault-step-card ${s.ruledOut ? "is-ruled-out" : (s.isPrimarySuspect ? "is-top-suspect" : "")}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
+            <div>
+              <span class="syn-fault-badge ${s.ruledOut ? "" : (s.isPrimarySuspect ? "is-top" : "is-step")}">
+                ${s.ruledOut ? "ESCLUSO" : (s.isPrimarySuspect && faultDiag.hasFilters ? `★ #${s.activeRank} COLPEVOLE PROBABILE` : `#${s.activeRank} A MONTE`)}
+              </span>
+              <div style="font-size:13px; font-weight:700; margin-top:3px;">
+                ${escXml(s.node.label)} <span class="mono" style="font-size:11px; color:var(--cp-accent);">(${escXml(s.node.code)})</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--cp-text-muted); margin-top:2px;">📍 ${escXml(loc)}</div>
+
+          ${(s.activeDevices && s.activeDevices.length) ? `
+            <div class="prot-chips-wrap">
+              ${s.activeDevices.map((d) => renderProtChipHtml(d, extAttr)).join("")}
+            </div>
+          ` : ""}
+
+          <div style="font-size:11.8px; color:var(--cp-text-muted); margin-top:3px;">${escXml(s.modeHint)}</div>
+
+          ${!s.ruledOut ? `
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+              ${isMobile
+                ? `<button type="button" class="btn" style="font-size:11px; padding:3px 8px;" data-mob-node="${escXml(s.nodeId)}">🔍 Apri scheda ${escXml(s.node.code)}</button>`
+                : `
+                  <button type="button" class="btn" style="font-size:11px; padding:3px 8px;" data-fault-inspect="${escXml(s.nodeId)}">🔍 Vedi blocco</button>
+                  ${isCrossPlant && op ? `<button type="button" class="btn" style="font-size:11px; padding:3px 8px;" data-fault-jump-plant="${escXml(s.node.plant)}" data-fault-jump-node="${escXml(s.nodeId)}">↪ Mappa ${escXml(op.shortName)}</button>` : ""}
+                `
+              }
+            </div>
+          ` : ""}
+        </div>
+      `;
+    };
+
+    const diagBoxHtml = faultDiag.discriminators.length ? `
+      <details class="acc-block" ${faultDiag.hasFilters ? "open" : ""} style="margin-bottom:10px;">
+        <summary style="font-size:12px;">
+          <span>🔍 Restringi causa: stato di altre utenze (${faultDiag.hasFilters ? "attivo" : "opzionale"})</span>
+          <span class="mono" style="font-size:11px; color:var(--cp-accent);">▾</span>
+        </summary>
+        <div class="acc-content" style="padding:8px 10px;">
+          <div style="font-size:11.3px; color:var(--cp-text-muted); margin-bottom:6px;">
+            Indica se un'altra utenza risulta ferma o regolarmente funzionante per escludere automaticamente interruttori e fusibili non coerenti:
+          </div>
+          ${faultDiag.discriminators.map((sym) => {
+            const isFail = faultDiag.coFailedSet.has(sym.id);
+            const isOk = faultDiag.confirmedOkSet.has(sym.id);
+            return `
+              <div class="diag-row">
+                <span style="font-weight:600;">${escXml(sym.label)}</span>
+                <span class="diag-btn-grp">
+                  <button type="button" class="diag-state-btn ${isFail ? "active-fail" : ""}" data-diag-fail="${escXml(sym.id)}">🔴 Fermo</button>
+                  <button type="button" class="diag-state-btn ${isOk ? "active-ok" : ""}" data-diag-ok="${escXml(sym.id)}">🟢 OK</button>
+                </span>
+              </div>
+            `;
+          }).join("")}
+          ${faultDiag.hasFilters ? `
+            <div style="margin-top:7px; text-align:right;">
+              <button type="button" class="btn" style="font-size:11px; padding:3px 9px;" data-diag-reset="1">↺ Azzera filtri esclusione</button>
+            </div>
+          ` : ""}
+        </div>
+      </details>
+    ` : "";
+
+    return `
+      <div class="fault-panel">
+        <div class="fault-panel-hdr">
+          <div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--cp-danger);">🛠️ Catena di Guasto Attiva</div>
+            <div style="font-size:13.5px; font-weight:700; line-height:1.25; margin-top:2px;">
+              Interruttori &amp; Fusibili a monte di <span class="mono" style="color:var(--cp-accent);">${escXml(tNode.code)}</span>
+            </div>
+          </div>
+          <button type="button" class="btn" style="font-size:11px; padding:3px 8px; flex-shrink:0;" data-close-fault="1">✕ Chiudi</button>
+        </div>
+
+        ${isOrigin ? `
+          <div style="font-size:12.5px; color:var(--cp-text-muted); padding:4px 2px;">
+            ★ <strong>${escXml(tNode.label)}</strong> è una sorgente primaria: non ci sono interruttori o fusibili condominiali a monte.<br/>
+            ${isMobile ? "Apri un quadro o un'utenza a valle per vederne la catena di protezione." : "<strong>Clicca su un qualsiasi quadro o utenza nella mappa</strong> per evidenziarne subito tutti gli interruttori e fusibili a monte."}
+          </div>
+        ` : `
+          <div class="fault-kpi-row">
+            <span class="fault-kpi-chip" style="border-color:var(--cp-accent); color:var(--cp-accent);">🛡️ ${faultDiag.breakerCount} Interruttori</span>
+            <span class="fault-kpi-chip" style="border-color:var(--cp-warning);">🧨 ${faultDiag.fuseCount} Fusibili</span>
+            <span class="fault-kpi-chip">🗄️ ${faultDiag.activeSteps.length} Quadri/Punti a monte</span>
+          </div>
+
+          ${diagBoxHtml}
+
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--cp-text-muted); margin:0 0 6px;">
+            Sequenza controlli (dal punto guasto risalendo a monte):
+          </div>
+
+          ${selfBlockHtml}
+
+          ${faultDiag.activeSteps.length
+            ? faultDiag.activeSteps.map(renderStepCard).join("")
+            : `<div style="padding:10px; border-radius:8px; background:var(--cp-surface); border:1px dashed var(--cp-danger); font-size:12px;">
+                Nessun singolo interruttore o fusibile spiega da solo questa combinazione di utenze ferme/attive (possibile doppio scatto indipendente). Premi <strong>↺ Azzera filtri</strong> per rivedere tutta la catena.
+              </div>`
+          }
+
+          ${faultDiag.ruledOutSteps.length ? `
+            <details class="acc-block" style="margin-top:8px; margin-bottom:0;">
+              <summary style="font-size:11.5px; color:var(--cp-text-muted);">
+                <span>Esclusi dai riscontri sulle altre utenze (${faultDiag.ruledOutSteps.length})</span>
+                <span class="mono">▾</span>
+              </summary>
+              <div class="acc-content" style="padding:8px;">
+                ${faultDiag.ruledOutSteps.map(renderStepCard).join("")}
+              </div>
+            </details>
+          ` : ""}
+        `}
+      </div>
+    `;
+  }
+
   // ==================== RIGHT INSPECTOR PANEL ====================
   function renderInspector() {
     const node = findNodeAny(state.selectedNodeId);
@@ -2904,6 +4306,7 @@
     const canDrillInternal = Boolean(node.internalGraph) && !state.drillBoardId;
     const canJumpPlant = !state.drillBoardId && node.plant !== state.activePlant && node.plant !== "IMP-INGRESSI";
     const physTarget = resolvePhysicalPanelTarget(node, state.drillBoardId);
+    const isFaultTargetHere = state.faultMode && (state.faultTargetId || state.selectedNodeId) === node.id;
 
     document.getElementById("inspHeader").innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
@@ -2917,9 +4320,12 @@
         </div>
       </div>
       <h3 class="insp-title">${node.label}</h3>
-      <div class="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · ${fl.name}</div>
+      <div style="mono" style="font-size:11.5px; color:var(--cp-text-muted);">Sigla: <strong>${node.code}</strong> · ${fl.name}</div>
 
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:9px;">
+        <button id="btnInspFaultToggle" type="button" class="btn ${isFaultTargetHere ? "btn-fault-active" : ""}" style="font-size:12px; ${!isFaultTargetHere ? "border-color:var(--cp-danger); color:var(--cp-danger);" : ""}">
+          ${isFaultTargetHere ? "✕ Chiudi Ricerca Guasto" : `🛠️ Catena Guasto da ${escXml(node.code)}`}
+        </button>
         ${physTarget ? `
           <a id="btnOpenPhysFromInsp" class="btn btn-primary" href="${physTarget.href}" style="font-size:12px; text-decoration:none;">
             🗄️ ${state.drillBoardId && physTarget.comp ? `Vedi ${physTarget.comp} nel Pannello Fisico ${physTarget.code}` : `Apri Pannello Fisico (${physTarget.code})`} →
@@ -2938,6 +4344,25 @@
         ` : ""}
       </div>
     `;
+
+    const bFault = document.getElementById("btnInspFaultToggle");
+    if (bFault) {
+      bFault.addEventListener("click", () => {
+        if (isFaultTargetHere) {
+          state.faultMode = false;
+          state.faultTargetId = null;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+        } else {
+          state.faultMode = true;
+          state.faultTargetId = node.id;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+          state.focusedNodeId = null;
+        }
+        refreshAll();
+      });
+    }
 
     const bPhys = document.getElementById("btnOpenPhysFromInsp");
     if (bPhys) {
@@ -2991,9 +4416,12 @@
     };
 
     const isEarthSink = node.id === "TERRA-RETE" || (node.code && node.code.includes("TERRA PE"));
+    const faultDiag = getActiveFaultDiagnosis();
 
     const body = document.getElementById("inspBody");
     body.innerHTML = `
+      ${faultDiag ? buildFaultPanelHtml(faultDiag, false) : ""}
+
       <div class="func-callout">
         <div style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--cp-accent); margin-bottom:3px;">Funzione del Blocco</div>
         <div style="font-weight:700; font-size:13.5px; margin-bottom:5px;">${node.shortFunc || ""}</div>
@@ -3142,6 +4570,88 @@
 
     body.querySelectorAll("[data-open-pdf]").forEach((btn) => {
       btn.addEventListener("click", () => openSinglePdfModal(btn.dataset.openPdf));
+    });
+
+    // Fault Panel interactive handlers (Breaker/Fuse deep-links, exclusion filters, step jumps)
+    body.querySelectorAll("[data-fault-ext]").forEach((lnk) => {
+      lnk.addEventListener("click", (ev) => {
+        if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+        ev.preventDefault();
+        navigateToExternalPage(lnk.getAttribute("href"));
+      });
+    });
+
+    const closeFaultBtn = body.querySelector("[data-close-fault]");
+    if (closeFaultBtn) {
+      closeFaultBtn.addEventListener("click", () => {
+        state.faultMode = false;
+        state.faultTargetId = null;
+        state.faultCoFailed = [];
+        state.faultConfirmedOk = [];
+        refreshAll();
+      });
+    }
+
+    body.querySelectorAll("[data-diag-fail]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sid = btn.dataset.diagFail;
+        state.faultConfirmedOk = state.faultConfirmedOk.filter((x) => x !== sid);
+        if (state.faultCoFailed.includes(sid)) {
+          state.faultCoFailed = state.faultCoFailed.filter((x) => x !== sid);
+        } else {
+          state.faultCoFailed = [...state.faultCoFailed, sid];
+        }
+        refreshAll();
+      });
+    });
+
+    body.querySelectorAll("[data-diag-ok]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sid = btn.dataset.diagOk;
+        state.faultCoFailed = state.faultCoFailed.filter((x) => x !== sid);
+        if (state.faultConfirmedOk.includes(sid)) {
+          state.faultConfirmedOk = state.faultConfirmedOk.filter((x) => x !== sid);
+        } else {
+          state.faultConfirmedOk = [...state.faultConfirmedOk, sid];
+        }
+        refreshAll();
+      });
+    });
+
+    const resetDiagBtn = body.querySelector("[data-diag-reset]");
+    if (resetDiagBtn) {
+      resetDiagBtn.addEventListener("click", () => {
+        state.faultCoFailed = [];
+        state.faultConfirmedOk = [];
+        refreshAll();
+      });
+    }
+
+    body.querySelectorAll("[data-fault-inspect]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nid = btn.dataset.faultInspect;
+        const { nodes: visNodes } = computeCurrentGraph();
+        if (visNodes.some((x) => x.id === nid)) {
+          selectNode(nid, true);
+        } else if (NODE_MAP.has(nid)) {
+          pushIntraAppStep();
+          const tgt = NODE_MAP.get(nid);
+          state.drillBoardId = null;
+          state.activePlant = tgt.plant;
+          state.selectedNodeId = nid;
+          refreshAll();
+        }
+      });
+    });
+
+    body.querySelectorAll("[data-fault-jump-plant]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pushIntraAppStep();
+        state.drillBoardId = null;
+        state.activePlant = btn.dataset.faultJumpPlant;
+        if (btn.dataset.faultJumpNode) state.selectedNodeId = btn.dataset.faultJumpNode;
+        refreshAll();
+      });
     });
   }
 
@@ -3398,6 +4908,11 @@
     const sel = document.getElementById("viewModeSelect");
     if (sel && sel.value !== state.layoutEngine) sel.value = state.layoutEngine;
     if (dynWrap) dynWrap.style.display = isSyn ? "none" : "inline-flex";
+    const fBtn = document.getElementById("btnFaultMode");
+    if (fBtn) {
+      fBtn.classList.toggle("btn-fault-active", Boolean(state.faultMode));
+      fBtn.textContent = state.faultMode ? "🛠️ Ricerca Guasto: ON" : "🛠️ Ricerca Guasto";
+    }
   }
 
   function refreshAll() {
@@ -3417,6 +4932,9 @@
     tab: "plants",           // 'plants' | 'rooms' | 'audit' | 'docs'
     plantId: "IMP-INGRESSI",
     selectedNodeId: null,    // null = list mode | nodeId = essential component sheet
+    faultMode: false,        // Smartphone Upstream Breaker & Fuse Fault-Chain mode
+    faultCoFailed: [],
+    faultConfirmedOk: [],
     query: "",
     history: []              // intra-mobile step stack: { tab, plantId, selectedNodeId, label, scrollY }
   };
@@ -3438,6 +4956,17 @@
     sp.set("plant", mobState.plantId);
     if (mobState.selectedNodeId) sp.set("select", mobState.selectedNodeId);
     else sp.delete("select");
+    if (mobState.faultMode && mobState.selectedNodeId) {
+      sp.set("fault", mobState.selectedNodeId);
+      if (mobState.faultCoFailed.length) sp.set("cf", mobState.faultCoFailed.join(","));
+      else sp.delete("cf");
+      if (mobState.faultConfirmedOk.length) sp.set("ok", mobState.faultConfirmedOk.join(","));
+      else sp.delete("ok");
+    } else {
+      sp.delete("fault");
+      sp.delete("cf");
+      sp.delete("ok");
+    }
     sp.delete("board");
     sp.delete("focus");
     sp.delete("ret");
@@ -3763,7 +5292,12 @@
             🗄️ Vedi Fronte Quadro Fisico (${escXml(physTarget.code)}) →
           </a>
         ` : ""}
+        <button type="button" id="btnMobFaultToggle" class="btn ${mobState.faultMode ? "btn-fault-active" : ""}" style="width:100%; justify-content:center; margin-top:7px; ${!mobState.faultMode ? "border-color:var(--cp-danger); color:var(--cp-danger);" : ""}">
+          ${mobState.faultMode ? "✕ Chiudi Catena di Guasto" : "🛠️ Ricerca Guasto: Interruttori & Fusibili a monte"}
+        </button>
       </div>
+
+      ${mobState.faultMode ? buildFaultPanelHtml(computeFaultDiagnosis(node.id, mobState.faultCoFailed, mobState.faultConfirmedOk, true), true) : ""}
 
       <div class="mob-card">
         <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--cp-link); margin-bottom:7px;">
@@ -3935,11 +5469,73 @@
           mobState.plantId = tNode.plant;
         }
         mobState.selectedNodeId = targetId;
+        mobState.faultCoFailed = [];
+        mobState.faultConfirmedOk = [];
         syncMobileUrl();
         renderMobileMain();
         window.scrollTo({ top: 0, behavior: "instant" });
       });
     });
+
+    const mobFaultBtn = document.getElementById("btnMobFaultToggle");
+    if (mobFaultBtn) {
+      mobFaultBtn.addEventListener("click", () => {
+        mobState.faultMode = !mobState.faultMode;
+        mobState.faultCoFailed = [];
+        mobState.faultConfirmedOk = [];
+        syncMobileUrl();
+        renderMobileMain();
+      });
+    }
+
+    const mobCloseFault = mainEl.querySelector("[data-close-fault]");
+    if (mobCloseFault) {
+      mobCloseFault.addEventListener("click", () => {
+        mobState.faultMode = false;
+        mobState.faultCoFailed = [];
+        mobState.faultConfirmedOk = [];
+        syncMobileUrl();
+        renderMobileMain();
+      });
+    }
+
+    mainEl.querySelectorAll("[data-diag-fail]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sid = btn.dataset.diagFail;
+        mobState.faultConfirmedOk = mobState.faultConfirmedOk.filter((x) => x !== sid);
+        if (mobState.faultCoFailed.includes(sid)) {
+          mobState.faultCoFailed = mobState.faultCoFailed.filter((x) => x !== sid);
+        } else {
+          mobState.faultCoFailed = [...mobState.faultCoFailed, sid];
+        }
+        syncMobileUrl();
+        renderMobileMain();
+      });
+    });
+
+    mainEl.querySelectorAll("[data-diag-ok]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sid = btn.dataset.diagOk;
+        mobState.faultCoFailed = mobState.faultCoFailed.filter((x) => x !== sid);
+        if (mobState.faultConfirmedOk.includes(sid)) {
+          mobState.faultConfirmedOk = mobState.faultConfirmedOk.filter((x) => x !== sid);
+        } else {
+          mobState.faultConfirmedOk = [...mobState.faultConfirmedOk, sid];
+        }
+        syncMobileUrl();
+        renderMobileMain();
+      });
+    });
+
+    const mobResetDiag = mainEl.querySelector("[data-diag-reset]");
+    if (mobResetDiag) {
+      mobResetDiag.addEventListener("click", () => {
+        mobState.faultCoFailed = [];
+        mobState.faultConfirmedOk = [];
+        syncMobileUrl();
+        renderMobileMain();
+      });
+    }
 
     mainEl.querySelectorAll("[data-mob-ext]").forEach((a) => {
       a.addEventListener("click", (e) => {
@@ -3986,10 +5582,20 @@
     const qPlant = sp.get("plant");
     const qSelect = sp.get("select");
     const qBoard = sp.get("board");
+    const qFault = sp.get("fault");
+    const qCf = sp.get("cf");
+    const qOk = sp.get("ok");
     if (qPlant && PLANT_MAP.has(qPlant)) {
       mobState.plantId = qPlant;
     }
-    if (qSelect && NODE_MAP.has(qSelect)) {
+    if (qFault && NODE_MAP.has(qFault)) {
+      mobState.selectedNodeId = qFault;
+      mobState.faultMode = true;
+      mobState.faultCoFailed = qCf ? qCf.split(",").filter(Boolean) : [];
+      mobState.faultConfirmedOk = qOk ? qOk.split(",").filter(Boolean) : [];
+      const fn = NODE_MAP.get(qFault);
+      if (!qPlant && fn.plant && PLANT_MAP.has(fn.plant)) mobState.plantId = fn.plant;
+    } else if (qSelect && NODE_MAP.has(qSelect)) {
       mobState.selectedNodeId = qSelect;
       const sn = NODE_MAP.get(qSelect);
       if (!qPlant && sn.plant && PLANT_MAP.has(sn.plant)) mobState.plantId = sn.plant;
@@ -4182,6 +5788,28 @@
       });
     });
 
+    const faultBtn = document.getElementById("btnFaultMode");
+    if (faultBtn) {
+      faultBtn.addEventListener("click", () => {
+        state.faultMode = !state.faultMode;
+        if (state.faultMode) {
+          state.faultTargetId = state.selectedNodeId;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+          state.focusedNodeId = null;
+          if (state.isFullscreen) {
+            document.getElementById("inspector").classList.remove("closed-in-fs");
+          }
+          document.getElementById("mainSplit").classList.remove("panel-hidden");
+        } else {
+          state.faultTargetId = null;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+        }
+        refreshAll();
+      });
+    }
+
     document.getElementById("btnToggleFlow").addEventListener("click", (e) => {
       state.animateFlows = !state.animateFlows;
       e.currentTarget.textContent = state.animateFlows ? "⏸ Pausa" : "▶ Avvia";
@@ -4302,6 +5930,12 @@
       } else if (e.key === "Escape") {
         if (document.getElementById("appModal").classList.contains("open")) {
           document.getElementById("appModal").classList.remove("open");
+        } else if (state.faultMode) {
+          state.faultMode = false;
+          state.faultTargetId = null;
+          state.faultCoFailed = [];
+          state.faultConfirmedOk = [];
+          refreshAll();
         } else if (state.drillBoardId) {
           exitBoardInternalMap();
         } else if (state.isFullscreen) {
