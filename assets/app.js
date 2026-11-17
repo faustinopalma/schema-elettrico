@@ -526,8 +526,22 @@
   });
 
   const UVR_24V_GATED_EDGES = new Set(["e07", "e_q6_in", "e_f1", "e53"]);
-  const NON_CAUSAL_UPSTREAM_EDGES = new Set(["e33", "e38", "e46", "e47"]);
-  const NON_KILLING_FORWARD_EDGES = new Set(["e33", "e38", "e46", "e47", "e62"]);
+  // Pure data/supervision/alarm buses & auxiliary trickle feeds that do NOT supply main electrical power to switchboards:
+  const NON_CAUSAL_UPSTREAM_EDGES = new Set([
+    "e33",  // QEPA -> IRA-CENTRALI (alarm contact)
+    "e35",  // QEREG -> QECT (BMS data/commands; QECT is 400V power board)
+    "e36",  // QEREG -> QELP (BACnet MS/TP data; QELP is 400V power board)
+    "e37",  // QEREG -> QEPC (Modbus/X4 alarms; QEPC is 800A power board under 160kW POD!)
+    "e38",  // QECI -> QEREG (alarm contact)
+    "e39",  // QEREG -> MBUS-CONTAB (supervision bus)
+    "e46",  // QEPL -> VIDEOCITOFONO (disabled WC call)
+    "e47",  // QESR -> VIDEOCITOFONO (disabled WC call)
+    "e66",  // AVSSC -> LD-POMPA-VVF (only auxiliary charger Q9; main 15kW pump is fed by QEPA)
+    "e_b1"  // BMS-SONDE-CAMPO -> QEREG (passive PT1000 temperature probes)
+  ]);
+  const NON_KILLING_FORWARD_EDGES = new Set([
+    "e33", "e35", "e36", "e37", "e38", "e39", "e46", "e47", "e66", "e_b1"
+  ]);
 
   const OBSERVABLE_SYMPTOM_CATALOG = [
     { id: "FIRE-PORTONI-EI", label: "🚪 Portoni Tagliafuoco chiusi" },
@@ -974,11 +988,6 @@
       const { id: curr, m } = queue.shift();
       if (m === "full") {
         impacted.add(curr);
-        // Hydraulic coupling: stopping groundwater well pumps (LD-FALDA) blocks water-to-water heat pumps (LD-PDC-UNITS)
-        if (curr === "LD-FALDA" && !seen.has("LD-PDC-UNITS::full")) {
-          seen.add("LD-PDC-UNITS::full");
-          queue.push({ id: "LD-PDC-UNITS", m: "full" });
-        }
       }
 
       if (curr === "UPS-2-SGANCIO" && m === "full") {
@@ -1053,14 +1062,6 @@
         seen.add("QEPC::full");
         queue.push({ id: "QEPC", mode: "full", dist: 1 });
       }
-    }
-
-    // Special case: if diagnosing LD-PDC-UNITS (geothermal water-to-water heat pumps), groundwater wells LD-FALDA are a direct hydraulic prerequisite!
-    if (targetId === "LD-PDC-UNITS") {
-      const mFalda = ensureMeta("LD-FALDA", 1);
-      mFalda.roles.add("control");
-      seen.add("LD-FALDA::full");
-      queue.push({ id: "LD-FALDA", mode: "full", dist: 1 });
     }
 
     while (queue.length > 0) {
@@ -1433,7 +1434,12 @@
       // Sort by tightest common root cause (smallest blast radius explaining all symptoms), then closest distance!
       activeSteps.sort((a, b) => (a.bestBlastSize - b.bestBlastSize) || (a.dist - b.dist));
     } else {
-      activeSteps.sort((a, b) => a.dist - b.dist);
+      // Put direct electrical power supply steps in sequential order, placing 230Vac manual shunt-trip buttons after power steps
+      const roleOrder = (s) => {
+        if (s.nodeId === "SGANCI-VVF" && !nodeMeta.get("SGANCI-VVF")?.uvr24Involved) return 1;
+        return 0;
+      };
+      activeSteps.sort((a, b) => (roleOrder(a) - roleOrder(b)) || (a.dist - b.dist));
     }
 
     const minBlast = activeSteps.length > 0 ? activeSteps[0].bestBlastSize : 9999;
@@ -1504,6 +1510,57 @@
   function getActiveFaultDiagnosis() {
     if (!state.faultMode) return null;
     return computeFaultDiagnosis();
+  }
+
+  // Enforce strict visual path connectivity on the current canvas so disconnected islands never light up!
+  function computeCanvasConnectedFaultSet(faultDiag, renderedEdges) {
+    if (!faultDiag) return { connNodes: new Set(), connEdges: new Set() };
+    const allowedNodes = new Set([faultDiag.targetId, ...faultDiag.coFailedSet]);
+    faultDiag.activeSteps.forEach((s) => allowedNodes.add(s.nodeId));
+
+    const seeds = [faultDiag.targetId, ...faultDiag.coFailedSet];
+    const presentNodeIds = new Set();
+    renderedEdges.forEach((e) => {
+      presentNodeIds.add(e.source);
+      presentNodeIds.add(e.target);
+    });
+    const activeSeeds = seeds.filter((id) => presentNodeIds.has(id));
+    if (!activeSeeds.length) {
+      return { connNodes: allowedNodes, connEdges: new Set(faultDiag.activeEdgeIds) };
+    }
+
+    const connNodes = new Set(seeds);
+    const connEdges = new Set();
+    const transitVisited = new Set(activeSeeds);
+    const allChainEdges = new Set([...faultDiag.activeEdgeIds, ...(faultDiag.ruledOutEdgeIds || [])]);
+    const q = [...activeSeeds];
+    while (q.length > 0) {
+      const cur = q.shift();
+      renderedEdges.forEach((e) => {
+        if (!allChainEdges.has(e.id)) return;
+        // Follow physical upstream chain edges on this canvas; mark allowed active suspects & active edges!
+        if (e.target === cur) {
+          if (faultDiag.activeEdgeIds.has(e.id) || allowedNodes.has(e.source)) {
+            connEdges.add(e.id);
+          }
+          if (allowedNodes.has(e.source)) {
+            connNodes.add(e.source);
+          }
+          if (!transitVisited.has(e.source)) {
+            transitVisited.add(e.source);
+            q.push(e.source);
+          }
+        } else if (cur === "GEN-FV-ROOF" && e.id === "e20" && e.source === "GEN-FV-ROOF") {
+          connEdges.add(e.id);
+          if (allowedNodes.has(e.target)) connNodes.add(e.target);
+          if (!transitVisited.has(e.target)) {
+            transitVisited.add(e.target);
+            q.push(e.target);
+          }
+        }
+      });
+    }
+    return { connNodes, connEdges };
   }
 
   // ==================== BUILD GRAPH (LEVEL 1 PLANT MAP OR LEVEL 2 INTERNAL BOARD MAP) ====================
@@ -2213,18 +2270,22 @@
       clearBtn.style.display = "none";
       const faultDiag = getActiveFaultDiagnosis();
       if (!faultDiag) return;
-      const keepNodes = new Set([faultDiag.targetId, ...faultDiag.coFailedSet]);
-      faultDiag.activeSteps.forEach((s) => keepNodes.add(s.nodeId));
+      const domEdges = [...wires].map((w) => ({
+        id: w.dataset.edgeId,
+        source: w.dataset.source,
+        target: w.dataset.target
+      }));
+      const { connNodes, connEdges } = computeCanvasConnectedFaultSet(faultDiag, domEdges);
 
       wires.forEach((w) => {
         const eid = w.dataset.edgeId;
-        if (!faultDiag.activeEdgeIds.has(eid)) {
+        if (!connEdges.has(eid)) {
           w.classList.add("dimmed");
         }
       });
       cards.forEach((c) => {
         const nid = c.dataset.nodeId;
-        if (!keepNodes.has(nid) && !c.classList.contains("fault-ruled-out")) {
+        if (!connNodes.has(nid) && !c.classList.contains("fault-ruled-out")) {
           c.classList.add("dimmed");
         }
       });
@@ -2845,6 +2906,7 @@
 
     // STEP 4: Render SVG Wires, Spaced Exit Port Dots, Arrowheads & Non-Colliding Badges
     const faultDiag = getActiveFaultDiagnosis();
+    const { connNodes: faultConnNodes, connEdges: faultConnEdges } = computeCanvasConnectedFaultSet(faultDiag, edges);
     let svgWiresHtml = "";
     const placedBadgeRects = [];
     const wireSpecs = [];
@@ -2852,8 +2914,8 @@
     // In Fault Mode, place badges for active fault-chain wires first so they never get crowded out
     const orderedRoutedEdges = faultDiag
       ? [...routedEdges].sort((a, b) => {
-          const aAct = faultDiag.activeEdgeIds.has(a.e.id) ? 0 : 1;
-          const bAct = faultDiag.activeEdgeIds.has(b.e.id) ? 0 : 1;
+          const aAct = faultConnEdges.has(a.e.id) ? 0 : 1;
+          const bAct = faultConnEdges.has(b.e.id) ? 0 : 1;
           return aAct - bAct;
         })
       : routedEdges;
@@ -2863,7 +2925,7 @@
       const cStyle = resolveCarrierStyle(e.edgeType, interrupted, pal);
       const color = cStyle.color;
       const dash = cStyle.svgDash;
-      const isFaultWire = Boolean(faultDiag && faultDiag.activeEdgeIds.has(e.id));
+      const isFaultWire = Boolean(faultDiag && faultConnEdges.has(e.id));
       const strokeW = isFaultWire ? (cStyle.width + 1.0) : cStyle.width;
 
       const dPath = buildRoundedOrthoPath(pts, 11);
@@ -2984,7 +3046,7 @@
         } else if (faultDiag.coFailedSet.has(n.id)) {
           faultCls = "fault-cofail";
           topRightChipHtml = `<span class="syn-fault-badge is-target">🔴 ANCHE FERMO</span>`;
-        } else if (fStep) {
+        } else if (fStep && (fStep.ruledOut || faultConnNodes.has(n.id))) {
           if (fStep.ruledOut) {
             faultCls = "fault-ruled-out";
             topRightChipHtml = `<span class="syn-room-chip">Escluso</span>`;
@@ -3712,14 +3774,18 @@
       clearBtn.style.display = "none";
       const faultDiag = getActiveFaultDiagnosis();
       if (!faultDiag) return;
-      const keepIds = new Set([faultDiag.targetId, ...faultDiag.coFailedSet]);
-      faultDiag.activeSteps.forEach((s) => keepIds.add(s.nodeId));
+      const cyEdgesList = cyInstance.edges().map((ed) => ({
+        id: ed.id(),
+        source: ed.source().id(),
+        target: ed.target().id()
+      }));
+      const { connNodes, connEdges } = computeCanvasConnectedFaultSet(faultDiag, cyEdgesList);
 
       cyInstance.nodes("[!isGroup]").forEach((nd) => {
-        if (!keepIds.has(nd.id())) nd.addClass("dimmed");
+        if (!connNodes.has(nd.id())) nd.addClass("dimmed");
       });
       cyInstance.edges().forEach((ed) => {
-        if (faultDiag.activeEdgeIds.has(ed.id())) {
+        if (connEdges.has(ed.id())) {
           ed.addClass("flow-highlight");
         } else {
           ed.addClass("dimmed");
