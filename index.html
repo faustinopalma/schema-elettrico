@@ -1736,6 +1736,7 @@ html.is-mobile-fallback #mobileShell {
               <label style="font-size:11.5px; font-weight:700; color:var(--cp-text-muted); margin-left:2px;" for="groupSelect">Raggruppa:</label>
               <select id="groupSelect" class="select-compact" title="Raggruppa i blocchi in contenitori dinamici">
                 <option value="none" selected>Nessun contenitore</option>
+                <option value="plant">🔌 Per Impianto</option>
                 <option value="floor">🏢 Per Piano Edificio</option>
                 <option value="room">📍 Per Stanza / Locale Fisico</option>
                 <option value="role">⚙️ Per Ruolo Funzionale</option>
@@ -1746,6 +1747,10 @@ html.is-mobile-fallback #mobileShell {
 
               <label class="btn" id="lblLivePhysics" style="cursor:pointer; border-color:var(--cp-accent); background:var(--cp-accent-soft);" title="Mantiene attivo il ribilanciamento elastico continuo mentre trascini manualmente i blocchi per districare la rete">
                 <input type="checkbox" id="chkLivePhysics" checked style="margin:0;" /> 🧲 Dinamica continua
+              </label>
+
+              <label class="btn" id="lblBridges" style="cursor:pointer;" title="Mostra nelle viste avanzate anche i blocchi degli altri impianti collegati (es. circuito Sgancio VVF 24Vac, UPS 2, QE.SSC, Pozzi di Falda, BMS)">
+                <input type="checkbox" id="chkBridges" style="margin:0;" /> 🔗 Impianti collegati
               </label>
             </div>
           </div>
@@ -1760,10 +1765,6 @@ html.is-mobile-fallback #mobileShell {
             <button id="btnFaultMode" class="btn" type="button" title="Evidenzia tutti gli interruttori, i fusibili e i quadri a monte che possono aver tolto alimentazione o consenso al punto selezionato">🛠️ Ricerca Guasto</button>
 
             <button id="btnToggleFlow" class="btn" title="Pausa o avvia il movimento delle forme sui fili">⏸ Pausa</button>
-
-            <label class="btn" id="lblBridges" style="cursor:pointer;" title="Abilita i blocchi ponte verso gli altri impianti collegati (disattivato di default)">
-              <input type="checkbox" id="chkBridges" style="margin:0;" /> 🔗 Ponti altri impianti
-            </label>
 
             <button id="btnClearFocus" class="btn" style="display:none;" title="Torna a mostrare tutti i blocchi a piena luminosità">👁️ Mostra Tutti</button>
             <button id="btnFit" class="btn" title="Centra e adatta il grafo">🎯 Centra</button>
@@ -1849,9 +1850,9 @@ html.is-mobile-fallback #mobileShell {
   <script src="./assets/vendor/cytoscape-elk.js"></script>
   <script src="./assets/vendor/cytoscape-cola.js"></script>
   <script src="./assets/vendor/cytoscape-fcose.js"></script>
-  <script src="./assets/data/impianto_data.js?v=20261117e"></script>
-  <script src="./assets/data/pannelli_fisici_data.js?v=20261117e"></script>
-  <script src="./assets/nav_history.js?v=20261117e"></script>
-  <script src="./assets/app.js?v=20261117e"></script>
+  <script src="./assets/data/impianto_data.js?v=20261118a"></script>
+  <script src="./assets/data/pannelli_fisici_data.js?v=20261118a"></script>
+  <script src="./assets/nav_history.js?v=20261118a"></script>
+  <script src="./assets/app.js?v=20261118a"></script>
 </body>
 </html>

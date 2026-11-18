@@ -10981,6 +10981,16 @@ window.IMPIANTO_DATA = {
       "flowCategory": "⚡ Energia"
     },
     {
+      "id": "e_falda_pdc",
+      "source": "LD-FALDA",
+      "target": "LD-PDC-UNITS",
+      "edgeType": "bms_bus",
+      "plant": "IMP-PDC",
+      "tier": 2,
+      "label": "Acqua di Falda P.10/P.11 (Consenso Portata PdC)",
+      "flowCategory": "💧 Consenso Acqua Falda"
+    },
+    {
       "id": "e61",
       "source": "QESCA",
       "target": "LD-ROOF-A",

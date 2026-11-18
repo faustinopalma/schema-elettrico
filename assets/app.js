@@ -177,7 +177,12 @@
       b.classList.toggle("active", b.dataset.opstate === state.opState);
     });
     const chkB = document.getElementById("chkBridges");
+    const lblB = document.getElementById("lblBridges");
     if (chkB) chkB.checked = Boolean(state.showBridges);
+    if (lblB) {
+      lblB.style.borderColor = state.showBridges ? "var(--cp-accent)" : "var(--cp-border)";
+      lblB.style.background = state.showBridges ? "var(--cp-accent-soft)" : "var(--cp-surface)";
+    }
     const chkL = document.getElementById("chkLivePhysics");
     const lblL = document.getElementById("lblLivePhysics");
     if (chkL) chkL.checked = Boolean(state.livePhysics);
@@ -195,7 +200,7 @@
 
   function applyStateFromUrlParams(sp) {
     const validViews = new Set(["synoptic", "elk", "cola", "fcose", "dagre"]);
-    const validGroups = new Set(["none", "floor", "room", "role", "safety"]);
+    const validGroups = new Set(["none", "plant", "floor", "room", "role", "safety"]);
 
     const qPlant = sp.get("plant");
     const qBoard = sp.get("board");
@@ -324,7 +329,7 @@
     "Q6-BOX-SEC", "QELP", "AVSCA", "QESCA", "AVSCB", "QESCB", "AVPC", "QEPC", "GEN-FV-ROOF", "FV-TETTO-A", "FV-TETTO-B", "UPS-1-EI"
   ]);
   const TRIPPED_EDGE_IDS_IN_EMERGENCY = new Set([
-    "e07", "e_q6_in", "e_box_p1", "e_box_p2", "e52", "e53", "e_f1", "e20", "e_fv_a", "e_fv_b"
+    "e07", "e_q6_in", "e_box_p1", "e_box_p2", "e52", "e53", "e_f1", "e20", "e_fv_a", "e_fv_b", "e_falda_pdc"
   ]);
 
   const state = {
@@ -794,12 +799,15 @@
         if (!picked.has(c.id)) {
           const cls = c.kind === "spd" ? { category: "relay", icon: "⚡", sortRank: 1 } : classifyPanelComp(c, isMainSw);
           const hasUvr = (c.ratingBadge || "").includes("UVR") || (c.ratingBadge || "").includes("24V") || (c.whatItDoes || "").toLowerCase().includes("minima tensione");
+          const defaultBadge = (c.id === "F3" && pObj.slug === "qe-ssc")
+            ? "F3 (4A 24V)"
+            : (hasUvr && c.kind !== "fuse" && c.kind !== "contactor" ? `${c.id} [UVR]` : c.id);
           picked.set(c.id, {
             id: c.id,
             category: cls.category,
             icon: cls.icon,
             sortRank: cls.sortRank,
-            badgeText: customBadge || (hasUvr && c.kind !== "fuse" && c.kind !== "contactor" ? `${c.id} [UVR]` : c.id),
+            badgeText: customBadge || defaultBadge,
             shortLabel: c.shortLabel || "",
             ratingBadge: c.ratingBadge || "",
             bayLabel: c.bayLabel || "",
@@ -1480,8 +1488,13 @@
       // Sort by tightest common root cause (smallest blast radius explaining all symptoms), then closest distance!
       activeSteps.sort((a, b) => (a.bestBlastSize - b.bestBlastSize) || (a.dist - b.dist));
     } else {
-      // Group electrical power boards with breakers/fuses ahead of passive PV strings and manual 230Vac shunt-trip buttons
+      // Group direct electrical power boards ahead of cross-plant hydraulic/VVF interlocks, passive PV strings, and 230Vac shunt-trip buttons
       const roleOrder = (s) => {
+        if (targetId === "LD-PDC-UNITS") {
+          if (s.node.plant === "IMP-PDC" || s.nodeId === "RETE-DISTRIBUTORE") return 0;
+          if (s.nodeId === "SGANCI-VVF" || s.nodeId === "UPS-2-SGANCIO") return 2;
+          return 1;
+        }
         if (s.nodeId === "FV-TETTO-A" || s.nodeId === "FV-TETTO-B") return 1;
         if (s.nodeId === "SGANCI-VVF" && !nodeMeta.get("SGANCI-VVF")?.uvr24Involved) return 2;
         return 0;
@@ -1645,91 +1658,90 @@
       }
     }
 
-    // LEVEL 1A: "0. Mappa Ingressi & Tutti i Contatori"
+    // LEVEL 1: Meters Overview ("IMP-INGRESSI") or Specific Plant (1..8)
+    // Connected-plants bridges (state.showBridges) apply strictly in Advanced Graph Views (ELK, Cola, fCoSE, Dagre), on ALL tabs including IMP-INGRESSI!
     const pid = state.activePlant;
+    const isAdvGraph = state.layoutEngine !== "synoptic";
+    const bridgesActive = Boolean(state.showBridges) && isAdvGraph;
     const nodes = [];
     const edges = [];
     const includedIds = new Set();
 
-    if (pid === "IMP-INGRESSI") {
-      DATA.nodes.forEach((n) => {
-        if (METERS_OVERVIEW_IDS.has(n.id)) {
-          nodes.push({ ...n, isBridge: false });
-          includedIds.add(n.id);
-        }
-      });
+    const plantOwnNodes = pid === "IMP-INGRESSI"
+      ? DATA.nodes.filter((n) => METERS_OVERVIEW_IDS.has(n.id) && n.nodeClass !== "doc_reference")
+      : DATA.nodes.filter((n) => n.plant === pid && n.tier <= 2 && n.nodeClass !== "doc_reference");
+    const ownSet = new Set(plantOwnNodes.map((n) => n.id));
+
+    const ensureGraphNode = (nid) => {
+      if (!nid || includedIds.has(nid)) return;
+      const nd = NODE_MAP.get(nid);
+      if (!nd || nd.nodeClass === "doc_reference") return;
+      nodes.push({ ...nd, isBridge: !ownSet.has(nd.id) });
+      includedIds.add(nd.id);
+    };
+
+    plantOwnNodes.forEach((n) => {
+      nodes.push({ ...n, isBridge: false });
+      includedIds.add(n.id);
+    });
+
+    if (bridgesActive) {
+      // 1-hop cross-plant connected blocks
       DATA.edges.forEach((e) => {
         if (e.edgeType === "doc_trace") return;
-        if (includedIds.has(e.source) && includedIds.has(e.target)) {
-          edges.push({ ...e });
-        }
-      });
-    } else {
-      // LEVEL 1B: Specific Plant (1..8) — Bridges strictly OFF by default unless state.showBridges === true (or selectively pulled in by Fault Mode)!
-      const plantOwnNodes = DATA.nodes.filter((n) => n.plant === pid && n.tier <= 2 && n.nodeClass !== "doc_reference");
-      const ownSet = new Set(plantOwnNodes.map((n) => n.id));
-
-      plantOwnNodes.forEach((n) => {
-        nodes.push({ ...n, isBridge: false });
-        includedIds.add(n.id);
-      });
-
-      // When Fault Mode is active, selectively include upstream chain nodes across plants so the full chain is visible!
-      let faultChainNodes = null;
-      let faultChainEdges = null;
-      if (state.faultMode && !state.drillBoardId) {
-        const tId = state.faultTargetId || state.selectedNodeId;
-        if (NODE_MAP.has(tId)) {
-          const raw = traceUpstreamRawLevel1(tId);
-          faultChainNodes = new Set([...raw.nodeMeta.keys(), ...(state.faultCoFailed || [])]);
-          faultChainEdges = raw.activeEdges;
-          if (state.layoutEngine !== "synoptic") {
-            // In dynamic Cytoscape graphs, include ALL cross-plant chain nodes even multiple hops away!
-            faultChainNodes.forEach((cid) => {
-              const cn = NODE_MAP.get(cid);
-              if (cn && !includedIds.has(cn.id)) {
-                nodes.push({ ...cn, isBridge: !ownSet.has(cn.id) });
-                includedIds.add(cn.id);
-              }
-            });
-          } else {
-            // In static Synoptic mode, include any chain node that has an explicit pre-validated slot on this plant's board!
-            const synSlots = (SYNOPTIC_SCHEMAS[pid] && SYNOPTIC_SCHEMAS[pid].slots) || {};
-            faultChainNodes.forEach((cid) => {
-              const cn = NODE_MAP.get(cid);
-              if (cn && !includedIds.has(cn.id) && synSlots[cn.id]) {
-                nodes.push({ ...cn, isBridge: true });
-                includedIds.add(cn.id);
-              }
-            });
-          }
-        }
-      }
-
-      DATA.edges.forEach((e) => {
-        if (e.edgeType === "doc_trace") return;
-        const srcNode = NODE_MAP.get(e.source);
-        const tgtNode = NODE_MAP.get(e.target);
-        if (!srcNode || !tgtNode) return;
-
         const sOwn = ownSet.has(e.source);
         const tOwn = ownSet.has(e.target);
-
-        if (sOwn && tOwn) {
-          edges.push({ ...e });
-        } else if (state.showBridges && (sOwn || tOwn || e.plant === pid)) {
-          [srcNode, tgtNode].forEach((endN) => {
-            if (!includedIds.has(endN.id)) {
-              nodes.push({ ...endN, isBridge: true });
-              includedIds.add(endN.id);
-            }
-          });
-          edges.push({ ...e });
-        } else if (faultChainNodes && includedIds.has(e.source) && includedIds.has(e.target) && (faultChainEdges.has(e.id) || sOwn || tOwn)) {
-          edges.push({ ...e });
+        if (sOwn || tOwn || (pid !== "IMP-INGRESSI" && e.plant === pid)) {
+          ensureGraphNode(e.source);
+          ensureGraphNode(e.target);
         }
       });
+      // Complete multi-hop functional bridges for Geothermal Falda -> Heat Pumps and 24Vac VVF release loop (UPS-2 + QE.SSC F3)
+      if (includedIds.has("LD-FALDA")) {
+        ["QELP", "QESSC", "SGANCI-VVF", "UPS-2-SGANCIO"].forEach(ensureGraphNode);
+      }
+      if (includedIds.has("SGANCI-VVF")) {
+        ["UPS-2-SGANCIO", "QESSC"].forEach(ensureGraphNode);
+      }
     }
+
+    // When Fault Mode is active, selectively include upstream chain nodes across plants so the full chain is visible!
+    let faultChainNodes = null;
+    let faultChainEdges = null;
+    if (state.faultMode && !state.drillBoardId) {
+      const tId = state.faultTargetId || state.selectedNodeId;
+      if (NODE_MAP.has(tId)) {
+        const raw = traceUpstreamRawLevel1(tId);
+        faultChainNodes = new Set([...raw.nodeMeta.keys(), ...(state.faultCoFailed || [])]);
+        faultChainEdges = raw.activeEdges;
+        if (isAdvGraph) {
+          // In dynamic Cytoscape graphs (including on IMP-INGRESSI!), include ALL cross-plant chain nodes even multiple hops away!
+          faultChainNodes.forEach((cid) => ensureGraphNode(cid));
+        } else {
+          // In static Synoptic mode, include any chain node that has an explicit pre-validated slot on this plant's board!
+          const synSlots = (SYNOPTIC_SCHEMAS[pid] && SYNOPTIC_SCHEMAS[pid].slots) || {};
+          faultChainNodes.forEach((cid) => {
+            if (synSlots[cid]) ensureGraphNode(cid);
+          });
+        }
+      }
+    }
+
+    DATA.edges.forEach((e) => {
+      if (e.edgeType === "doc_trace") return;
+      if (!includedIds.has(e.source) || !includedIds.has(e.target)) return;
+
+      const sOwn = ownSet.has(e.source);
+      const tOwn = ownSet.has(e.target);
+
+      if (sOwn && tOwn) {
+        edges.push({ ...e });
+      } else if (bridgesActive) {
+        edges.push({ ...e });
+      } else if (faultChainNodes && (faultChainEdges.has(e.id) || (pid !== "IMP-INGRESSI" && (sOwn || tOwn)))) {
+        edges.push({ ...e });
+      }
+    });
 
     const inDeg = new Map();
     const outDeg = new Map();
@@ -1765,6 +1777,10 @@
       return { id: "IGRP_" + node.roleGroup, label: node.roleGroup };
     }
     if (state.groupBy === "none") return null;
+    if (state.groupBy === "plant") {
+      const pl = PLANT_MAP.get(node.plant) || { id: node.plant, shortName: node.plant, name: node.plant };
+      return { id: "GRP_PL_" + pl.id, label: `🔌 ${pl.name || pl.shortName}` };
+    }
     if (state.groupBy === "floor") {
       const fl = FLOOR_MAP.get(node.floor) || { id: node.floor, name: node.floor, elev: "" };
       return { id: "GRP_FL_" + fl.id, label: `🏢 ${fl.name} (${fl.elev})` };
@@ -2380,11 +2396,10 @@
       bc.classList.add("active");
       document.getElementById("drillTitle").textContent = `🔬 Dentro il Quadro: ${parentBoard.code} — ${parentBoard.label}`;
       document.getElementById("drillSubtitle").textContent = `Schema sinottico a sbarra dei componenti interni (${nodes.length} componenti · ${edges.length} collegamenti)`;
-      document.getElementById("lblBridges").style.display = "none";
     } else {
       bc.classList.remove("active");
-      document.getElementById("lblBridges").style.display = state.activePlant === "IMP-INGRESSI" ? "none" : "inline-flex";
     }
+    document.getElementById("lblBridges").style.display = "none";
     syncDrillBreadcrumbPhysicalBtn(isInternal, parentBoard);
 
     if (!nodes.some((n) => n.id === state.selectedNodeId)) {
@@ -3495,7 +3510,7 @@
     const pal = getPalette();
     const { nodes, edges, isInternal, parentBoard } = computeCurrentGraph();
 
-    // Update breadcrumb bar & bridges checkbox visibility
+    // Update breadcrumb bar & bridges checkbox visibility (shown in ALL Advanced Graph Views on Level 1, including IMP-INGRESSI!)
     const bc = document.getElementById("drillBreadcrumb");
     if (isInternal && parentBoard) {
       bc.classList.add("active");
@@ -3504,7 +3519,7 @@
       document.getElementById("lblBridges").style.display = "none";
     } else {
       bc.classList.remove("active");
-      document.getElementById("lblBridges").style.display = state.activePlant === "IMP-INGRESSI" ? "none" : "inline-flex";
+      document.getElementById("lblBridges").style.display = "inline-flex";
     }
     syncDrillBreadcrumbPhysicalBtn(isInternal, parentBoard);
 
@@ -4373,6 +4388,26 @@
       </details>
     ` : "";
 
+    const hasCrossPlantSteps = !isMobile && !faultDiag.isInternal && faultDiag.activeSteps.some((s) => s.node.plant && s.node.plant !== state.activePlant);
+    const pdcSwitchboardCrossNote = (!faultDiag.isInternal && (faultDiag.targetId === "QEPC" || faultDiag.targetId === "AVPC")) ? `
+      <div style="margin-bottom:9px; padding:8px 10px; border-radius:8px; border:1px solid var(--cp-warning); background:color-mix(in srgb, var(--cp-warning) 10%, var(--cp-surface)); font-size:11.6px; line-height:1.38;">
+        <strong>💡 Nota sulle Pompe di Calore e sul circuito VVF:</strong> su <span class="mono">AVPC</span> (<span class="mono">Q1</span>) e <span class="mono">QE.PC</span> (<span class="mono">Q2–Q4</span>) le bobine sono a <em>lancio di corrente 230 Vac (SOR)</em>, quindi un fusibile bruciato sul 24 Vac VVF lascia i 400 V presenti nel quadro. Se però le <strong>Pompe di Calore non si accendono</strong>, la rottura del fusibile <strong>🧨 F3 (4A 24Vac VVF)</strong> in <span class="mono">QE.SSC</span> apre <span class="mono">Q5 [UVR]</span> fermando i <strong>Pozzi di Falda (QE.LP)</strong> e mandando le macchine in blocco portata acqua.
+        <div style="margin-top:6px;">
+          <button type="button" class="btn btn-primary" style="font-size:11px; padding:3px 9px;" ${isMobile ? 'data-mob-fault-target="LD-PDC-UNITS"' : 'data-fault-switch-target="LD-PDC-UNITS"'}>
+            🔎 Estendi diagnosi a PC1+PC2A+PC2B (include Falda &amp; Fusibile VVF 24V) →
+          </button>
+        </div>
+      </div>
+    ` : "";
+
+    const openBridgesGraphBtnHtml = (hasCrossPlantSteps && (state.layoutEngine === "synoptic" || !state.showBridges)) ? `
+      <div style="margin-bottom:9px;">
+        <button type="button" class="btn" style="width:100%; justify-content:center; font-size:11.5px; border-color:var(--cp-accent); color:var(--cp-accent);" data-fault-open-bridges-graph="1">
+          🕸️ Vedi gli impianti collegati insieme nel Grafo interattivo →
+        </button>
+      </div>
+    ` : "";
+
     return `
       <div class="fault-panel">
         <div class="fault-panel-hdr">
@@ -4397,6 +4432,8 @@
             <span class="fault-kpi-chip">🗄️ ${faultDiag.activeSteps.length} Quadri/Punti a monte</span>
           </div>
 
+          ${pdcSwitchboardCrossNote}
+          ${openBridgesGraphBtnHtml}
           ${diagBoxHtml}
 
           <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--cp-text-muted); margin:0 0 6px;">
@@ -4796,6 +4833,33 @@
         state.drillBoardId = null;
         state.activePlant = btn.dataset.faultJumpPlant;
         if (btn.dataset.faultJumpNode) state.selectedNodeId = btn.dataset.faultJumpNode;
+        refreshAll();
+      });
+    });
+
+    body.querySelectorAll("[data-fault-switch-target]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextId = btn.dataset.faultSwitchTarget;
+        const tgt = NODE_MAP.get(nextId);
+        if (!tgt) return;
+        pushIntraAppStep();
+        state.drillBoardId = null;
+        state.activePlant = tgt.plant;
+        state.selectedNodeId = tgt.id;
+        state.faultMode = true;
+        state.faultTargetId = tgt.id;
+        state.faultCoFailed = [];
+        state.faultConfirmedOk = [];
+        refreshAll();
+      });
+    });
+
+    body.querySelectorAll("[data-fault-open-bridges-graph]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pushIntraAppStep();
+        if (state.layoutEngine === "synoptic") state.layoutEngine = "elk";
+        state.showBridges = true;
+        syncToolbarControlsFromState();
         refreshAll();
       });
     });
@@ -5697,6 +5761,31 @@
       });
     }
 
+    mainEl.querySelectorAll("[data-mob-fault-target]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextId = btn.dataset.mobFaultTarget;
+        const tgt = NODE_MAP.get(nextId);
+        if (!tgt) return;
+        const prevNode = mobState.selectedNodeId ? NODE_MAP.get(mobState.selectedNodeId) : null;
+        mobState.history.push({
+          tab: mobState.tab,
+          plantId: mobState.plantId,
+          selectedNodeId: mobState.selectedNodeId,
+          label: prevNode ? `Torna a ${prevNode.code}` : "Torna all'elenco",
+          scrollY: window.scrollY || 0
+        });
+        mobState.tab = "plants";
+        mobState.plantId = tgt.plant;
+        mobState.selectedNodeId = tgt.id;
+        mobState.faultMode = true;
+        mobState.faultCoFailed = [];
+        mobState.faultConfirmedOk = [];
+        syncMobileUrl();
+        renderMobileMain();
+        window.scrollTo({ top: 0, behavior: "instant" });
+      });
+    });
+
     mainEl.querySelectorAll("[data-mob-ext]").forEach((a) => {
       a.addEventListener("click", (e) => {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
@@ -5977,6 +6066,7 @@
 
     document.getElementById("chkBridges").addEventListener("change", (e) => {
       state.showBridges = e.target.checked;
+      syncToolbarControlsFromState();
       renderCytoscape(true);
       syncUrlWithState();
     });
